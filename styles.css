@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Forum&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Forum&family=Courier+Prime:wght@400;700&display=swap');
 
 * {
     margin: 0;
@@ -87,8 +87,9 @@ body {
 .nav-links a {
     text-decoration: none;
     color: var(--text-dark);
-    font-weight: 500;
+    font-weight: 400;
     font-size: 15px;
+    font-family: 'Courier Prime', monospace;
     transition: color 0.3s;
 }
 
@@ -149,7 +150,8 @@ body {
     padding: 10px 20px;
     border-radius: 24px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 400;
+    font-family: 'Courier Prime', monospace;
     margin-bottom: 32px;
     border: 1px solid rgba(255, 107, 122, 0.2);
 }
