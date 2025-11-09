@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShotSync - AI-Powered Shot Creation Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect width="32" height="32" rx="6" fill="#FF6B7A"/>
+                        <path d="M16 8L20 12L16 16L12 12L16 8Z" fill="white"/>
+                        <path d="M12 16L16 20L20 16L16 12L12 16Z" fill="white" opacity="0.7"/>
+                    </svg>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#demo">Get Demo</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#faq">FAQ</a></li>
+                </ul>
+                <button class="btn-glassy">Get Started</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero hero-gradient-grid">
+        <canvas id="hero-canvas" class="hero-canvas" style="display: none;"></canvas>
+        <div class="container hero-content">
+            <div class="badge">Introducing Your AI Sports Companion</div>
+            <h1 class="hero-title">
+                Your complete platform for <span class="highlight">AI Sports Shot Creation.</span>
+            </h1>
+            <p class="hero-subtitle">
+                We connect athletes, coaches, and content creators through intelligent shot creation and comprehensive analytics powered by AI.
+            </p>
+            <button class="btn-glassy-primary">ShotSync</button>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="demo" id="demo">
+        <div class="container">
+            <h2 class="section-title">See ShotSync in Action</h2>
+            <p class="section-subtitle">Watch how our AI analyzes shooting form in real-time</p>
+
+            <div class="video-container">
+                <!-- Replace the src with your actual video URL -->
+                <!-- YouTube: https://www.youtube.com/embed/YOUR_VIDEO_ID -->
+                <!-- Vimeo: https://player.vimeo.com/video/YOUR_VIDEO_ID -->
+                <!-- Or upload a video file and use: <video src="your-video.mp4" controls></video> -->
+
+                <div class="video-placeholder">
+                    <div class="video-placeholder-content">
+                        <div class="video-icon">▶️</div>
+                        <p>Demo Video Coming Soon</p>
+                        <p class="video-instructions">Replace this with your demo video embed</p>
+                    </div>
+                </div>
+
+                <!-- Example YouTube embed (uncomment and add your video ID): -->
+                <!-- <iframe
+                    width="100%"
+                    height="100%"
+                    src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe> -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits">
+        <canvas class="section-canvas"></canvas>
+        <div class="container">
+            <h2 class="section-title">Benefits</h2>
+            <p class="section-subtitle">Focus on how it helps user instead of what features it has</p>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="https://img.icons8.com/fluency/96/microscope.png" alt="biomechanics icon"/>
+                    </div>
+                    <h3>Advanced Biomechanics</h3>
+                    <p>Industry-first AI biomechanical analysis compares your shooting form to the pros with pinpoint accuracy.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="https://img.icons8.com/fluency/96/camera.png" alt="precision icon"/>
+                    </div>
+                    <h3>Precision Tracking</h3>
+                    <p>Advanced AI identifies key moments and angles automatically for perfect shot composition.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="https://img.icons8.com/fluency/96/lightning-bolt.png" alt="speed icon"/>
+                    </div>
+                    <h3>Instant Results</h3>
+                    <p>Get your similarity score and detailed breakdown in seconds, not hours.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <canvas class="section-canvas"></canvas>
+        <div class="container">
+            <h2 class="section-title">How it works?</h2>
+            <p class="section-subtitle">Explain how to get started with the product in 3 simple steps</p>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Choose Your Player</h3>
+                    <p>Select the professional player whose shooting form you want to emulate and learn from.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Record Your Shot</h3>
+                    <p>Use your device to record your shooting form and technique from the same angle.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Receive Results via Email</h3>
+                    <p>Get detailed analysis and comparison results delivered straight to your inbox.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section - Live Twitter Wall -->
+    <section class="testimonials">
+        <canvas class="section-canvas"></canvas>
+        <div class="container">
+            <h2 class="section-title">See What Athletes Are Sharing</h2>
+            <p class="section-subtitle">Athletes worldwide are sharing their similarity scores with <strong>#rooted</strong></p>
+
+            <!-- Twitter Wall Container -->
+            <div class="twitter-wall-container">
+                <div id="twitter-wall" class="twitter-wall">
+                    <!-- Selected tweets will be displayed here -->
+                    <div class="tweet-placeholder">
+                        <p>🐦 Loading tweets with #rooted...</p>
+                        <p class="tweet-instructions">Share your similarity score on Twitter with <strong>#rooted</strong> to be featured here!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="twitter-cta">
+                <p class="twitter-share-text">Got your similarity score? Share it with the community!</p>
+                <a href="https://twitter.com/intent/tweet?text=Just%20got%20my%20shot%20similarity%20score%20from%20%40ShotSync!%20%23rooted&url=https://shotsync.com"
+                   target="_blank"
+                   class="btn-tweet">
+                    Share Your Score on Twitter
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feedback Section -->
+    <section class="faq" id="faq">
+        <canvas class="section-canvas"></canvas>
+        <div class="container">
+            <h2 class="section-title">We'd Love Your Feedback</h2>
+            <p class="section-subtitle">Help us build the perfect tool for athletes like you</p>
+
+            <!-- Typeform Embed -->
+            <div class="typeform-container">
+                <iframe src="https://form.typeform.com/to/wUkR5vhP" frameborder="0" style="width:100%;height:600px;"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <canvas class="section-canvas"></canvas>
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to create amazing shots?</h2>
+                <p>Join thousands of athletes and coaches using ShotSync to create professional content</p>
+                <button class="btn-glassy">Get Started Free</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h4>About</h4>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Help</h4>
+                    <ul>
+                        <li><a href="#">Support</a></li>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Newsletter</h4>
+                    <p>Stay updated with the latest features</p>
+                    <div class="newsletter-form">
+                        <input type="email" placeholder="Enter your email">
+                        <button>Subscribe</button>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 ShotSync. All rights reserved.</p>
+                <div class="social-links">
+                    <a href="#">Twitter</a>
+                    <a href="#">LinkedIn</a>
+                    <a href="#">Instagram</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="twitter-wall.js"></script>
+</body>
+</html>
