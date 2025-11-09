@@ -103,8 +103,9 @@ body {
     border: none;
     padding: 12px 28px;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 15px;
+    font-family: 'Courier Prime', monospace;
     cursor: pointer;
     transition: all 0.3s;
 }
@@ -185,8 +186,9 @@ body {
     border: 2px solid var(--primary-color);
     padding: 16px 48px;
     border-radius: 30px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 16px;
+    font-family: 'Courier Prime', monospace;
     cursor: pointer;
     transition: all 0.3s;
 }
@@ -459,8 +461,9 @@ body {
     background: var(--bg-white);
     color: var(--primary-color);
     border-radius: 10px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 16px;
+    font-family: 'Courier Prime', monospace;
     cursor: pointer;
     transition: all 0.3s;
     margin-bottom: 32px;
@@ -628,8 +631,9 @@ body {
     color: white;
     padding: 16px 48px;
     border-radius: 30px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 16px;
+    font-family: 'Courier Prime', monospace;
     text-decoration: none;
     transition: all 0.3s;
 }
@@ -714,6 +718,7 @@ section .container {
     border-radius: 12px;
     font-weight: 700;
     font-size: 16px;
+    font-family: 'Courier Prime', monospace;
     cursor: pointer;
     transition: all 0.3s;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -796,7 +801,8 @@ section .container {
     border: none;
     border-radius: 8px;
     color: white;
-    font-weight: 600;
+    font-weight: 700;
+    font-family: 'Courier Prime', monospace;
     cursor: pointer;
     transition: background 0.3s;
 }
@@ -908,8 +914,9 @@ section .container {
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     padding: 12px 28px;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 15px;
+    font-family: 'Courier Prime', monospace;
     cursor: pointer;
     color: white;
 }
@@ -930,8 +937,9 @@ section .container {
     box-shadow: 0 8px 32px 0 rgba(255, 107, 122, 0.2);
     padding: 16px 48px;
     border-radius: 30px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 16px;
+    font-family: 'Courier Prime', monospace;
     cursor: pointer;
 }
 
