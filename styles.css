@@ -311,6 +311,10 @@ body {
     border-radius: 16px;
     transition: transform 0.3s, box-shadow 0.3s;
     border: 1px solid rgba(255, 107, 122, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
 }
 
 .benefit-card:hover {
@@ -318,21 +322,69 @@ body {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 }
 
+.benefit-card-highlighted {
+    border: 2px solid var(--primary-color);
+    background: hsl(var(--card));
+}
+
 .benefit-icon {
     font-size: 48px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+}
+
+.benefit-icon img {
+    width: 64px;
+    height: 64px;
 }
 
 .benefit-card h3 {
-    font-size: 24px;
-    margin-bottom: 12px;
-    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 16px;
+    font-weight: 700;
+    font-family: 'Courier Prime', monospace;
     color: hsl(var(--foreground));
+    letter-spacing: 1px;
 }
 
-.benefit-card p {
+.card-divider {
+    width: 80%;
+    border: none;
+    border-top: 1px solid rgba(255, 107, 122, 0.3);
+    margin: 16px 0 24px 0;
+}
+
+.card-content {
+    width: 100%;
+    text-align: left;
+}
+
+.card-content p {
     color: hsl(var(--muted-foreground));
-    line-height: 1.6;
+    line-height: 1.8;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.feature-list {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 12px;
+}
+
+.feature-list li {
+    color: hsl(var(--muted-foreground));
+    line-height: 1.8;
+    margin-bottom: 6px;
+    padding-left: 20px;
+    position: relative;
+}
+
+.feature-list li::before {
+    content: "•";
+    color: var(--primary-color);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
 }
 
 /* How It Works Section */
