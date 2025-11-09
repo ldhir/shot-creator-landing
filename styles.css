@@ -293,9 +293,10 @@ body {
 
 .benefit-card {
     padding: 40px;
-    background: var(--bg-light);
+    background: hsl(var(--muted));
     border-radius: 16px;
     transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid rgba(255, 107, 122, 0.1);
 }
 
 .benefit-card:hover {
