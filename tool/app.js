@@ -1480,8 +1480,8 @@ async function sendEmailAutomatically(data) {
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5;">
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h1 style="color: #667eea; margin-top: 0; text-align: center;">🏀 Shot Sync</h1>
-            <h2 style="color: #333; text-align: center; font-size: 24px;">Thank You for Using Shot Sync!</h2>
+            <h1 style="color: #667eea; margin-top: 0; text-align: center;">🏀 ShotSync</h1>
+            <h2 style="color: #333; text-align: center; font-size: 24px;">Thank You for Using ShotSync!</h2>
             
             <p style="font-size: 16px;">Hi ${userInfo.firstName},</p>
             <p>We're excited to share your personalized shot analysis results with you. Here's everything you need to improve your basketball shooting form:</p>
@@ -1506,10 +1506,10 @@ async function sendEmailAutomatically(data) {
             </div>
             
             <p style="margin-top: 30px; color: #666; font-size: 14px;">We hope this analysis helps you take your game to the next level!</p>
-            <p style="margin-top: 20px;">Best regards,<br><strong>The Shot Sync Team</strong></p>
-            
+            <p style="margin-top: 20px;">Best regards,<br><strong>The ShotSync Team</strong></p>
+
             <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-            <p style="text-align: center; color: #999; font-size: 12px;">Shot Sync - Your Basketball Shot Analysis Partner</p>
+            <p style="text-align: center; color: #999; font-size: 12px;">ShotSync - Your Basketball Shot Analysis Partner</p>
         </div>
     </div>
 </body>
@@ -1520,7 +1520,7 @@ async function sendEmailAutomatically(data) {
         const templateParams = {
             to_email: userInfo.email,
             to_name: userInfo.firstName,
-            subject: `Your Shot Sync Analysis Results - ${userInfo.firstName}!`,
+            subject: `Your ShotSync Analysis Results - ${userInfo.firstName}!`,
             message: htmlContent,
             html_content: htmlContent
         };
