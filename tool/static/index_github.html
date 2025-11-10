@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shot Sync - Basketball Shot Analysis</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>🏀 Shot Sync</h1>
+                <p class="tagline">Professional Basketball Shot Analysis</p>
+                <p class="subtitle">Record your shot and compare it to a benchmark</p>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Step 0: User Information -->
+            <section id="step0" class="step active">
+                <h2>Get Started</h2>
+                <p>Enter your information below to receive your personalized shot analysis results via email.</p>
+                <form id="userInfoForm" class="email-form-section">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <button type="submit" id="startAnalysisBtn" class="btn btn-primary">Start Analysis</button>
+                </form>
+            </section>
+
+            <!-- Step 0.5: Player Selection -->
+            <section id="step0_5" class="step" style="display: none;">
+                <h2>Choose Your Benchmark</h2>
+                <p>Compare your shot to a professional player or create your own custom benchmark.</p>
+                <div class="player-selection">
+                    <div class="player-grid">
+                        <button class="player-btn" data-player="curry">
+                            <div class="player-number">30</div>
+                            <div class="player-name">Stephen Curry</div>
+                            <div class="player-position">Guard</div>
+                        </button>
+                        <button class="player-btn" data-player="lebron">
+                            <div class="player-number">23</div>
+                            <div class="player-name">LeBron James</div>
+                            <div class="player-position">Forward</div>
+                        </button>
+                        <button class="player-btn" data-player="jordan">
+                            <div class="player-number">23</div>
+                            <div class="player-name">Michael Jordan</div>
+                            <div class="player-position">Guard</div>
+                        </button>
+                        <button class="player-btn" data-player="durant">
+                            <div class="player-number">35</div>
+                            <div class="player-name">Kevin Durant</div>
+                            <div class="player-position">Forward</div>
+                        </button>
+                        <button class="player-btn" data-player="clark">
+                            <div class="player-number">22</div>
+                            <div class="player-name">Caitlin Clark</div>
+                            <div class="player-position">Guard</div>
+                        </button>
+                        <button class="player-btn custom-btn" data-player="custom">
+                            <div class="player-icon-custom">+</div>
+                            <div class="player-name">Custom Benchmark</div>
+                            <div class="player-description">Record your own ideal form</div>
+                        </button>
+                    </div>
+                    <div class="custom-explanation" id="customExplanation" style="display: none;">
+                        <p><strong>Custom Benchmark:</strong> First, record your ideal shooting form (the benchmark). Then record your shot to compare against it. This helps you establish your personal baseline and track improvement over time.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 1: Record Benchmark -->
+            <section id="step1" class="step" style="display: none;">
+                <h2 id="step1Title">Step 1: Record Benchmark Shot</h2>
+                <p>Record a reference shot to use as your benchmark for comparison.</p>
+                <div class="video-container">
+                    <video id="benchmarkVideo" autoplay playsinline></video>
+                    <canvas id="benchmarkCanvas" style="display: none;"></canvas>
+                    <canvas id="benchmarkOutput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+                </div>
+                <div class="controls">
+                    <button id="startBenchmark" class="btn btn-primary">Start Recording</button>
+                    <button id="stopBenchmark" class="btn btn-secondary" disabled>Stop Recording</button>
+                    <button id="retakeBenchmark" class="btn btn-warning" style="display: none;">Retake</button>
+                </div>
+                <div id="benchmarkStatus" class="status"></div>
+            </section>
+
+            <!-- Step 2: Record User Shot -->
+            <section id="step2" class="step" style="display: none;">
+                <h2 id="step2Title">Step 2: Record Your Shot</h2>
+                <p>Now record your own shot. We'll compare it to the benchmark and analyze your form.</p>
+                <div class="video-container">
+                    <video id="userVideo" autoplay playsinline></video>
+                    <canvas id="userCanvas" style="display: none;"></canvas>
+                    <canvas id="userOutput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+                </div>
+                <div class="controls">
+                    <button id="startUser" class="btn btn-primary">Start Recording</button>
+                    <button id="stopUser" class="btn btn-secondary" disabled>Stop Recording</button>
+                    <button id="retakeUser" class="btn btn-warning" style="display: none;">Retake</button>
+                </div>
+                <div id="userStatus" class="status"></div>
+            </section>
+
+            <!-- Step 3: Analysis Results -->
+            <section id="step3" class="step" style="display: none;">
+                <h2>Analysis Results</h2>
+                <div id="loading" class="loading" style="display: none;">
+                    <p>Analyzing your shot...</p>
+                    <div class="spinner"></div>
+                </div>
+                <div id="results" style="display: none;">
+                    <div class="score-section">
+                        <h3 id="overallScore">Overall Score: --</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                    <div class="feedback-section">
+                        <h3>Feedback & Recommendations</h3>
+                        <div id="feedbackList"></div>
+                    </div>
+                    
+                    <!-- Email Success Message -->
+                    <div id="emailSuccessSection" class="email-success-section" style="display: none;">
+                        <div class="success-icon">✓</div>
+                        <h3>Results Sent Successfully!</h3>
+                        <p>Your shot analysis results have been sent to your email. Check your inbox for:</p>
+                        <ul>
+                            <li>Your personalized shot analysis graph</li>
+                            <li>Detailed feedback and recommendations</li>
+                            <li>Your overall score</li>
+                        </ul>
+                        <p class="thank-you">Thank you for using Shot Sync!</p>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="newComparison" class="btn btn-primary">New Comparison</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="app_github.js"></script>
+</body>
+</html>
+
