@@ -1514,14 +1514,14 @@ async function sendEmailAutomatically(data) {
 document.addEventListener('DOMContentLoaded', () => {
     initializePose();
     
-    // Ensure step 0 (landing page) is shown by default
+    // Ensure step 0.5 (player selection) is shown by default
     const step0 = document.getElementById('step0');
     const step0_5 = document.getElementById('step0_5');
     if (step0 && step0_5) {
-        step0.classList.add('active');
-        step0.style.display = 'block';
-        step0_5.classList.remove('active');
-        step0_5.style.display = 'none';
+        step0.classList.remove('active');
+        step0.style.display = 'none';
+        step0_5.classList.add('active');
+        step0_5.style.display = 'block';
     }
     
     // Google Sign-In button handler
@@ -1597,32 +1597,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             } else {
-                // User is signed out, hide profile and show landing page
+                // User is signed out, hide profile but keep showing player selection
                 hideProfileUI();
-                
+
                 // Show sign-in button
                 const signInSection = document.getElementById('signInSection');
                 if (signInSection) {
                     signInSection.style.display = 'block';
                 }
-                
+
+                // Keep player selection visible even when not signed in
                 if (step0 && step0_5) {
-                    step0.classList.add('active');
-                    step0.style.display = 'block';
-                    step0_5.classList.remove('active');
-                    step0_5.style.display = 'none';
+                    step0.classList.remove('active');
+                    step0.style.display = 'none';
+                    step0_5.classList.add('active');
+                    step0_5.style.display = 'block';
                 }
             }
         });
     } else {
-        // Firebase not initialized or not available - show landing page
+        // Firebase not initialized or not available - show player selection page
         const step0 = document.getElementById('step0');
         const step0_5 = document.getElementById('step0_5');
         if (step0 && step0_5) {
-            step0.classList.add('active');
-            step0.style.display = 'block';
-            step0_5.classList.remove('active');
-            step0_5.style.display = 'none';
+            step0.classList.remove('active');
+            step0.style.display = 'none';
+            step0_5.classList.add('active');
+            step0_5.style.display = 'block';
         }
     }
     
@@ -1941,30 +1942,14 @@ function resetApp() {
         isSignedIn = true;
     }
     
-    if (isSignedIn) {
-        // User is signed in - go to player selection
-        if (step0) {
-            step0.classList.remove('active');
-            step0.style.display = 'none';
-        }
-        if (step0_5) {
-            step0_5.classList.add('active');
-            step0_5.style.display = 'block';
-        }
-    } else {
-        // User is not signed in - go to landing page
+    // Always go to player selection, regardless of sign-in status
     if (step0) {
-        step0.classList.add('active');
-        step0.style.display = 'block';
-        const userInfoForm = document.getElementById('userInfoForm');
-        if (userInfoForm) {
-            userInfoForm.reset();
-        }
+        step0.classList.remove('active');
+        step0.style.display = 'none';
     }
     if (step0_5) {
-        step0_5.classList.remove('active');
-        step0_5.style.display = 'none';
-        }
+        step0_5.classList.add('active');
+        step0_5.style.display = 'block';
     }
     
     document.getElementById('step1').classList.remove('active');
