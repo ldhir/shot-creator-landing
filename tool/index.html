@@ -130,12 +130,8 @@
 
     <div class="container">
         <header style="position: relative;">
-            <button id="backToPlayers" class="back-btn" style="display: none; position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; backdrop-filter: blur(10px); z-index: 10;">
-                ← Back to Players
-            </button>
             <div class="header-content">
-                <h1>🏀 Shot Sync</h1>
-                <p class="tagline">Professional Basketball Shot Analysis</p>
+                <h1 style="font-family: 'Forum', serif;">🏀 Shot Sync</h1>
                 <p class="subtitle">Record your shot and compare it to a benchmark</p>
             </div>
             <!-- Profile Dropdown -->
@@ -185,40 +181,60 @@
             <!-- Step 0.5: Player Selection -->
             <section id="step0_5" class="step active">
                 <div style="max-width: 900px; margin: 0 auto;">
-                    <h2 style="text-align: center; margin-bottom: 12px; font-size: 32px; color: #333; font-weight: 700;">Choose Your Benchmark</h2>
+                    <!-- Google Sign-In Section - TEMPORARILY DISABLED -->
+                    <div id="playerSignInSection" style="display: none; text-align: center; margin-bottom: 32px; padding: 32px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                        <h2 style="font-size: 22px; color: #333; margin-bottom: 12px; font-weight: 600;">Sign in to get started</h2>
+                        <p style="color: #666; margin-bottom: 20px; font-size: 15px;">Sign in with Google to compare your shot and track your progress</p>
+                        <button id="playerGoogleSignInBtn" class="btn" style="background: white; color: #333; border: 2px solid #ddd; display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <svg width="20" height="20" viewBox="0 0 18 18">
+                                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                                <path fill="#FBBC05" d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.712 0-.595.102-1.172.282-1.712V4.956H.957C.348 6.175 0 7.55 0 9s.348 2.825.957 4.044l3.007-2.332z"/>
+                                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.956L3.964 7.288C4.672 5.163 6.656 3.58 9 3.58z"/>
+                            </svg>
+                            Sign in with Google
+                        </button>
+                    </div>
+
+                    <h2 style="text-align: center; margin-bottom: 12px; font-size: 32px; color: #333; font-weight: 700; font-family: 'Forum', serif;">Choose Your Benchmark</h2>
                     <p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 16px;">Compare your shot to a professional player or create your own custom benchmark</p>
-                    
-                    <div class="player-selection" style="margin-bottom: 30px;">
-                        <div class="player-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; max-width: 900px; margin: 0 auto;">
+
+                    <div class="player-selection" style="margin-bottom: 30px; opacity: 1; pointer-events: auto;" id="playerSelectionContainer">
+                        <div class="player-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto;">
                             <button class="player-btn" data-player="curry" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">30</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3;">Stephen Curry</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Guard</div>
+                                <img src="stephrootsicon.jpeg" alt="Stephen Curry" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
+                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Courier Prime', monospace;">30</div>
+                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Courier Prime', monospace;">Stephen Curry</div>
+                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Courier Prime', monospace;">Guard</div>
                             </button>
                             <button class="player-btn" data-player="lebron" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">23</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3;">LeBron James</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Forward</div>
+                                <img src="lebron_icon.jpeg" alt="LeBron James" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
+                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Courier Prime', monospace;">23</div>
+                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Courier Prime', monospace;">LeBron James</div>
+                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Courier Prime', monospace;">Forward</div>
                             </button>
                             <button class="player-btn" data-player="jordan" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">23</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3;">Michael Jordan</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Guard</div>
+                                <img src="jordan_icon.jpeg" alt="Michael Jordan" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
+                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Courier Prime', monospace;">23</div>
+                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Courier Prime', monospace;">Michael Jordan</div>
+                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Courier Prime', monospace;">Guard</div>
                             </button>
                             <button class="player-btn" data-player="durant" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">35</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3;">Kevin Durant</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Forward</div>
+                                <img src="kd_icon.webp" alt="Kevin Durant" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
+                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Courier Prime', monospace;">35</div>
+                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Courier Prime', monospace;">Kevin Durant</div>
+                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Courier Prime', monospace;">Forward</div>
                             </button>
                             <button class="player-btn" data-player="clark" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px;">22</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3;">Caitlin Clark</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Guard</div>
+                                <img src="caitlin_icon.webp" alt="Caitlin Clark" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
+                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Courier Prime', monospace;">22</div>
+                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Courier Prime', monospace;">Caitlin Clark</div>
+                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Courier Prime', monospace;">Guard</div>
                             </button>
                             <button class="player-btn custom-btn" data-player="custom" style="background: white; border: 2px dashed var(--primary-color); border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div class="player-icon-custom" style="font-size: 36px; font-weight: 300; color: var(--primary-color); margin-bottom: 4px; line-height: 1;">+</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3;">Custom Benchmark</div>
-                                <div class="player-description" style="font-size: 12px; color: #999; line-height: 1.4;">Record your own ideal form</div>
+                                <div class="player-icon-custom" style="font-size: 36px; font-weight: 300; color: var(--primary-color); margin-bottom: 4px; line-height: 1; font-family: 'Courier Prime', monospace;">+</div>
+                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Courier Prime', monospace;">Custom Benchmark</div>
+                                <div class="player-description" style="font-size: 12px; color: #999; line-height: 1.4; font-family: 'Courier Prime', monospace;">Record your own ideal form</div>
                             </button>
                         </div>
                         <div class="custom-explanation" id="customExplanation" style="display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid var(--primary-color);">
@@ -230,14 +246,32 @@
 
             <!-- Step 1: Record Benchmark -->
             <section id="step1" class="step" style="display: none;">
+                <!-- User Profile Display -->
+                <div id="step1ProfileDisplay" style="display: none; text-align: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px;" id="step1ProfileInitials">U</div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: #333; font-size: 16px;" id="step1ProfileName"></div>
+                            <div style="font-size: 14px; color: #666;" id="step1ProfileEmail"></div>
+                        </div>
+                    </div>
+                </div>
                 <h2 id="step1Title">Step 1: Record Benchmark Shot</h2>
                 <p>Record a reference shot to use as your benchmark for comparison.</p>
                 <div class="video-container" style="position: relative;">
                     <video id="benchmarkVideo" autoplay playsinline muted style="width: 100%; max-width: 640px; height: auto; display: block; border-radius: 12px; z-index: 1;"></video>
                     <canvas id="benchmarkCanvas" style="display: none;"></canvas>
                     <canvas id="benchmarkOutput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-width: 640px; z-index: 2; pointer-events: none;"></canvas>
+                    <div id="benchmarkBodyWarning" class="body-warning-overlay" style="display: none;">
+                        <div class="warning-content">
+                            <div class="warning-icon">⚠️</div>
+                            <h3>Full Body Required</h3>
+                            <p>Please step back so your entire body is visible in the frame</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="controls">
+                    <button class="backToPlayers btn btn-warning">← Back to Players</button>
                     <button id="startBenchmark" class="btn btn-primary">Start Recording</button>
                     <button id="stopBenchmark" class="btn btn-secondary" disabled>Stop Recording</button>
                     <button id="retakeBenchmark" class="btn btn-warning" style="display: none;">Retake</button>
@@ -247,14 +281,32 @@
 
             <!-- Step 2: Record User Shot -->
             <section id="step2" class="step" style="display: none;">
-                <h2 id="step2Title">Step 2: Record Your Shot</h2>
-                <p>Now record your own shot. We'll compare it to the benchmark and analyze your form.</p>
+                <!-- User Profile Display -->
+                <div id="step2ProfileDisplay" style="display: none; text-align: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px;" id="step2ProfileInitials">U</div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: #333; font-size: 16px;" id="step2ProfileName"></div>
+                            <div style="font-size: 14px; color: #666;" id="step2ProfileEmail"></div>
+                        </div>
+                    </div>
+                </div>
+                <h2 id="step2Title" style="font-family: 'IBM Plex Mono', monospace; text-align: center;">Step 2: Record Your Shot</h2>
+                <p style="text-align: center;">Now record your own shot. We'll compare it to the benchmark and analyze your form.</p>
                 <div class="video-container" style="position: relative;">
                     <video id="userVideo" autoplay playsinline muted style="width: 100%; max-width: 640px; height: auto; display: block; border-radius: 12px; z-index: 1;"></video>
                     <canvas id="userCanvas" style="display: none;"></canvas>
                     <canvas id="userOutput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-width: 640px; z-index: 2; pointer-events: none;"></canvas>
+                    <div id="userBodyWarning" class="body-warning-overlay" style="display: none;">
+                        <div class="warning-content">
+                            <div class="warning-icon">⚠️</div>
+                            <h3>Full Body Required</h3>
+                            <p>Please step back so your entire body is visible in the frame</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="controls">
+                    <button class="backToPlayers btn btn-warning">← Back to Players</button>
                     <button id="startUser" class="btn btn-primary">Start Recording</button>
                     <button id="stopUser" class="btn btn-secondary" disabled>Stop Recording</button>
                     <button id="retakeUser" class="btn btn-warning" style="display: none;">Retake</button>
@@ -264,7 +316,7 @@
 
             <!-- Step 3: Analysis Results -->
             <section id="step3" class="step" style="display: none;">
-                <h2>Analysis Results</h2>
+                <h2 style="font-family: 'Forum', serif; text-align: center;">Analysis Results</h2>
                 <div id="loading" class="loading" style="display: none;">
                     <p>Analyzing your shot...</p>
                     <div class="spinner"></div>
@@ -288,19 +340,19 @@
                         
                         <!-- Strengths -->
                         <div class="strengths-section">
-                            <h4>✨ Strengths</h4>
+                            <h4>Strengths</h4>
                             <div id="strengthsList" class="feedback-list"></div>
                         </div>
-                        
+
                         <!-- Weaknesses -->
                         <div class="weaknesses-section">
-                            <h4>📈 Areas for Improvement</h4>
+                            <h4>Areas for Improvement</h4>
                             <div id="weaknessesList" class="feedback-list"></div>
                         </div>
-                        
+
                         <!-- Metrics -->
                         <div class="metrics-section">
-                            <h4>📊 Detailed Metrics</h4>
+                            <h4>Detailed Metrics</h4>
                             <div id="metricsList" class="metrics-grid"></div>
                         </div>
                     </div>

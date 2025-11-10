@@ -335,7 +335,7 @@ function getArmState(landmarks, width, height) {
             Math.pow(rightWrist[1] - leftWrist[1], 2) +
             Math.pow(rightWrist[2] - leftWrist[2], 2)
         );
-        
+
         if (distWrists < 0.15 * width && avgWristY < waistY && rightWrist[1] > rightShoulder[1]) {
             return "pre_shot";
         }
@@ -354,6 +354,39 @@ function getArmState(landmarks, width, height) {
     }
 
     return "neutral";
+}
+
+/**
+ * Check if the full body is visible in the frame
+ * Returns true if all key landmarks are visible with good confidence
+ */
+function isFullBodyVisible(landmarks) {
+    if (!landmarks || landmarks.length < 33) {
+        return false;
+    }
+
+    // Key landmarks to check for full body visibility
+    const keyLandmarks = [
+        0,  // nose
+        11, // left shoulder
+        12, // right shoulder
+        23, // left hip
+        24, // right hip
+        25, // left knee
+        26, // right knee
+        27, // left ankle
+        28  // right ankle
+    ];
+
+    const visibilityThreshold = 0.5;
+
+    for (const index of keyLandmarks) {
+        if (!landmarks[index] || landmarks[index].visibility < visibilityThreshold) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // ====================== VIDEO CAPTURE ======================
@@ -394,12 +427,22 @@ async function startBenchmarkRecording() {
         benchmarkPose.onResults((results) => {
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             // Draw the video frame
             if (results.image) {
             ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
             }
-            
+
+            // Check if full body is visible and show/hide warning
+            const bodyWarning = document.getElementById('benchmarkBodyWarning');
+            if (bodyWarning) {
+                if (!results.poseLandmarks || !isFullBodyVisible(results.poseLandmarks)) {
+                    bodyWarning.style.display = 'flex';
+                } else {
+                    bodyWarning.style.display = 'none';
+                }
+            }
+
             if (results.poseLandmarks) {
                 drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
                     color: '#00FF00',
@@ -410,7 +453,7 @@ async function startBenchmarkRecording() {
                     lineWidth: 1,
                     radius: 3
                 });
-                
+
                 const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
                 const currentTime = Date.now() / 1000.0;
                 
@@ -530,9 +573,9 @@ function stopBenchmarkRecording() {
         document.getElementById('step2').classList.add('active');
         document.getElementById('step2').style.display = 'block';
         
-        // Update back button visibility
-        const backBtn = document.getElementById('backToPlayers');
-        if (backBtn) backBtn.style.display = 'block';
+        // Update back button visibility - no longer needed as buttons are visible by default
+        // const backBtn = document.getElementById('backToPlayers');
+        // if (backBtn) backBtn.style.display = 'block';
     }
 }
 
@@ -572,12 +615,22 @@ async function startUserRecording() {
         userPose.onResults((results) => {
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             // Draw the video frame
             if (results.image) {
             ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
             }
-            
+
+            // Check if full body is visible and show/hide warning
+            const bodyWarning = document.getElementById('userBodyWarning');
+            if (bodyWarning) {
+                if (!results.poseLandmarks || !isFullBodyVisible(results.poseLandmarks)) {
+                    bodyWarning.style.display = 'flex';
+                } else {
+                    bodyWarning.style.display = 'none';
+                }
+            }
+
             if (results.poseLandmarks) {
                 drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
                     color: '#00FF00',
@@ -588,7 +641,7 @@ async function startUserRecording() {
                     lineWidth: 1,
                     radius: 3
                 });
-                
+
                 const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
                 const currentTime = Date.now() / 1000.0;
                 
@@ -1524,10 +1577,15 @@ document.addEventListener('DOMContentLoaded', () => {
         step0_5.style.display = 'block';
     }
     
-    // Google Sign-In button handler
+    // Google Sign-In button handlers (both on step0 and player selection page)
     const googleSignInBtn = document.getElementById('googleSignInBtn');
     if (googleSignInBtn && window.signInWithGoogle) {
         googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+    }
+
+    const playerGoogleSignInBtn = document.getElementById('playerGoogleSignInBtn');
+    if (playerGoogleSignInBtn && window.signInWithGoogle) {
+        playerGoogleSignInBtn.addEventListener('click', handlePlayerPageSignIn);
     }
     
     // Profile dropdown toggle
@@ -1571,18 +1629,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (user) {
                 // User is signed in, update profile and show it
                 updateProfileUI(user);
-                
+
                 const firstName = user.displayName?.split(' ')[0] || '';
                 const lastName = user.displayName?.split(' ').slice(1).join(' ') || '';
                 const email = user.email || '';
-                
+
                 // Store user info
                 userInfo = { firstName, lastName, email };
-                
+
                 // Hide sign-in button since user is already signed in
                 const signInSection = document.getElementById('signInSection');
                 if (signInSection) {
                     signInSection.style.display = 'none';
+                }
+
+                // Enable player selection and hide sign-in section on player page
+                const playerSelectionContainer = document.getElementById('playerSelectionContainer');
+                if (playerSelectionContainer) {
+                    playerSelectionContainer.style.opacity = '1';
+                    playerSelectionContainer.style.pointerEvents = 'auto';
+                }
+
+                const playerSignInSection = document.getElementById('playerSignInSection');
+                if (playerSignInSection) {
+                    playerSignInSection.style.display = 'none';
                 }
                 
                 // Auto-advance to player selection if user is already signed in
@@ -1637,64 +1707,46 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('newComparison').addEventListener('click', resetApp);
     
-    // Back to players button
-    const backToPlayersBtn = document.getElementById('backToPlayers');
-    if (backToPlayersBtn) {
-        backToPlayersBtn.addEventListener('click', () => {
-            // Stop any active recordings
-            if (benchmarkCamera) {
-                benchmarkCamera.stop();
-                benchmarkCamera = null;
-            }
-            if (userCamera) {
-                userCamera.stop();
-                userCamera = null;
-            }
-            if (benchmarkStream) {
-                benchmarkStream.getTracks().forEach(track => track.stop());
-                benchmarkStream = null;
-            }
-            if (userStream) {
-                userStream.getTracks().forEach(track => track.stop());
-                userStream = null;
-            }
-            
-            // Hide all steps
-            document.querySelectorAll('.step').forEach(step => {
-                step.classList.remove('active');
-                step.style.display = 'none';
+    // Back to players buttons (using class since there are multiple)
+    const backToPlayersButtons = document.querySelectorAll('.backToPlayers');
+    backToPlayersButtons.forEach(backToPlayersBtn => {
+        if (backToPlayersBtn) {
+            backToPlayersBtn.addEventListener('click', () => {
+                // Stop any active recordings
+                if (benchmarkCamera) {
+                    benchmarkCamera.stop();
+                    benchmarkCamera = null;
+                }
+                if (userCamera) {
+                    userCamera.stop();
+                    userCamera = null;
+                }
+                if (benchmarkStream) {
+                    benchmarkStream.getTracks().forEach(track => track.stop());
+                    benchmarkStream = null;
+                }
+                if (userStream) {
+                    userStream.getTracks().forEach(track => track.stop());
+                    userStream = null;
+                }
+
+                // Hide all steps
+                document.querySelectorAll('.step').forEach(step => {
+                    step.classList.remove('active');
+                    step.style.display = 'none';
+                });
+
+                // Show player selection
+                const step0_5 = document.getElementById('step0_5');
+                if (step0_5) {
+                    step0_5.classList.add('active');
+                    step0_5.style.display = 'block';
+                }
             });
-            
-            // Show player selection
-            const step0_5 = document.getElementById('step0_5');
-            if (step0_5) {
-                step0_5.classList.add('active');
-                step0_5.style.display = 'block';
-            }
-            
-            // Hide back button
-            backToPlayersBtn.style.display = 'none';
-        });
-    }
-    
-    // Show/hide back button based on current step
-    function updateBackButton() {
-        const step1 = document.getElementById('step1');
-        const step2 = document.getElementById('step2');
-        const backBtn = document.getElementById('backToPlayers');
-        if (backBtn) {
-            const isOnRecordingPage = (step1 && step1.style.display !== 'none') || 
-                                     (step2 && step2.style.display !== 'none');
-            backBtn.style.display = isOnRecordingPage ? 'block' : 'none';
         }
-    }
-    
-    // Monitor step changes
-    const observer = new MutationObserver(updateBackButton);
-    document.querySelectorAll('.step').forEach(step => {
-        observer.observe(step, { attributes: true, attributeFilter: ['style', 'class'] });
     });
-    updateBackButton(); // Initial check
+    
+    // No longer need updateBackButton() function since buttons are always visible on recording pages
     
     // Initialize professional player benchmarks
     initializeProPlayerBenchmarks();
@@ -1717,9 +1769,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====================== PLAYER SELECTION ======================
 
 function selectPlayer(player) {
-    // Show back button when navigating to recording pages
-    const backBtn = document.getElementById('backToPlayers');
-    if (backBtn) backBtn.style.display = 'block';
+    // Back buttons are now always visible on recording pages, no need to manually show them
     selectedPlayer = player;
     
     // Hide player selection (step0_5)
@@ -1774,6 +1824,61 @@ function selectPlayer(player) {
 
 // ====================== USER INFO COLLECTION ======================
 
+async function handlePlayerPageSignIn() {
+    try {
+        const playerGoogleSignInBtn = document.getElementById('playerGoogleSignInBtn');
+        if (playerGoogleSignInBtn) {
+            playerGoogleSignInBtn.disabled = true;
+            playerGoogleSignInBtn.textContent = 'Signing in...';
+        }
+
+        const userData = await window.signInWithGoogle();
+
+        // Store user info
+        userInfo = userData;
+
+        // Update profile UI on recording pages
+        updateRecordingPageProfile(window.firebaseAuth?.currentUser);
+
+        // Save to Firestore
+        if (window.saveUserEmail && window.firebaseAuth?.currentUser) {
+            await window.saveUserEmail(userData.email, userData.firstName, userData.lastName);
+        }
+
+        // Enable player selection
+        const playerSelectionContainer = document.getElementById('playerSelectionContainer');
+        if (playerSelectionContainer) {
+            playerSelectionContainer.style.opacity = '1';
+            playerSelectionContainer.style.pointerEvents = 'auto';
+        }
+
+        // Hide sign-in section
+        const playerSignInSection = document.getElementById('playerSignInSection');
+        if (playerSignInSection) {
+            playerSignInSection.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error signing in with Google:', error);
+
+        let errorMessage = 'Failed to sign in with Google. ';
+        if (error.code === 'auth/operation-not-allowed') {
+            errorMessage += 'Google Sign-In is not enabled in Firebase. Please enable it in Firebase Console.';
+        } else if (error.code === 'auth/unauthorized-domain') {
+            errorMessage += 'This domain is not authorized. Please add it to Firebase authorized domains.';
+        } else {
+            errorMessage += 'Please try again.';
+        }
+
+        alert(errorMessage);
+
+        const playerGoogleSignInBtn = document.getElementById('playerGoogleSignInBtn');
+        if (playerGoogleSignInBtn) {
+            playerGoogleSignInBtn.disabled = false;
+            playerGoogleSignInBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.712 0-.595.102-1.172.282-1.712V4.956H.957C.348 6.175 0 7.55 0 9s.348 2.825.957 4.044l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.956L3.964 7.288C4.672 5.163 6.656 3.58 9 3.58z"/></svg> Sign in with Google';
+        }
+    }
+}
+
 async function handleGoogleSignIn() {
     try {
         const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -1827,34 +1932,66 @@ async function handleGoogleSignIn() {
 
 // ====================== PROFILE MANAGEMENT ======================
 
+function updateRecordingPageProfile(user) {
+    if (!user) return;
+
+    const displayName = user.displayName || 'User';
+    const firstName = displayName.split(' ')[0] || 'User';
+    const lastName = displayName.split(' ').slice(1).join(' ') || '';
+    const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'U';
+    const email = user.email || '';
+
+    // Update step1 profile
+    const step1Display = document.getElementById('step1ProfileDisplay');
+    const step1Initials = document.getElementById('step1ProfileInitials');
+    const step1Name = document.getElementById('step1ProfileName');
+    const step1Email = document.getElementById('step1ProfileEmail');
+
+    if (step1Display) step1Display.style.display = 'block';
+    if (step1Initials) step1Initials.textContent = initials;
+    if (step1Name) step1Name.textContent = displayName;
+    if (step1Email) step1Email.textContent = email;
+
+    // Update step2 profile
+    const step2Display = document.getElementById('step2ProfileDisplay');
+    const step2Initials = document.getElementById('step2ProfileInitials');
+    const step2Name = document.getElementById('step2ProfileName');
+    const step2Email = document.getElementById('step2ProfileEmail');
+
+    if (step2Display) step2Display.style.display = 'block';
+    if (step2Initials) step2Initials.textContent = initials;
+    if (step2Name) step2Name.textContent = displayName;
+    if (step2Email) step2Email.textContent = email;
+}
+
 function updateProfileUI(user) {
     const profileDropdown = document.getElementById('profileDropdown');
     const profileInitials = document.getElementById('profileInitials');
     const profileName = document.getElementById('profileName');
     const menuUserName = document.getElementById('menuUserName');
     const menuUserEmail = document.getElementById('menuUserEmail');
-    
+
     if (!profileDropdown) return;
-    
+
     // Show profile dropdown
     profileDropdown.style.display = 'block';
-    
+
     // Get user name
     const displayName = user.displayName || 'User';
     const firstName = displayName.split(' ')[0] || 'User';
     const lastName = displayName.split(' ').slice(1).join(' ') || '';
-    
+
     // Set initials
     const initials = (firstName[0] || '') + (lastName[0] || '') || 'U';
     if (profileInitials) {
         profileInitials.textContent = initials.toUpperCase();
     }
-    
+
     // Set name
     if (profileName) {
         profileName.textContent = displayName;
     }
-    
+
     // Set menu info
     if (menuUserName) {
         menuUserName.textContent = displayName;
@@ -1862,6 +1999,9 @@ function updateProfileUI(user) {
     if (menuUserEmail) {
         menuUserEmail.textContent = user.email || '';
     }
+
+    // Also update recording page profiles
+    updateRecordingPageProfile(user);
 }
 
 function hideProfileUI() {
