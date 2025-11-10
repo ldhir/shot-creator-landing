@@ -797,95 +797,44 @@ section .container {
 .footer {
     background: var(--text-dark);
     color: white;
-    padding: 80px 0 40px;
+    padding: 48px 0;
 }
 
-.footer-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 48px;
-    margin-bottom: 48px;
-}
-
-.footer-column h4 {
-    font-size: 16px;
-    margin-bottom: 20px;
-    font-weight: 600;
-}
-
-.footer-column ul {
-    list-style: none;
-}
-
-.footer-column ul li {
-    margin-bottom: 12px;
-}
-
-.footer-column a {
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
-    font-size: 14px;
-    transition: color 0.3s;
-}
-
-.footer-column a:hover {
-    color: white;
-}
-
-.footer-column p {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 16px;
-}
-
-.newsletter-form {
-    display: flex;
-    gap: 8px;
-}
-
-.newsletter-form input {
-    flex: 1;
-    padding: 12px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-}
-
-.newsletter-form input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.newsletter-form button {
-    padding: 12px 24px;
-    background: var(--primary-color);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-weight: 700;
-    font-family: 'Courier Prime', monospace;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.newsletter-form button:hover {
-    background: var(--primary-hover);
-}
-
-.footer-bottom {
+.footer-simple {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 32px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 32px;
     flex-wrap: wrap;
-    gap: 16px;
 }
 
-.footer-bottom p {
+.footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.footer-brand p {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.6);
+    font-family: 'Courier Prime', monospace;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 14px;
+    font-family: 'Courier Prime', monospace;
+    transition: color 0.3s;
+}
+
+.footer-links a:hover {
+    color: white;
 }
 
 .social-links {
@@ -897,6 +846,7 @@ section .container {
     color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     font-size: 14px;
+    font-family: 'Courier Prime', monospace;
     transition: color 0.3s;
 }
 
@@ -941,8 +891,13 @@ section .container {
         font-size: 32px;
     }
 
-    .footer-content {
-        grid-template-columns: 1fr;
+    .footer-simple {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .footer-brand {
+        align-items: center;
     }
 }
 
