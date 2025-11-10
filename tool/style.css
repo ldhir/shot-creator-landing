@@ -21,8 +21,38 @@ body {
     background: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(255, 179, 186, 1) 85%, rgba(255, 107, 122, 1) 100%);
     background-attachment: fixed;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
     color: #333;
+}
+
+/* Navbar */
+.navbar {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(255, 107, 122, 0.1);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .container {
@@ -30,6 +60,7 @@ body {
     margin: 0 auto;
     background: transparent;
     position: relative;
+    padding: 20px;
 }
 
 header {
