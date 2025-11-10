@@ -181,8 +181,8 @@
             <!-- Step 0.5: Player Selection -->
             <section id="step0_5" class="step active">
                 <div style="max-width: 900px; margin: 0 auto;">
-                    <!-- Google Sign-In Section - TEMPORARILY DISABLED -->
-                    <div id="playerSignInSection" style="display: none; text-align: center; margin-bottom: 32px; padding: 32px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                    <!-- Google Sign-In Section -->
+                    <div id="playerSignInSection" style="display: block; text-align: center; margin-bottom: 32px; padding: 32px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
                         <h2 style="font-size: 22px; color: #333; margin-bottom: 12px; font-weight: 600;">Sign in to get started</h2>
                         <p style="color: #666; margin-bottom: 20px; font-size: 15px;">Sign in with Google to compare your shot and track your progress</p>
                         <button id="playerGoogleSignInBtn" class="btn" style="background: white; color: #333; border: 2px solid #ddd; display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -199,7 +199,7 @@
                     <h2 style="text-align: center; margin-bottom: 12px; font-size: 32px; color: #333; font-weight: 700; font-family: 'Forum', serif;">Choose Your Benchmark</h2>
                     <p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 16px;">Compare your shot to a professional player or create your own custom benchmark</p>
 
-                    <div class="player-selection" style="margin-bottom: 30px; opacity: 1; pointer-events: auto;" id="playerSelectionContainer">
+                    <div class="player-selection" style="margin-bottom: 30px; opacity: 0.5; pointer-events: none;" id="playerSelectionContainer">
                         <div class="player-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto;">
                             <button class="player-btn" data-player="curry" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                                 <img src="stephrootsicon.jpeg" alt="Stephen Curry" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
