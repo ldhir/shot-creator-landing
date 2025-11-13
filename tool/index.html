@@ -32,6 +32,37 @@
             outline: 3px solid rgba(255, 107, 122, 0.3) !important;
             outline-offset: 2px !important;
         }
+
+        /* Upload Mode Toggle Styles */
+        .mode-toggle-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 20px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+
+        .mode-toggle-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .mode-toggle-btn:hover:not(.active) {
+            border-color: var(--primary-color);
+            background: rgba(255, 107, 122, 0.05);
+        }
+
+        #uploadedFileName {
+            font-style: italic;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
     </style>
     <!-- MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -291,9 +322,27 @@
                 </div>
                 <div class="controls">
                     <button class="backToPlayers btn btn-warning">← Back to Players</button>
-                    <button id="startUser" class="btn btn-primary">Start Recording</button>
-                    <button id="stopUser" class="btn btn-secondary" disabled>Stop Recording</button>
-                    <button id="retakeUser" class="btn btn-warning" style="display: none;">Retake</button>
+
+                    <!-- Toggle between Record and Upload -->
+                    <div class="input-method-toggle" style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
+                        <button id="userRecordModeBtn" class="btn btn-secondary mode-toggle-btn active">📹 Record Live</button>
+                        <button id="userUploadModeBtn" class="btn btn-secondary mode-toggle-btn">📤 Upload Video</button>
+                    </div>
+
+                    <!-- Recording Controls -->
+                    <div id="userRecordControls" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button id="startUser" class="btn btn-primary">Start Recording</button>
+                        <button id="stopUser" class="btn btn-secondary" disabled>Stop Recording</button>
+                        <button id="retakeUser" class="btn btn-warning" style="display: none;">Retake</button>
+                    </div>
+
+                    <!-- Upload Controls -->
+                    <div id="userUploadControls" style="display: none; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <input type="file" id="userVideoUpload" accept="video/mp4,video/mov,video/webm,video/quicktime" style="display: none;">
+                        <button id="selectUserVideo" class="btn btn-primary">Choose Video File</button>
+                        <button id="processUserVideo" class="btn btn-success" style="display: none;">Analyze Video</button>
+                        <div id="uploadedFileName" style="width: 100%; text-align: center; margin-top: 10px; color: #666; font-size: 14px;"></div>
+                    </div>
                 </div>
                 <div id="userStatus" class="status"></div>
             </section>

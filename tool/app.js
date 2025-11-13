@@ -750,8 +750,191 @@ function stopUserRecording() {
         document.getElementById('userStatus').textContent = `Recorded ${userPoseData.length} frames. Analyzing...`;
         document.getElementById('userStatus').className = 'status success';
         document.getElementById('retakeUser').style.display = 'inline-block';
-        
+
         compareShots();
+    }
+}
+
+async function processUploadedUserVideo() {
+    try {
+        const video = document.getElementById('userVideo');
+        const canvas = document.getElementById('userOutput');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('userStatus');
+
+        // Disable process button
+        document.getElementById('processUserVideo').disabled = true;
+        document.getElementById('processUserVideo').textContent = 'Processing...';
+
+        // Set canvas dimensions
+        canvas.width = 640;
+        canvas.height = 480;
+
+        userPoseData = [];
+        let previousStage = "neutral";
+        let startTime = null;
+        let recordingActive = false;
+        let seenFollowThrough = false;
+
+        statusEl.textContent = 'Processing video...';
+        statusEl.className = 'status recording';
+
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+            if (video.readyState >= 2) {
+                resolve();
+            } else {
+                video.addEventListener('loadeddata', resolve, { once: true });
+            }
+        });
+
+        // Reset video to beginning
+        video.currentTime = 0;
+        await video.play();
+
+        // Process each frame
+        const processFrame = async () => {
+            return new Promise((resolve) => {
+                userPose.onResults((results) => {
+                    ctx.save();
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Draw the video frame
+                    if (results.image) {
+                        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+                    }
+
+                    // Check if full body is visible and show/hide warning
+                    const bodyWarning = document.getElementById('userBodyWarning');
+                    if (bodyWarning) {
+                        if (!results.poseLandmarks || !isFullBodyVisible(results.poseLandmarks)) {
+                            bodyWarning.style.display = 'flex';
+                        } else {
+                            bodyWarning.style.display = 'none';
+                        }
+                    }
+
+                    if (results.poseLandmarks) {
+                        drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+                            color: '#00FF00',
+                            lineWidth: 2
+                        });
+                        drawLandmarks(ctx, results.poseLandmarks, {
+                            color: '#00FF00',
+                            lineWidth: 1,
+                            radius: 3
+                        });
+
+                        const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                        const currentTime = video.currentTime;
+
+                        const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
+                        const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
+                        const rightWrist = get3DPoint(results.poseLandmarks, 16, canvas.width, canvas.height);
+                        const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
+                        const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
+
+                        const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+                        const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
+                        const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
+
+                        const landmarks3D = [];
+                        for (let i = 0; i < 33; i++) {
+                            const pt = get3DPoint(results.poseLandmarks, i, canvas.width, canvas.height);
+                            landmarks3D.push(pt || [NaN, NaN, NaN]);
+                        }
+
+                        // Normalize pose orientation
+                        const normalizedLandmarks = normalizePoseOrientation(landmarks3D);
+
+                        if (state !== previousStage) {
+                            if (state === "pre_shot" && !recordingActive) {
+                                recordingActive = true;
+                                seenFollowThrough = false;
+                                startTime = currentTime;
+                                userPoseData = [];
+                                statusEl.textContent = 'Shot detected! Processing...';
+                            } else if (state === "neutral" && recordingActive && !seenFollowThrough) {
+                                recordingActive = false;
+                                seenFollowThrough = false;
+                                startTime = null;
+                                userPoseData = [];
+                            } else if (state === "follow_through" && recordingActive) {
+                                seenFollowThrough = true;
+                            } else if (state === "pre_shot" && recordingActive && seenFollowThrough) {
+                                const elapsed = currentTime - startTime;
+                                userPoseData.push({
+                                    state: state,
+                                    time: elapsed,
+                                    elbow_angle: elbowAngle,
+                                    wrist_angle: wristAngle,
+                                    arm_angle: armAngle,
+                                    landmarks: normalizedLandmarks
+                                });
+                                resolve(true); // Shot complete
+                                return;
+                            }
+                            previousStage = state;
+                        }
+
+                        if (recordingActive) {
+                            const elapsed = currentTime - startTime;
+                            userPoseData.push({
+                                state: state,
+                                time: elapsed,
+                                elbow_angle: elbowAngle,
+                                wrist_angle: wristAngle,
+                                arm_angle: armAngle,
+                                landmarks: normalizedLandmarks
+                            });
+                        }
+                    }
+
+                    ctx.restore();
+                    resolve(false); // Continue processing
+                });
+            });
+        };
+
+        // Process video frame by frame
+        const frameInterval = 1 / 30; // 30 FPS
+        while (video.currentTime < video.duration) {
+            await userPose.send({ image: video });
+            const shotComplete = await processFrame();
+
+            if (shotComplete) {
+                break;
+            }
+
+            // Advance to next frame
+            video.currentTime += frameInterval;
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        video.pause();
+
+        // Check if we captured any data
+        if (userPoseData.length > 0) {
+            statusEl.textContent = `Processed ${userPoseData.length} frames. Analyzing...`;
+            statusEl.className = 'status success';
+            document.getElementById('retakeUser').style.display = 'inline-block';
+
+            compareShots();
+        } else {
+            statusEl.textContent = 'No shot detected in video. Please try another video or record live.';
+            statusEl.className = 'status error';
+
+            document.getElementById('processUserVideo').disabled = false;
+            document.getElementById('processUserVideo').textContent = 'Analyze Video';
+        }
+
+    } catch (error) {
+        console.error('Error processing video:', error);
+        document.getElementById('userStatus').textContent = 'Error processing video. Please try again.';
+        document.getElementById('userStatus').className = 'status error';
+
+        document.getElementById('processUserVideo').disabled = false;
+        document.getElementById('processUserVideo').textContent = 'Analyze Video';
     }
 }
 
@@ -1838,6 +2021,84 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize EmailJS if available
     if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
         emailjs.init(EMAILJS_PUBLIC_KEY);
+    }
+
+    // ====================== VIDEO UPLOAD MODE HANDLERS ======================
+
+    // Toggle between record and upload modes
+    const userRecordModeBtn = document.getElementById('userRecordModeBtn');
+    const userUploadModeBtn = document.getElementById('userUploadModeBtn');
+    const userRecordControls = document.getElementById('userRecordControls');
+    const userUploadControls = document.getElementById('userUploadControls');
+
+    if (userRecordModeBtn) {
+        userRecordModeBtn.addEventListener('click', () => {
+            userRecordControls.style.display = 'flex';
+            userUploadControls.style.display = 'none';
+            userRecordModeBtn.classList.add('active');
+            userUploadModeBtn.classList.remove('active');
+
+            // Stop any video playback and switch back to webcam if needed
+            const video = document.getElementById('userVideo');
+            if (video && !video.srcObject) {
+                video.src = '';
+                video.load();
+            }
+        });
+    }
+
+    if (userUploadModeBtn) {
+        userUploadModeBtn.addEventListener('click', () => {
+            userRecordControls.style.display = 'none';
+            userUploadControls.style.display = 'flex';
+            userUploadModeBtn.classList.add('active');
+            userRecordModeBtn.classList.remove('active');
+
+            // Stop any active recording
+            if (userCamera) {
+                userCamera.stop();
+                userCamera = null;
+            }
+            if (userStream) {
+                userStream.getTracks().forEach(track => track.stop());
+                userStream = null;
+            }
+        });
+    }
+
+    // File selection handler
+    const selectUserVideo = document.getElementById('selectUserVideo');
+    const userVideoUpload = document.getElementById('userVideoUpload');
+    const uploadedFileName = document.getElementById('uploadedFileName');
+    const processUserVideo = document.getElementById('processUserVideo');
+
+    if (selectUserVideo && userVideoUpload) {
+        selectUserVideo.addEventListener('click', () => {
+            userVideoUpload.click();
+        });
+
+        userVideoUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                uploadedFileName.textContent = `Selected: ${file.name}`;
+                processUserVideo.style.display = 'inline-block';
+
+                // Load video file into video element
+                const video = document.getElementById('userVideo');
+                const videoURL = URL.createObjectURL(file);
+                video.src = videoURL;
+                video.loop = false;
+                video.muted = true;
+                video.load();
+            }
+        });
+    }
+
+    // Process uploaded video handler
+    if (processUserVideo) {
+        processUserVideo.addEventListener('click', () => {
+            processUploadedUserVideo();
+        });
     }
 });
 
