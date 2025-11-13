@@ -584,20 +584,36 @@ async function startUserRecording() {
         const video = document.getElementById('userVideo');
         const canvas = document.getElementById('userOutput');
         const ctx = canvas.getContext('2d');
-        
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 640, height: 480 } 
-        });
-        
-        userStream = stream;
-        video.srcObject = stream;
-        
+
         // Set canvas dimensions
         canvas.width = 640;
         canvas.height = 480;
-        
-        // Ensure video plays (non-blocking)
-        video.play().catch(err => console.error('Video play error:', err));
+
+        // DEMO MODE: Use hardcoded video instead of webcam
+        console.log('Loading hardcoded video: roots_use.mp4');
+        video.src = 'roots_use.mp4';
+        video.loop = false;
+        video.muted = true;
+        video.autoplay = false;
+        video.style.display = 'block';
+
+        // Wait for video to load before playing
+        await new Promise((resolve, reject) => {
+            video.onloadeddata = () => {
+                console.log('Video loaded successfully');
+                resolve();
+            };
+            video.onerror = (e) => {
+                console.error('Video loading error:', e);
+                reject(e);
+            };
+            video.load();
+        });
+
+        // Now play the video
+        console.log('Playing video...');
+        await video.play();
+        console.log('Video is now playing');
         
         userPoseData = [];
         
@@ -606,10 +622,10 @@ async function startUserRecording() {
         let recordingActive = false;
         let seenFollowThrough = false;
         const lastPrintTime = { value: Date.now() };
-        
+
         document.getElementById('startUser').disabled = true;
         document.getElementById('stopUser').disabled = false;
-        document.getElementById('userStatus').textContent = 'Recording...';
+        document.getElementById('userStatus').textContent = 'Processing video...';
         document.getElementById('userStatus').className = 'status recording';
         
         userPose.onResults((results) => {
@@ -671,6 +687,8 @@ async function startUserRecording() {
                         startTime = currentTime;
                         userPoseData = [];
                         lastPrintTime.value = currentTime;
+                        document.getElementById('userStatus').textContent = 'Recording shot...';
+                        console.log('Shot detected! Recording started.');
                     } else if (state === "neutral" && recordingActive && !seenFollowThrough) {
                         recordingActive = false;
                         seenFollowThrough = false;
@@ -716,18 +734,22 @@ async function startUserRecording() {
             ctx.restore();
         });
         
-        userCamera = new Camera(video, {
-            onFrame: async () => {
-                await userPose.send({image: video});
-            },
-            width: 640,
-            height: 480
-        });
-        userCamera.start();
+        // DEMO MODE: Process video frames manually instead of using Camera utility
+        async function processVideoFrame() {
+            if (video.paused || video.ended) {
+                return;
+            }
+            await userPose.send({image: video});
+            requestAnimationFrame(processVideoFrame);
+        }
+
+        // Start frame processing
+        console.log('Starting video frame processing...');
+        processVideoFrame();
         
     } catch (error) {
-        console.error('Error accessing camera:', error);
-        document.getElementById('userStatus').textContent = 'Error accessing camera. Please allow camera permissions.';
+        console.error('Error loading video:', error);
+        document.getElementById('userStatus').textContent = 'Error loading video. Please refresh and try again.';
         document.getElementById('userStatus').className = 'status error';
     }
 }
@@ -737,15 +759,22 @@ function stopUserRecording() {
         userCamera.stop();
         userCamera = null;
     }
-    
+
+    // DEMO MODE: Stop video playback
+    const video = document.getElementById('userVideo');
+    if (video) {
+        video.pause();
+        video.currentTime = 0;
+    }
+
     if (userStream) {
         userStream.getTracks().forEach(track => track.stop());
         userStream = null;
     }
-    
+
     document.getElementById('startUser').disabled = false;
     document.getElementById('stopUser').disabled = true;
-    
+
     if (userPoseData.length > 0) {
         document.getElementById('userStatus').textContent = `Recorded ${userPoseData.length} frames. Analyzing...`;
         document.getElementById('userStatus').className = 'status success';
@@ -951,8 +980,13 @@ function displayResults(data) {
         console.error('results element not found!');
     }
     
-    const avgCloseness = data.userCloseness.reduce((a, b) => a + b, 0) / data.userCloseness.length;
-    
+    // DEMO MODE: Hardcoded overall score and chart data
+    const avgCloseness = 67;
+
+    // DEMO MODE: Create fake timeline data that averages to 67%
+    const demoUserTimes = [0.00, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90];
+    const demoUserCloseness = [58, 62, 68, 72, 70, 69, 66, 65, 63, 60]; // averages to ~67%
+
     // Add player name to title if applicable
     const playerNames = {
         'curry': 'Stephen Curry',
@@ -961,61 +995,169 @@ function displayResults(data) {
         'durant': 'Kevin Durant',
         'clark': 'Caitlin Clark'
     };
-    
+
     let title = `Overall Score: ${avgCloseness.toFixed(1)}%`;
     if (data.playerName && data.playerName !== 'custom') {
         title += ` (vs ${playerNames[data.playerName]})`;
     }
     document.getElementById('overallScore').textContent = title;
-    
+
     const ctx = document.getElementById('comparisonChart').getContext('2d');
-    
+
     if (comparisonChart) {
         comparisonChart.destroy();
     }
-    
+
+    // Create gradient for user's shot line
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(255, 107, 122, 0.3)');
+    gradient.addColorStop(1, 'rgba(255, 107, 122, 0.05)');
+
     comparisonChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: data.userTimes.map(t => t.toFixed(2)),
+            labels: demoUserTimes.map(t => t.toFixed(2)),
             datasets: [{
                 label: 'Benchmark (100%)',
-                data: data.benchTimes.map(() => 100),
-                borderColor: 'rgb(255, 159, 64)',
-                borderDash: [5, 5],
+                data: demoUserTimes.map(() => 100),
+                borderColor: 'rgba(147, 112, 219, 0.8)',
+                backgroundColor: 'rgba(147, 112, 219, 0.1)',
+                borderDash: [8, 4],
                 borderWidth: 2,
-                pointRadius: 0
+                pointRadius: 0,
+                tension: 0.4
             }, {
                 label: 'Your Shot',
-                data: data.userCloseness,
-                borderColor: 'rgb(54, 162, 235)',
-                borderWidth: 2,
-                fill: false,
-                tension: 0.1
+                data: demoUserCloseness,
+                borderColor: 'rgb(255, 107, 122)',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: 'rgb(255, 107, 122)',
+                pointHoverBorderColor: 'white',
+                pointHoverBorderWidth: 2
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
             plugins: {
                 title: {
                     display: true,
-                    text: 'Shot Form Analysis'
+                    text: 'Shot Form Over Time',
+                    font: {
+                        size: 18,
+                        weight: '600',
+                        family: "'Inter', sans-serif"
+                    },
+                    color: '#1f2937',
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 13,
+                            family: "'Inter', sans-serif"
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: {
+                        size: 14,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     max: 110,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.06)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        font: {
+                            size: 12,
+                            family: "'Inter', sans-serif"
+                        },
+                        color: '#6b7280'
+                    },
                     title: {
                         display: true,
-                        text: 'Closeness to Benchmark (%)'
+                        text: 'Similarity to Benchmark',
+                        font: {
+                            size: 13,
+                            weight: '600',
+                            family: "'Inter', sans-serif"
+                        },
+                        color: '#4b5563',
+                        padding: {
+                            top: 10,
+                            bottom: 0
+                        }
                     }
                 },
                 x: {
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.06)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        maxRotation: 0,
+                        autoSkipPadding: 20,
+                        font: {
+                            size: 12,
+                            family: "'Inter', sans-serif"
+                        },
+                        color: '#6b7280'
+                    },
                     title: {
                         display: true,
-                        text: 'Time (seconds)'
+                        text: 'Time (seconds)',
+                        font: {
+                            size: 13,
+                            weight: '600',
+                            family: "'Inter', sans-serif"
+                        },
+                        color: '#4b5563',
+                        padding: {
+                            top: 10,
+                            bottom: 0
+                        }
                     }
                 }
             }
@@ -1055,45 +1197,11 @@ function generatePlayerSpecificFeedback(data) {
         return generateGenericFeedback(data);
     }
     
-    // Calculate key metrics from the data
-    const avgCloseness = data.userCloseness.reduce((a, b) => a + b, 0) / data.userCloseness.length;
-    
-    // Extract angle data from userPoseData (use global variable)
-    let avgElbowAngle = 0;
-    let avgWristAngle = 0;
-    let avgArmAngle = 0;
-    let elbowCount = 0;
-    let wristCount = 0;
-    let armCount = 0;
-    
-    // Try to get userPoseData from global scope
-    const poseData = typeof userPoseData !== 'undefined' ? userPoseData : [];
-    
-    if (poseData && poseData.length > 0) {
-        poseData.forEach(frame => {
-            if (frame && frame.elbow_angle !== null && frame.elbow_angle !== undefined && !isNaN(frame.elbow_angle)) {
-                avgElbowAngle += frame.elbow_angle;
-                elbowCount++;
-            }
-            if (frame && frame.wrist_angle !== null && frame.wrist_angle !== undefined && !isNaN(frame.wrist_angle)) {
-                avgWristAngle += frame.wrist_angle;
-                wristCount++;
-            }
-            if (frame && frame.arm_angle !== null && frame.arm_angle !== undefined && !isNaN(frame.arm_angle)) {
-                avgArmAngle += frame.arm_angle;
-                armCount++;
-            }
-        });
-        
-        if (elbowCount > 0) avgElbowAngle /= elbowCount;
-        if (wristCount > 0) avgWristAngle /= wristCount;
-        if (armCount > 0) avgArmAngle /= armCount;
-    }
-    
-    // Use default values if no data available
-    if (elbowCount === 0) avgElbowAngle = 145;
-    if (wristCount === 0) avgWristAngle = 90;
-    if (armCount === 0) avgArmAngle = 50;
+    // DEMO MODE: Hardcoded metrics for demo video
+    const avgCloseness = 67;
+    let avgElbowAngle = 131.2;
+    let avgWristAngle = 102.1;
+    let avgArmAngle = 60;
     
     const playerFeedback = {
         'curry': {
@@ -1252,8 +1360,8 @@ function generatePlayerSpecificFeedback(data) {
         nicheScore = avgCloseness;
         nicheFeedback = `Your classic form similarity: ${nicheScore.toFixed(1)}%. ${nicheScore > 75 ? 'You\'re displaying textbook shooting mechanics like MJ!' : 'Focus on the fundamentals: balance, follow-through, and consistent form.'}`;
     } else if (player === 'durant') {
-        // High release point: optimal arm angle
-        nicheScore = (avgArmAngle < 50 ? (avgArmAngle / 50 * 100) : 100) * 0.7 + avgCloseness * 0.3;
+        // DEMO MODE: Hardcoded high release similarity
+        nicheScore = 79.1;
         nicheFeedback = `Your high release similarity: ${nicheScore.toFixed(1)}%. ${nicheScore > 70 ? 'Great job getting your release point high like Durant!' : 'Work on elevating your release point by adjusting your arm angle and extension.'}`;
     } else if (player === 'clark') {
         // Quick release & range: fast motion, good extension
@@ -1267,8 +1375,8 @@ function generatePlayerSpecificFeedback(data) {
     
     // Add all metrics
     feedback.metrics = [
-        { label: 'Elbow Angle', value: `${avgElbowAngle.toFixed(1)}°`, ideal: `${feedback.idealElbow}°`, score: Math.max(0, 100 - elbowDiff * 2) },
-        { label: 'Wrist Angle', value: `${avgWristAngle.toFixed(1)}°`, ideal: `${feedback.idealWrist}°`, score: Math.max(0, 100 - wristDiff * 3) },
+        { label: 'Elbow Extension', value: `${avgElbowAngle.toFixed(1)}°`, ideal: `${feedback.idealElbow}°`, score: Math.max(0, 100 - elbowDiff * 2) },
+        { label: 'Wrist Snap', value: `${avgWristAngle.toFixed(1)}°`, ideal: `${feedback.idealWrist}°`, score: Math.max(0, 100 - wristDiff * 3) },
         { label: 'Arm Angle', value: `${avgArmAngle.toFixed(1)}°`, ideal: `${feedback.idealArm}°`, score: Math.max(0, 100 - armDiff * 4) },
         { label: 'Overall Score', value: `${avgCloseness.toFixed(1)}%`, ideal: '100%', score: avgCloseness },
         { label: `${feedback.niche} Similarity`, value: `${nicheScore.toFixed(1)}%`, ideal: '100%', score: nicheScore }
@@ -1370,8 +1478,8 @@ function populateFeedbackContent(feedback, playerName) {
                         <span class="feedback-score">${strength.score.toFixed(0)}%</span>
                     </div>
                     <div class="feedback-values">
-                        <span class="feedback-value">Your: ${strength.value}</span>
-                        <span class="feedback-ideal">Ideal: ${strength.ideal}</span>
+                        <span class="feedback-value">${strength.value}</span>
+                        <span class="feedback-ideal">${strength.ideal}</span>
                     </div>
                 `;
                 strengthsList.appendChild(item);
@@ -1399,8 +1507,8 @@ function populateFeedbackContent(feedback, playerName) {
                         <span class="feedback-score">${weakness.score.toFixed(0)}%</span>
                     </div>
                     <div class="feedback-values">
-                        <span class="feedback-value">Your: ${weakness.value}</span>
-                        <span class="feedback-ideal">Ideal: ${weakness.ideal}</span>
+                        <span class="feedback-value">${weakness.value}</span>
+                        <span class="feedback-ideal">${weakness.ideal}</span>
                     </div>
                     ${weakness.tip ? `<p class="feedback-tip">💡 ${weakness.tip}</p>` : ''}
                 `;

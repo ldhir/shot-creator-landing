@@ -34,3 +34,7 @@ ENV/
 *.log
 *.tmp
 brooklyn-font.zip
+
+# Local Netlify folder
+.netlify
+tool/roots_use.mp4
