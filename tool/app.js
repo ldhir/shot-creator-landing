@@ -589,32 +589,13 @@ async function startUserRecording() {
         canvas.width = 640;
         canvas.height = 480;
 
-        // DEMO MODE: Use hardcoded video instead of webcam
-        console.log('Loading hardcoded video: roots_use.mp4');
-        video.src = 'roots_use.mp4';
-        video.loop = false;
-        video.muted = true;
-        video.autoplay = false;
-        video.style.display = 'block';
-
-        // Wait for video to load before playing
-        await new Promise((resolve, reject) => {
-            video.onloadeddata = () => {
-                console.log('Video loaded successfully');
-                resolve();
-            };
-            video.onerror = (e) => {
-                console.error('Video loading error:', e);
-                reject(e);
-            };
-            video.load();
+        // Get webcam stream
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 }
         });
 
-        // Now play the video
-        console.log('Playing video...');
-        await video.play();
-        console.log('Video is now playing');
-        
+        userStream = stream;
+        video.srcObject = stream;
         userPoseData = [];
         
         let previousStage = "neutral";
@@ -733,23 +714,20 @@ async function startUserRecording() {
             
             ctx.restore();
         });
-        
-        // DEMO MODE: Process video frames manually instead of using Camera utility
-        async function processVideoFrame() {
-            if (video.paused || video.ended) {
-                return;
-            }
-            await userPose.send({image: video});
-            requestAnimationFrame(processVideoFrame);
-        }
 
-        // Start frame processing
-        console.log('Starting video frame processing...');
-        processVideoFrame();
-        
+        // Use Camera utility to process frames
+        userCamera = new Camera(video, {
+            onFrame: async () => {
+                await userPose.send({image: video});
+            },
+            width: 640,
+            height: 480
+        });
+        userCamera.start();
+
     } catch (error) {
-        console.error('Error loading video:', error);
-        document.getElementById('userStatus').textContent = 'Error loading video. Please refresh and try again.';
+        console.error('Error accessing camera:', error);
+        document.getElementById('userStatus').textContent = 'Error accessing camera. Please allow camera permissions.';
         document.getElementById('userStatus').className = 'status error';
     }
 }
@@ -758,13 +736,6 @@ function stopUserRecording() {
     if (userCamera) {
         userCamera.stop();
         userCamera = null;
-    }
-
-    // DEMO MODE: Stop video playback
-    const video = document.getElementById('userVideo');
-    if (video) {
-        video.pause();
-        video.currentTime = 0;
     }
 
     if (userStream) {
@@ -980,12 +951,8 @@ function displayResults(data) {
         console.error('results element not found!');
     }
     
-    // DEMO MODE: Hardcoded overall score and chart data
-    const avgCloseness = 67;
-
-    // DEMO MODE: Create fake timeline data that averages to 67%
-    const demoUserTimes = [0.00, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90];
-    const demoUserCloseness = [58, 62, 68, 72, 70, 69, 66, 65, 63, 60]; // averages to ~67%
+    // Calculate average score from actual data
+    const avgCloseness = data.userCloseness.reduce((a, b) => a + b, 0) / data.userCloseness.length;
 
     // Add player name to title if applicable
     const playerNames = {
@@ -1016,10 +983,10 @@ function displayResults(data) {
     comparisonChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: demoUserTimes.map(t => t.toFixed(2)),
+            labels: data.userTimes.map(t => t.toFixed(2)),
             datasets: [{
                 label: 'Benchmark (100%)',
-                data: demoUserTimes.map(() => 100),
+                data: data.userTimes.map(() => 100),
                 borderColor: 'rgba(147, 112, 219, 0.8)',
                 backgroundColor: 'rgba(147, 112, 219, 0.1)',
                 borderDash: [8, 4],
@@ -1028,7 +995,7 @@ function displayResults(data) {
                 tension: 0.4
             }, {
                 label: 'Your Shot',
-                data: demoUserCloseness,
+                data: data.userCloseness,
                 borderColor: 'rgb(255, 107, 122)',
                 backgroundColor: gradient,
                 borderWidth: 3,
@@ -1197,11 +1164,11 @@ function generatePlayerSpecificFeedback(data) {
         return generateGenericFeedback(data);
     }
     
-    // DEMO MODE: Hardcoded metrics for demo video
-    const avgCloseness = 67;
-    let avgElbowAngle = 131.2;
-    let avgWristAngle = 102.1;
-    let avgArmAngle = 60;
+    // Calculate average metrics from recorded data
+    const avgCloseness = data.userCloseness.reduce((a, b) => a + b, 0) / data.userCloseness.length;
+    let avgElbowAngle = data.avgElbowAngle || 0;
+    let avgWristAngle = data.avgWristAngle || 0;
+    let avgArmAngle = data.avgArmAngle || 0;
     
     const playerFeedback = {
         'curry': {
@@ -1360,8 +1327,8 @@ function generatePlayerSpecificFeedback(data) {
         nicheScore = avgCloseness;
         nicheFeedback = `Your classic form similarity: ${nicheScore.toFixed(1)}%. ${nicheScore > 75 ? 'You\'re displaying textbook shooting mechanics like MJ!' : 'Focus on the fundamentals: balance, follow-through, and consistent form.'}`;
     } else if (player === 'durant') {
-        // DEMO MODE: Hardcoded high release similarity
-        nicheScore = 79.1;
+        // High release point: arm angle and extension combined
+        nicheScore = ((180 - Math.abs(avgArmAngle - 48)) / 180 * 100 * 0.5) + (avgCloseness * 0.5);
         nicheFeedback = `Your high release similarity: ${nicheScore.toFixed(1)}%. ${nicheScore > 70 ? 'Great job getting your release point high like Durant!' : 'Work on elevating your release point by adjusting your arm angle and extension.'}`;
     } else if (player === 'clark') {
         // Quick release & range: fast motion, good extension
