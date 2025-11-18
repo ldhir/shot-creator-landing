@@ -28,7 +28,7 @@ function generateExampleBenchmarkData() {
     // This mimics a real recording from startBenchmarkRecording
     const data = [];
     const duration = 2.0; // 2 seconds
-    const fps = 30; // 30 frames per second  
+    const fps = 90; // 90 frames per second  
     const totalFrames = Math.floor(duration * fps);
     
     let previousStage = "neutral";
@@ -109,6 +109,9 @@ function initializeProPlayerBenchmarks() {
         if (player === 'lebron' && typeof window.lebron_benchmark_data !== 'undefined') {
             proPlayerBenchmarks[player] = window.lebron_benchmark_data;
             console.log(`Loaded real LeBron data: ${proPlayerBenchmarks[player].length} frames`);
+        } else if (player === 'curry' && typeof window.curry_benchmark_data !== 'undefined') {
+            proPlayerBenchmarks[player] = window.curry_benchmark_data;
+            console.log(`Loaded real Curry data: ${proPlayerBenchmarks[player].length} frames`);
         } else {
         proPlayerBenchmarks[player] = generateExampleBenchmarkData();
         }
@@ -128,6 +131,17 @@ const POSE_CONNECTIONS = [
     [23, 25], [24, 26], [25, 27], [26, 28], [27, 29], [28, 30], [27, 31], [28, 32],
     [29, 31], [30, 32]
 ];
+
+// Helper function to get overlay color based on state
+function getOverlayColor(state) {
+    if (state === 'pre_shot') {
+        return '#3b82f6'; // Blue
+    } else if (state === 'follow_through') {
+        return '#ff8c00'; // Orange
+    } else {
+        return '#00FF00'; // Green (neutral or default)
+    }
+}
 
 // Drawing utility functions
 function drawConnections(ctx, points, connections, style) {
@@ -335,7 +349,7 @@ function getArmState(landmarks, width, height) {
             Math.pow(rightWrist[1] - leftWrist[1], 2) +
             Math.pow(rightWrist[2] - leftWrist[2], 2)
         );
-
+        
         if (distWrists < 0.15 * width && avgWristY < waistY && rightWrist[1] > rightShoulder[1]) {
             return "pre_shot";
         }
@@ -354,6 +368,289 @@ function getArmState(landmarks, width, height) {
     }
 
     return "neutral";
+}
+
+// Enhanced stage detection for specific shooting phases
+// Returns: "shot_start", "set_point", "follow_through", or null
+function detectShootingStage(landmarks, width, height, currentState, previousState) {
+    const rightShoulder = get3DPoint(landmarks, 12, width, height);
+    const rightWrist = get3DPoint(landmarks, 16, width, height);
+    
+    if (!rightShoulder || !rightWrist) {
+        return null;
+    }
+    
+    // Shot Start: when shooting form begins (transition from neutral to pre_shot)
+    if (previousState === "neutral" && currentState === "pre_shot") {
+        return "shot_start";
+    }
+    
+    // Set Point: when right wrist is higher than right shoulder (wrist Y < shoulder Y means higher on screen)
+    if (currentState === "pre_shot" && rightWrist[1] < rightShoulder[1]) {
+        return "set_point";
+    }
+    
+    // Follow Through: when right wrist goes above right shoulder after set point
+    // (This happens when we transition to follow_through state)
+    if (currentState === "follow_through") {
+        return "follow_through";
+    }
+    
+    return null;
+}
+
+// Extract stage markers from pose data using exact get_arm_state logic
+function extractStageMarkers(poseData) {
+    const markers = {
+        shot_start: null,
+        set_point: null,
+        follow_through: null
+    };
+    
+    if (!poseData || poseData.length === 0) {
+        return markers;
+    }
+    
+    // Estimate coordinate system from landmark coordinates
+    // Landmarks are normalized (translated/rotated) but still in pixel coordinate scale
+    // Use a sample frame to estimate typical coordinate ranges
+    let estimatedHeight = 480; // default
+    let estimatedWidth = 640; // default
+    let coordinateRange = 0;
+    if (poseData.length > 0 && poseData[0].landmarks) {
+        const sampleFrame = poseData[0];
+        let maxY = 0, minY = Infinity, maxX = 0, minX = Infinity;
+        for (let idx = 0; idx < sampleFrame.landmarks.length; idx++) {
+            const landmark = sampleFrame.landmarks[idx];
+            if (landmark && Array.isArray(landmark) && landmark.length >= 2 && !isNaN(landmark[0]) && !isNaN(landmark[1])) {
+                maxX = Math.max(maxX, Math.abs(landmark[0]));
+                minX = Math.min(minX, Math.abs(landmark[0]));
+                maxY = Math.max(maxY, Math.abs(landmark[1]));
+                minY = Math.min(minY, Math.abs(landmark[1]));
+            }
+        }
+        // Calculate the range of coordinates
+        coordinateRange = Math.max(maxY - minY, maxX - minX);
+        // If coordinates are in pixel scale (normalized but still pixel-sized), estimate dimensions
+        if (coordinateRange > 10) {
+            // Likely pixel coordinates (normalized but still pixel scale)
+            estimatedHeight = Math.max(estimatedHeight, coordinateRange * 2);
+            estimatedWidth = Math.max(estimatedWidth, coordinateRange * 2);
+        }
+    }
+    
+    // Tolerance: Use a percentage of the coordinate range, with minimum threshold
+    // For normalized pixel coordinates, use 1-2% of the coordinate range
+    const tolerance = Math.max(5, coordinateRange * 0.02); // 2% of range, minimum 5 units
+    
+    let previousState = "neutral";
+    let seenShotStart = false;
+    
+    // Track closest matches for debugging
+    let closestSetPoint = { diff: Infinity, frame: null };
+    let closestFollowThrough = { diff: Infinity, frame: null };
+    
+    for (let i = 0; i < poseData.length; i++) {
+        const frame = poseData[i];
+        if (!frame || !frame.landmarks) continue;
+        
+        // Use the state from frame (which should be determined by getArmState)
+        // But if not present, we can determine it using getArmState logic
+        let currentState = frame.state;
+        if (!currentState && frame.landmarks) {
+            // Re-determine state using getArmState logic (exact match to Python)
+            // Note: landmarks are already in pixel coordinates from get3DPoint
+            const rightShoulder = frame.landmarks[12];
+            const rightWrist = frame.landmarks[16];
+            const leftWrist = frame.landmarks[15];
+            const leftHip = frame.landmarks[23];
+            const rightHip = frame.landmarks[24];
+            
+            // Use exact get_arm_state logic from Python
+            if (rightWrist && leftWrist && leftHip && rightHip && rightShoulder &&
+                Array.isArray(rightWrist) && Array.isArray(leftWrist) && 
+                Array.isArray(leftHip) && Array.isArray(rightHip) && Array.isArray(rightShoulder)) {
+                const waistY = (leftHip[1] + rightHip[1]) / 2.0;
+                const avgWristY = (rightWrist[1] + leftWrist[1]) / 2.0;
+                const distWrists = Math.sqrt(
+                    Math.pow(rightWrist[0] - leftWrist[0], 2) +
+                    Math.pow(rightWrist[1] - leftWrist[1], 2) +
+                    Math.pow(rightWrist[2] - leftWrist[2], 2)
+                );
+                if (distWrists < 0.15 * estimatedWidth && avgWristY < waistY && rightWrist[1] > rightShoulder[1]) {
+                    currentState = "pre_shot";
+                }
+            }
+            
+            if (!currentState && rightWrist && rightShoulder && 
+                Array.isArray(rightWrist) && Array.isArray(rightShoulder)) {
+                if (rightShoulder[1] > rightWrist[1]) {
+                    currentState = "follow_through";
+                }
+            }
+            
+            if (!currentState && rightShoulder && rightWrist &&
+                Array.isArray(rightShoulder) && Array.isArray(rightWrist)) {
+                if (rightWrist[1] > rightShoulder[1]) {
+                    currentState = "neutral";
+                }
+            }
+            
+            if (!currentState) {
+                currentState = "neutral";
+            }
+        }
+        
+        // Shot Start: first transition from neutral to pre_shot
+        if (!markers.shot_start && previousState === "neutral" && currentState === "pre_shot") {
+            markers.shot_start = {
+                time: frame.time || 0,
+                index: i,
+                elbow_angle: frame.elbow_angle,
+                wrist_angle: frame.wrist_angle,
+                arm_angle: frame.arm_angle
+            };
+            seenShotStart = true;
+        }
+        
+        // Set Point: when right wrist Y equals right shoulder Y (using exact equality check)
+        // Track the FIRST occurrence during pre_shot phase
+        if (!markers.set_point && currentState === "pre_shot" && seenShotStart) {
+            const rightShoulder = frame.landmarks[12];
+            const rightWrist = frame.landmarks[16];
+            
+            if (rightShoulder && rightWrist && 
+                Array.isArray(rightShoulder) && Array.isArray(rightWrist)) {
+                const shoulderY = rightShoulder[1];
+                const wristY = rightWrist[1];
+                
+                if (!isNaN(shoulderY) && !isNaN(wristY)) {
+                    // Check if wrist Y equals shoulder Y (within pixel tolerance)
+                    const diff = Math.abs(wristY - shoulderY);
+                    
+                    // Track closest match for debugging
+                    if (diff < closestSetPoint.diff) {
+                        closestSetPoint.diff = diff;
+                        closestSetPoint.frame = { time: frame.time, wristY, shoulderY, index: i };
+                    }
+                    
+                    // Mark the FIRST occurrence when Y values are equal (within tolerance)
+                    if (diff < tolerance && !markers.set_point) {
+                        markers.set_point = {
+                            time: frame.time || 0,
+                            index: i,
+                            elbow_angle: frame.elbow_angle,
+                            wrist_angle: frame.wrist_angle,
+                            arm_angle: frame.arm_angle,
+                            wristY: wristY,
+                            shoulderY: shoulderY
+                        };
+                        console.log('✅ Set Point detected at time:', frame.time, 'wristY:', wristY, 'shoulderY:', shoulderY, 'diff:', diff, 'tolerance:', tolerance);
+                    }
+                }
+            }
+        }
+        
+        // Follow Through: when right elbow Y equals right shoulder Y (using exact equality check)
+        // Only detect after Set Point has been found - check ALL frames after set point
+        // This ensures Set Point happens before Follow Through
+        if (!markers.follow_through && markers.set_point && i > markers.set_point.index) {
+            const rightShoulder = frame.landmarks[12];
+            const rightElbow = frame.landmarks[14];
+            
+            if (rightShoulder && rightElbow &&
+                Array.isArray(rightShoulder) && Array.isArray(rightElbow)) {
+                const shoulderY = rightShoulder[1];
+                const elbowY = rightElbow[1];
+                
+                if (!isNaN(shoulderY) && !isNaN(elbowY)) {
+                    // Check if elbow Y equals shoulder Y (within pixel tolerance)
+                    const diff = Math.abs(elbowY - shoulderY);
+                    
+                    // Track closest match for debugging (only after set point)
+                    if (diff < closestFollowThrough.diff) {
+                        closestFollowThrough.diff = diff;
+                        closestFollowThrough.frame = { time: frame.time, elbowY, shoulderY, index: i };
+                    }
+                    
+                    // Mark the FIRST occurrence after Set Point when Y values are equal (within tolerance)
+                    if (diff < tolerance && !markers.follow_through) {
+                        markers.follow_through = {
+                            time: frame.time || 0,
+                            index: i,
+                            elbow_angle: frame.elbow_angle,
+                            wrist_angle: frame.wrist_angle,
+                            arm_angle: frame.arm_angle,
+                            elbowY: elbowY,
+                            shoulderY: shoulderY
+                        };
+                        console.log('✅ Follow Through detected at time:', frame.time, 'elbowY:', elbowY, 'shoulderY:', shoulderY, 'diff:', diff, 'tolerance:', tolerance, 'state:', currentState);
+                    }
+                }
+            }
+        }
+        
+        previousState = currentState;
+    }
+    
+    console.log('Extracted stage markers:', markers);
+    console.log('Closest Set Point match (even if not within tolerance):', closestSetPoint);
+    console.log('Closest Follow Through match (even if not within tolerance):', closestFollowThrough);
+    console.log('Used tolerance:', tolerance, 'coordinate range:', coordinateRange, 'estimated dimensions:', estimatedWidth, 'x', estimatedHeight);
+    
+    // Debug: Log sample Y values from different frames
+    if (poseData.length > 0) {
+        const sampleIndices = [0, Math.floor(poseData.length / 4), Math.floor(poseData.length / 2), Math.floor(poseData.length * 3 / 4), poseData.length - 1];
+        console.log('Sample Y values across frames:');
+        sampleIndices.forEach(idx => {
+            if (idx < poseData.length && poseData[idx].landmarks) {
+                const frame = poseData[idx];
+                const rs = frame.landmarks[12];
+                const rw = frame.landmarks[16];
+                const re = frame.landmarks[14];
+                if (rs && rw && re && Array.isArray(rs) && Array.isArray(rw) && Array.isArray(re)) {
+                    console.log(`  Frame ${idx} (time: ${frame.time?.toFixed(2)}): Shoulder Y: ${rs[1].toFixed(2)}, Wrist Y: ${rw[1].toFixed(2)}, Elbow Y: ${re[1].toFixed(2)}, State: ${frame.state || 'unknown'}`);
+                }
+            }
+        });
+    }
+    
+    // If we didn't find markers but have close matches, use those with a more lenient threshold (3x tolerance)
+    if (!markers.set_point && closestSetPoint.frame && closestSetPoint.diff < tolerance * 3) {
+        const frame = poseData[closestSetPoint.frame.index];
+        markers.set_point = {
+            time: frame.time || 0,
+            index: closestSetPoint.frame.index,
+            elbow_angle: frame.elbow_angle,
+            wrist_angle: frame.wrist_angle,
+            arm_angle: frame.arm_angle,
+            wristY: closestSetPoint.frame.wristY,
+            shoulderY: closestSetPoint.frame.shoulderY
+        };
+        console.log('⚠️ Set Point found using closest match (diff:', closestSetPoint.diff.toFixed(2), ', tolerance:', (tolerance * 3).toFixed(2), ')');
+    }
+    
+    // Only try to find Follow Through if Set Point was found, and only after Set Point chronologically
+    if (!markers.follow_through && markers.set_point && closestFollowThrough.frame && closestFollowThrough.diff < tolerance * 3) {
+        // Make sure Follow Through happens after Set Point
+        if (closestFollowThrough.frame.index > markers.set_point.index) {
+            const frame = poseData[closestFollowThrough.frame.index];
+            markers.follow_through = {
+                time: frame.time || 0,
+                index: closestFollowThrough.frame.index,
+                elbow_angle: frame.elbow_angle,
+                wrist_angle: frame.wrist_angle,
+                arm_angle: frame.arm_angle,
+                elbowY: closestFollowThrough.frame.elbowY,
+                shoulderY: closestFollowThrough.frame.shoulderY
+            };
+            console.log('⚠️ Follow Through found using closest match (diff:', closestFollowThrough.diff.toFixed(2), ', tolerance:', (tolerance * 3).toFixed(2), ')');
+        } else {
+            console.log('Follow Through closest match is before Set Point, skipping');
+        }
+    }
+    
+    return markers;
 }
 
 /**
@@ -427,7 +724,7 @@ async function startBenchmarkRecording() {
         benchmarkPose.onResults((results) => {
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+            
             // Draw the video frame
             if (results.image) {
             ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
@@ -442,20 +739,21 @@ async function startBenchmarkRecording() {
                     bodyWarning.style.display = 'none';
                 }
             }
-
+            
             if (results.poseLandmarks) {
+                const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                const overlayColor = getOverlayColor(state);
+                const currentTime = Date.now() / 1000.0;
+                
                 drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-                    color: '#00FF00',
+                    color: overlayColor,
                     lineWidth: 2
                 });
                 drawLandmarks(ctx, results.poseLandmarks, {
-                    color: '#00FF00',
+                    color: overlayColor,
                     lineWidth: 1,
                     radius: 3
                 });
-
-                const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
-                const currentTime = Date.now() / 1000.0;
                 
                 // Compute angles
                 const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
@@ -584,16 +882,16 @@ async function startUserRecording() {
         const video = document.getElementById('userVideo');
         const canvas = document.getElementById('userOutput');
         const ctx = canvas.getContext('2d');
-
+        
         // Set canvas dimensions
         canvas.width = 640;
         canvas.height = 480;
 
         // Get webcam stream
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480 }
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 } 
         });
-
+        
         userStream = stream;
         video.srcObject = stream;
         userPoseData = [];
@@ -603,7 +901,7 @@ async function startUserRecording() {
         let recordingActive = false;
         let seenFollowThrough = false;
         const lastPrintTime = { value: Date.now() };
-
+        
         document.getElementById('startUser').disabled = true;
         document.getElementById('stopUser').disabled = false;
         document.getElementById('userStatus').textContent = 'Processing video...';
@@ -612,7 +910,7 @@ async function startUserRecording() {
         userPose.onResults((results) => {
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+            
             // Draw the video frame
             if (results.image) {
             ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
@@ -627,20 +925,21 @@ async function startUserRecording() {
                     bodyWarning.style.display = 'none';
                 }
             }
-
+            
             if (results.poseLandmarks) {
+                const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                const overlayColor = getOverlayColor(state);
+                const currentTime = Date.now() / 1000.0;
+                
                 drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-                    color: '#00FF00',
+                    color: overlayColor,
                     lineWidth: 2
                 });
                 drawLandmarks(ctx, results.poseLandmarks, {
-                    color: '#00FF00',
+                    color: overlayColor,
                     lineWidth: 1,
                     radius: 3
                 });
-
-                const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
-                const currentTime = Date.now() / 1000.0;
                 
                 const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
                 const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
@@ -714,7 +1013,7 @@ async function startUserRecording() {
             
             ctx.restore();
         });
-
+        
         // Use Camera utility to process frames
         userCamera = new Camera(video, {
             onFrame: async () => {
@@ -724,7 +1023,7 @@ async function startUserRecording() {
             height: 480
         });
         userCamera.start();
-
+        
     } catch (error) {
         console.error('Error accessing camera:', error);
         document.getElementById('userStatus').textContent = 'Error accessing camera. Please allow camera permissions.';
@@ -737,20 +1036,20 @@ function stopUserRecording() {
         userCamera.stop();
         userCamera = null;
     }
-
+    
     if (userStream) {
         userStream.getTracks().forEach(track => track.stop());
         userStream = null;
     }
-
+    
     document.getElementById('startUser').disabled = false;
     document.getElementById('stopUser').disabled = true;
-
+    
     if (userPoseData.length > 0) {
         document.getElementById('userStatus').textContent = `Recorded ${userPoseData.length} frames. Analyzing...`;
         document.getElementById('userStatus').className = 'status success';
         document.getElementById('retakeUser').style.display = 'inline-block';
-
+        
         compareShots();
     }
 }
@@ -815,18 +1114,19 @@ async function processUploadedUserVideo() {
                     }
 
                     if (results.poseLandmarks) {
+                        const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                        const overlayColor = getOverlayColor(state);
+                        const currentTime = video.currentTime;
+                        
                         drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-                            color: '#00FF00',
+                            color: overlayColor,
                             lineWidth: 2
                         });
                         drawLandmarks(ctx, results.poseLandmarks, {
-                            color: '#00FF00',
+                            color: overlayColor,
                             lineWidth: 1,
                             radius: 3
                         });
-
-                        const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
-                        const currentTime = video.currentTime;
 
                         const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
                         const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
@@ -937,6 +1237,201 @@ async function processUploadedUserVideo() {
         document.getElementById('processUserVideo').textContent = 'Analyze Video';
     }
 }
+
+/**
+ * Process a video file to extract pose data and generate benchmark data
+ * This function can be used to process Curry's shot video and generate curry_benchmark.js
+ * Usage: processVideoForBenchmark(videoFile, 'curry')
+ */
+async function processVideoForBenchmark(videoFile, playerName = 'curry') {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(videoFile);
+            video.muted = true;
+            video.playsInline = true;
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const poseData = [];
+            let previousStage = "neutral";
+            let startTime = null;
+            let recordingActive = false;
+            let seenFollowThrough = false;
+            
+            // Wait for video to load
+            await new Promise((resolve) => {
+                video.addEventListener('loadedmetadata', () => {
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    resolve();
+                }, { once: true });
+            });
+            
+            await video.play();
+            
+            // Create a temporary pose instance for processing
+            const tempPose = new Pose({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                }
+            });
+            
+            tempPose.setOptions({
+                modelComplexity: 2,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                smoothSegmentation: false,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.7
+            });
+            
+            const processFrame = async () => {
+                return new Promise((resolve) => {
+                    tempPose.onResults((results) => {
+                        ctx.save();
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw the video frame
+                        if (results.image) {
+                            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+                        }
+                        
+                        if (results.poseLandmarks) {
+                            const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                            const overlayColor = getOverlayColor(state);
+                            const currentTime = video.currentTime;
+                            
+                            // Draw overlay
+                            drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+                                color: overlayColor,
+                                lineWidth: 2
+                            });
+                            drawLandmarks(ctx, results.poseLandmarks, {
+                                color: overlayColor,
+                                lineWidth: 1,
+                                radius: 3
+                            });
+                            
+                            const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
+                            const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
+                            const rightWrist = get3DPoint(results.poseLandmarks, 16, canvas.width, canvas.height);
+                            const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
+                            const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
+                            
+                            const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+                            const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
+                            const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
+                            
+                            const landmarks3D = [];
+                            for (let i = 0; i < 33; i++) {
+                                const pt = get3DPoint(results.poseLandmarks, i, canvas.width, canvas.height);
+                                landmarks3D.push(pt || [NaN, NaN, NaN]);
+                            }
+                            
+                            const normalizedLandmarks = normalizePoseOrientation(landmarks3D);
+                            
+                            // Stage transitions
+                            if (state !== previousStage) {
+                                if (state === "pre_shot" && !recordingActive) {
+                                    recordingActive = true;
+                                    seenFollowThrough = false;
+                                    startTime = currentTime;
+                                    poseData.length = 0; // Clear previous data
+                                } else if (state === "neutral" && recordingActive && !seenFollowThrough) {
+                                    recordingActive = false;
+                                    seenFollowThrough = false;
+                                    startTime = null;
+                                    poseData.length = 0;
+                                } else if (state === "follow_through" && recordingActive) {
+                                    seenFollowThrough = true;
+                                } else if (state === "pre_shot" && recordingActive && seenFollowThrough) {
+                                    const elapsed = currentTime - startTime;
+                                    poseData.push({
+                                        state: state,
+                                        time: elapsed,
+                                        elbow_angle: elbowAngle,
+                                        wrist_angle: wristAngle,
+                                        arm_angle: armAngle,
+                                        landmarks: normalizedLandmarks
+                                    });
+                                    resolve(true); // Shot complete
+                                    return;
+                                }
+                                previousStage = state;
+                            }
+                            
+                            // Record while actively recording
+                            if (recordingActive) {
+                                const elapsed = currentTime - startTime;
+                                poseData.push({
+                                    state: state,
+                                    time: elapsed,
+                                    elbow_angle: elbowAngle,
+                                    wrist_angle: wristAngle,
+                                    arm_angle: armAngle,
+                                    landmarks: normalizedLandmarks
+                                });
+                            }
+                        }
+                        
+                        ctx.restore();
+                        resolve(false); // Continue processing
+                    });
+                });
+            };
+            
+            // Process video frame by frame
+            const frameInterval = 1 / 30; // 30 FPS
+            while (video.currentTime < video.duration) {
+                await tempPose.send({ image: video });
+                const shotComplete = await processFrame();
+                
+                if (shotComplete) {
+                    break;
+                }
+                
+                // Advance to next frame
+                video.currentTime += frameInterval;
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            video.pause();
+            URL.revokeObjectURL(video.src);
+            
+            if (poseData.length > 0) {
+                // Generate the benchmark file content
+                const benchmarkContent = `// ${playerName.toUpperCase()} benchmark data (extracted from video)
+const ${playerName}_data = ${JSON.stringify(poseData, null, 2)};
+`;
+                
+                // Create download link
+                const blob = new Blob([benchmarkContent], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${playerName}_benchmark.js`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log(`Generated ${playerName}_benchmark.js with ${poseData.length} frames`);
+                resolve(poseData);
+            } else {
+                reject(new Error('No shot detected in video'));
+            }
+            
+        } catch (error) {
+            console.error('Error processing video for benchmark:', error);
+            reject(error);
+        }
+    });
+}
+
+// Make function available globally for console usage
+window.processVideoForBenchmark = processVideoForBenchmark;
 
 // ====================== SHOT COMPARISON ======================
 
@@ -1050,7 +1545,7 @@ function computeUserCloseness(benchForm, userForm, path) {
     return userCloseness;
 }
 
-function compareShots() {
+async function compareShots() {
     document.getElementById('step2').classList.remove('active');
     document.getElementById('step2').style.display = 'none';
     document.getElementById('step3').classList.add('active');
@@ -1058,7 +1553,7 @@ function compareShots() {
     document.getElementById('loading').style.display = 'block';
     document.getElementById('results').style.display = 'none';
     
-    setTimeout(() => {
+    setTimeout(async () => {
         // For pro players, use pre-loaded benchmark; for custom, use recorded benchmark
         let benchmarkData = benchmarkPoseData;
         
@@ -1097,6 +1592,35 @@ function compareShots() {
         
         const avgCloseness = userCloseness.reduce((a, b) => a + b, 0) / userCloseness.length;
         
+        // Save similarity score to training database
+        if (window.saveSimilarityScore && window.firebaseAuth?.currentUser) {
+            try {
+                const userId = window.firebaseAuth.currentUser.uid;
+                const player = selectedPlayer || 'custom';
+                await window.saveSimilarityScore(userId, player, avgCloseness);
+                
+                // Check and award similarity badges
+                if (avgCloseness >= 80 && avgCloseness < 90) {
+                    await window.awardBadge(userId, 'similarity', 'bronze');
+                } else if (avgCloseness >= 90 && avgCloseness < 95) {
+                    await window.awardBadge(userId, 'similarity', 'silver');
+                } else if (avgCloseness >= 95) {
+                    await window.awardBadge(userId, 'similarity', 'gold');
+                }
+                
+                // Check all other badges after saving score
+                if (window.checkAllBadges) {
+                    await window.checkAllBadges(userId);
+                }
+            } catch (error) {
+                console.error('Error saving similarity score:', error);
+            }
+        }
+        
+        // Extract stage markers for both benchmark and user
+        const benchStageMarkers = extractStageMarkers(benchmarkData);
+        const userStageMarkers = extractStageMarkers(userPoseData);
+        
         // Generate feedback
         const feedback = [];
         feedback.push(`Overall Score: ${avgCloseness.toFixed(1)}%`);
@@ -1116,9 +1640,416 @@ function compareShots() {
             userTimes: userForm.times,
             userCloseness: userCloseness,
             feedback: feedback,
-            playerName: selectedPlayer
+            playerName: selectedPlayer,
+            benchStageMarkers: benchStageMarkers,
+            userStageMarkers: userStageMarkers,
+            benchmarkData: benchmarkData,
+            userPoseData: userPoseData
         });
     }, 500);
+}
+
+// Helper function to format coordinate to 3 significant figures
+function formatCoordinate(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return 'N/A';
+    }
+    // Convert to 3 significant figures
+    const magnitude = Math.abs(value);
+    if (magnitude === 0) return '0';
+    
+    const order = Math.floor(Math.log10(magnitude));
+    const factor = Math.pow(10, 2 - order);
+    const rounded = Math.round(value * factor) / factor;
+    
+    // Format to show 3 significant figures
+    return rounded.toPrecision(3);
+}
+
+// Helper function to format coordinates as (x,y,z)
+function formatCoordinates(landmark) {
+    if (!landmark || !Array.isArray(landmark) || landmark.length < 3) {
+        return '(N/A, N/A, N/A)';
+    }
+    return `(${formatCoordinate(landmark[0])}, ${formatCoordinate(landmark[1])}, ${formatCoordinate(landmark[2])})`;
+}
+
+// Populate coordinate table with benchmark and user coordinates
+function populateCoordinateTable(data) {
+    console.log('populateCoordinateTable called with data:', data);
+    
+    // Initialize transitions object (always return this)
+    const transitions = {
+        benchSetPoint: [],
+        benchFollowThrough: [],
+        benchShotEnd: [],
+        userSetPoint: [],
+        userFollowThrough: [],
+        userShotEnd: []
+    };
+    
+    const tableBody = document.getElementById('coordinateTableBody');
+    if (!tableBody) {
+        console.warn('Coordinate table body not found');
+        return transitions; // Return empty transitions instead of undefined
+    }
+    
+    // Clear existing rows
+    tableBody.innerHTML = '';
+    
+    // Get pose data - check both possible property names
+    const benchmarkPoseData = data.benchmarkData || data.benchmarkPoseData || [];
+    const userPoseData = data.userPoseData || [];
+    const userTimes = data.userTimes || [];
+    const benchTimes = data.benchTimes || data.userTimes || [];
+    
+    console.log('Benchmark pose data length:', benchmarkPoseData.length);
+    console.log('User pose data length:', userPoseData.length);
+    console.log('User times length:', userTimes.length);
+    
+    if (userTimes.length === 0) {
+        console.warn('No user times available for table');
+        return transitions; // Return empty transitions instead of undefined
+    }
+    
+    // Get stage markers for highlighting
+    const benchSetPoint = data.benchStageMarkers?.set_point;
+    const benchFollowThrough = data.benchStageMarkers?.follow_through;
+    const userSetPoint = data.userStageMarkers?.set_point;
+    const userFollowThrough = data.userStageMarkers?.follow_through;
+    
+    // Create a map of time -> benchmark pose data index
+    const benchTimeMap = new Map();
+    benchmarkPoseData.forEach((frame, idx) => {
+        if (frame && frame.time !== undefined && frame.time !== null) {
+            benchTimeMap.set(frame.time, idx);
+        }
+    });
+    
+    // Create a map of time -> user pose data index
+    const userTimeMap = new Map();
+    userPoseData.forEach((frame, idx) => {
+        if (frame && frame.time !== undefined && frame.time !== null) {
+            userTimeMap.set(frame.time, idx);
+        }
+    });
+    
+    // Find the maximum time from both datasets
+    let maxTime = 0;
+    
+    // Get max time from benchmark
+    benchmarkPoseData.forEach((frame) => {
+        if (frame && frame.time !== undefined && frame.time !== null) {
+            maxTime = Math.max(maxTime, frame.time);
+        }
+    });
+    
+    // Get max time from user
+    userPoseData.forEach((frame) => {
+        if (frame && frame.time !== undefined && frame.time !== null) {
+            maxTime = Math.max(maxTime, frame.time);
+        }
+    });
+    
+    // Also check userTimes
+    if (userTimes.length > 0) {
+        userTimes.forEach(time => {
+            if (time !== undefined && time !== null) {
+                maxTime = Math.max(maxTime, time);
+            }
+        });
+    }
+    
+    // Create evenly spaced time intervals (every 0.01 seconds = 100 samples per second for high precision)
+    const timeInterval = 0.01; // 100 samples per second (10ms intervals)
+    const timesToUse = [];
+    for (let t = 0; t <= maxTime; t += timeInterval) {
+        timesToUse.push({
+            time: Math.min(t, maxTime) // Ensure we don't exceed maxTime
+        });
+    }
+    
+    // Always include the max time as the last row
+    if (timesToUse.length === 0 || timesToUse[timesToUse.length - 1].time < maxTime) {
+        timesToUse.push({ time: maxTime });
+    }
+    
+    console.log('Using', timesToUse.length, 'evenly spaced time points (interval:', timeInterval, 's, max time:', maxTime.toFixed(3), 's)');
+    console.log('Benchmark frames:', benchmarkPoseData.length, 'User frames:', userPoseData.length);
+    
+    // Track previous frame states to detect transitions
+    let prevBenchWristAboveShoulder = null;
+    let prevBenchElbowAboveShoulder = null;
+    let prevBenchElbowBelowShoulder = null; // For shot end detection
+    let prevUserWristAboveShoulder = null;
+    let prevUserElbowAboveShoulder = null;
+    let prevUserElbowBelowShoulder = null; // For shot end detection
+    
+    // Populate table for each time frame
+    timesToUse.forEach((timeEntry, timeIdx) => {
+        const currentTime = timeEntry.time;
+        const row = document.createElement('tr');
+        
+        // Find closest benchmark frame by time (within reasonable tolerance)
+        let benchPoseIdx = -1;
+        let minBenchTimeDiff = Infinity;
+        const maxTimeDiff = 0.05; // 50ms tolerance for matching frames
+        benchmarkPoseData.forEach((frame, idx) => {
+            if (frame && frame.time !== undefined && frame.time !== null) {
+                const diff = Math.abs(frame.time - currentTime);
+                if (diff < minBenchTimeDiff && diff <= maxTimeDiff) {
+                    minBenchTimeDiff = diff;
+                    benchPoseIdx = idx;
+                }
+            }
+        });
+        
+        // Find closest user frame by time (within reasonable tolerance)
+        let userPoseIdx = -1;
+        let minUserTimeDiff = Infinity;
+        userPoseData.forEach((frame, idx) => {
+            if (frame && frame.time !== undefined && frame.time !== null) {
+                const diff = Math.abs(frame.time - currentTime);
+                if (diff < minUserTimeDiff && diff <= maxTimeDiff) {
+                    minUserTimeDiff = diff;
+                    userPoseIdx = idx;
+                }
+            }
+        });
+        
+        // Get benchmark coordinates (null if no matching frame found)
+        let benchWrist = null, benchElbow = null, benchShoulder = null;
+        if (benchPoseIdx >= 0 && benchmarkPoseData[benchPoseIdx] && benchmarkPoseData[benchPoseIdx].landmarks) {
+            const benchLandmarks = benchmarkPoseData[benchPoseIdx].landmarks;
+            benchWrist = benchLandmarks[16]; // Right wrist
+            benchElbow = benchLandmarks[14]; // Right elbow
+            benchShoulder = benchLandmarks[12]; // Right shoulder
+        }
+        
+        // Get user coordinates (null if no matching frame found)
+        let userWrist = null, userElbow = null, userShoulder = null;
+        if (userPoseIdx >= 0 && userPoseData[userPoseIdx] && userPoseData[userPoseIdx].landmarks) {
+            const userLandmarks = userPoseData[userPoseIdx].landmarks;
+            userWrist = userLandmarks[16]; // Right wrist
+            userElbow = userLandmarks[14]; // Right elbow
+            userShoulder = userLandmarks[12]; // Right shoulder
+        }
+        
+        // Determine if this row should be highlighted based on transitions
+        // Blue for Set Point: wrist Y transitions from > shoulder Y to <= shoulder Y
+        // Yellow for Follow Through: elbow Y transitions from > shoulder Y to <= shoulder Y
+        // Green for Shot End: elbow Y transitions from <= shoulder Y to > shoulder Y
+        let isSetPoint = false;
+        let isFollowThrough = false;
+        let isShotEnd = false;
+        let highlightReason = '';
+        
+        // Check benchmark Set Point transition: wrist Y changes from > shoulder Y (below) to <= shoulder Y (at/above)
+        if (benchWrist && benchShoulder && Array.isArray(benchWrist) && Array.isArray(benchShoulder)) {
+            const wristY = benchWrist[1];
+            const shoulderY = benchShoulder[1];
+            if (!isNaN(wristY) && !isNaN(shoulderY)) {
+                const wristAboveShoulder = wristY <= shoulderY; // wrist is at or above shoulder
+                // Initialize previous state on first frame if null
+                if (prevBenchWristAboveShoulder === null) {
+                    prevBenchWristAboveShoulder = wristAboveShoulder;
+                } else {
+                    // Transition: was below (wristY > shoulderY) to at/above (wristY <= shoulderY)
+                    if (prevBenchWristAboveShoulder === false && wristAboveShoulder === true) {
+                        isSetPoint = true;
+                        transitions.benchSetPoint.push(currentTime);
+                        highlightReason += `Benchmark Set Point (wrist crossed from below to at/above shoulder: wrist Y=${wristY.toFixed(2)}, shoulder Y=${shoulderY.toFixed(2)}). `;
+                    }
+                    prevBenchWristAboveShoulder = wristAboveShoulder;
+                }
+            }
+        }
+        
+        // Check user Set Point transition: wrist Y changes from > shoulder Y (below) to <= shoulder Y (at/above)
+        if (userWrist && userShoulder && Array.isArray(userWrist) && Array.isArray(userShoulder)) {
+            const wristY = userWrist[1];
+            const shoulderY = userShoulder[1];
+            if (!isNaN(wristY) && !isNaN(shoulderY)) {
+                const wristAboveShoulder = wristY <= shoulderY; // wrist is at or above shoulder
+                // Initialize previous state on first frame if null
+                if (prevUserWristAboveShoulder === null) {
+                    prevUserWristAboveShoulder = wristAboveShoulder;
+                } else {
+                    // Transition: was below (wristY > shoulderY) to at/above (wristY <= shoulderY)
+                    if (prevUserWristAboveShoulder === false && wristAboveShoulder === true) {
+                        isSetPoint = true;
+                        transitions.userSetPoint.push(currentTime);
+                        highlightReason += `Your Shot Set Point (wrist crossed from below to at/above shoulder: wrist Y=${wristY.toFixed(2)}, shoulder Y=${shoulderY.toFixed(2)}). `;
+                    }
+                    prevUserWristAboveShoulder = wristAboveShoulder;
+                }
+            }
+        }
+        
+        // Check benchmark Follow Through transition: elbow Y changes from > shoulder Y (below) to <= shoulder Y (at/above)
+        if (benchElbow && benchShoulder && Array.isArray(benchElbow) && Array.isArray(benchShoulder)) {
+            const elbowY = benchElbow[1];
+            const shoulderY = benchShoulder[1];
+            if (!isNaN(elbowY) && !isNaN(shoulderY)) {
+                const elbowAboveShoulder = elbowY <= shoulderY; // elbow is at or above shoulder
+                // Initialize previous state on first frame if null
+                if (prevBenchElbowAboveShoulder === null) {
+                    prevBenchElbowAboveShoulder = elbowAboveShoulder;
+                } else {
+                    // Transition: was below (elbowY > shoulderY) to at/above (elbowY <= shoulderY)
+                    if (prevBenchElbowAboveShoulder === false && elbowAboveShoulder === true) {
+                        isFollowThrough = true;
+                        transitions.benchFollowThrough.push(currentTime);
+                        highlightReason += `Benchmark Follow Through (elbow crossed from below to at/above shoulder: elbow Y=${elbowY.toFixed(2)}, shoulder Y=${shoulderY.toFixed(2)}). `;
+                    }
+                    prevBenchElbowAboveShoulder = elbowAboveShoulder;
+                }
+            }
+        }
+        
+        // Check user Follow Through transition: elbow Y changes from > shoulder Y (below) to <= shoulder Y (at/above)
+        if (userElbow && userShoulder && Array.isArray(userElbow) && Array.isArray(userShoulder)) {
+            const elbowY = userElbow[1];
+            const shoulderY = userShoulder[1];
+            if (!isNaN(elbowY) && !isNaN(shoulderY)) {
+                const elbowAboveShoulder = elbowY <= shoulderY; // elbow is at or above shoulder
+                // Initialize previous state on first frame if null
+                if (prevUserElbowAboveShoulder === null) {
+                    prevUserElbowAboveShoulder = elbowAboveShoulder;
+                } else {
+                    // Transition: was below (elbowY > shoulderY) to at/above (elbowY <= shoulderY)
+                    if (prevUserElbowAboveShoulder === false && elbowAboveShoulder === true) {
+                        isFollowThrough = true;
+                        transitions.userFollowThrough.push(currentTime);
+                        highlightReason += `Your Shot Follow Through (elbow crossed from below to at/above shoulder: elbow Y=${elbowY.toFixed(2)}, shoulder Y=${shoulderY.toFixed(2)}). `;
+                    }
+                    prevUserElbowAboveShoulder = elbowAboveShoulder;
+                }
+            }
+        }
+        
+        // Check benchmark Shot End transition: elbow Y changes from <= shoulder Y (at/above) to > shoulder Y (below)
+        if (benchElbow && benchShoulder && Array.isArray(benchElbow) && Array.isArray(benchShoulder)) {
+            const elbowY = benchElbow[1];
+            const shoulderY = benchShoulder[1];
+            if (!isNaN(elbowY) && !isNaN(shoulderY)) {
+                const elbowBelowShoulder = elbowY > shoulderY; // elbow is below shoulder
+                // Initialize previous state on first frame if null
+                if (prevBenchElbowBelowShoulder === null) {
+                    prevBenchElbowBelowShoulder = elbowBelowShoulder;
+                } else {
+                    // Transition: was at/above (elbowY <= shoulderY) to below (elbowY > shoulderY)
+                    if (prevBenchElbowBelowShoulder === false && elbowBelowShoulder === true) {
+                        isShotEnd = true;
+                        transitions.benchShotEnd.push(currentTime);
+                        highlightReason += `Benchmark Shot End (elbow crossed from at/above to below shoulder: elbow Y=${elbowY.toFixed(2)}, shoulder Y=${shoulderY.toFixed(2)}). `;
+                    }
+                    prevBenchElbowBelowShoulder = elbowBelowShoulder;
+                }
+            }
+        }
+        
+        // Check user Shot End transition: elbow Y changes from <= shoulder Y (at/above) to > shoulder Y (below)
+        if (userElbow && userShoulder && Array.isArray(userElbow) && Array.isArray(userShoulder)) {
+            const elbowY = userElbow[1];
+            const shoulderY = userShoulder[1];
+            if (!isNaN(elbowY) && !isNaN(shoulderY)) {
+                const elbowBelowShoulder = elbowY > shoulderY; // elbow is below shoulder
+                // Initialize previous state on first frame if null
+                if (prevUserElbowBelowShoulder === null) {
+                    prevUserElbowBelowShoulder = elbowBelowShoulder;
+                } else {
+                    // Transition: was at/above (elbowY <= shoulderY) to below (elbowY > shoulderY)
+                    if (prevUserElbowBelowShoulder === false && elbowBelowShoulder === true) {
+                        isShotEnd = true;
+                        transitions.userShotEnd.push(currentTime);
+                        highlightReason += `Your Shot End (elbow crossed from at/above to below shoulder: elbow Y=${elbowY.toFixed(2)}, shoulder Y=${shoulderY.toFixed(2)}). `;
+                    }
+                    prevUserElbowBelowShoulder = elbowBelowShoulder;
+                }
+            }
+        }
+        
+        // Apply color highlight: Blue for Set Point, Yellow for Follow Through, Green for Shot End
+        // Priority: Set Point (blue) > Follow Through (yellow) > Shot End (green)
+        if (isSetPoint) {
+            row.style.backgroundColor = '#dbeafe'; // Light blue
+            row.title = highlightReason.trim() || 'Set Point detected (wrist crossed shoulder level)';
+            row.style.cursor = 'help';
+        } else if (isFollowThrough) {
+            row.style.backgroundColor = '#fef3c7'; // Light yellow
+            row.title = highlightReason.trim() || 'Follow Through detected (elbow crossed shoulder level)';
+            row.style.cursor = 'help';
+        } else if (isShotEnd) {
+            row.style.backgroundColor = '#d1fae5'; // Light green
+            row.title = highlightReason.trim() || 'Shot End detected (elbow crossed below shoulder level)';
+            row.style.cursor = 'help';
+        }
+        
+        // Create cells
+        const timeCell = document.createElement('td');
+        timeCell.textContent = currentTime.toFixed(3);
+        timeCell.style.padding = '8px';
+        timeCell.style.border = '1px solid #e5e7eb';
+        row.appendChild(timeCell);
+        
+        // Benchmark coordinates
+        const benchWristCell = document.createElement('td');
+        benchWristCell.textContent = formatCoordinates(benchWrist);
+        benchWristCell.style.padding = '8px';
+        benchWristCell.style.border = '1px solid #e5e7eb';
+        benchWristCell.style.textAlign = 'center';
+        benchWristCell.style.fontFamily = 'monospace';
+        row.appendChild(benchWristCell);
+        
+        const benchElbowCell = document.createElement('td');
+        benchElbowCell.textContent = formatCoordinates(benchElbow);
+        benchElbowCell.style.padding = '8px';
+        benchElbowCell.style.border = '1px solid #e5e7eb';
+        benchElbowCell.style.textAlign = 'center';
+        benchElbowCell.style.fontFamily = 'monospace';
+        row.appendChild(benchElbowCell);
+        
+        const benchShoulderCell = document.createElement('td');
+        benchShoulderCell.textContent = formatCoordinates(benchShoulder);
+        benchShoulderCell.style.padding = '8px';
+        benchShoulderCell.style.border = '1px solid #e5e7eb';
+        benchShoulderCell.style.textAlign = 'center';
+        benchShoulderCell.style.fontFamily = 'monospace';
+        row.appendChild(benchShoulderCell);
+        
+        // User coordinates
+        const userWristCell = document.createElement('td');
+        userWristCell.textContent = formatCoordinates(userWrist);
+        userWristCell.style.padding = '8px';
+        userWristCell.style.border = '1px solid #e5e7eb';
+        userWristCell.style.textAlign = 'center';
+        userWristCell.style.fontFamily = 'monospace';
+        row.appendChild(userWristCell);
+        
+        const userElbowCell = document.createElement('td');
+        userElbowCell.textContent = formatCoordinates(userElbow);
+        userElbowCell.style.padding = '8px';
+        userElbowCell.style.border = '1px solid #e5e7eb';
+        userElbowCell.style.textAlign = 'center';
+        userElbowCell.style.fontFamily = 'monospace';
+        row.appendChild(userElbowCell);
+        
+        const userShoulderCell = document.createElement('td');
+        userShoulderCell.textContent = formatCoordinates(userShoulder);
+        userShoulderCell.style.padding = '8px';
+        userShoulderCell.style.border = '1px solid #e5e7eb';
+        userShoulderCell.style.textAlign = 'center';
+        userShoulderCell.style.fontFamily = 'monospace';
+        row.appendChild(userShoulderCell);
+        
+        tableBody.appendChild(row);
+    });
+    
+    console.log('Coordinate table populated with', timesToUse.length, 'rows');
+    console.log('Detected transitions:', transitions);
+    
+    return transitions;
 }
 
 function displayResults(data) {
@@ -1136,7 +2067,7 @@ function displayResults(data) {
     
     // Calculate average score from actual data
     const avgCloseness = data.userCloseness.reduce((a, b) => a + b, 0) / data.userCloseness.length;
-
+    
     // Add player name to title if applicable
     const playerNames = {
         'curry': 'Stephen Curry',
@@ -1145,47 +2076,218 @@ function displayResults(data) {
         'durant': 'Kevin Durant',
         'clark': 'Caitlin Clark'
     };
-
+    
     let title = `Overall Score: ${avgCloseness.toFixed(1)}%`;
     if (data.playerName && data.playerName !== 'custom') {
         title += ` (vs ${playerNames[data.playerName]})`;
     }
     document.getElementById('overallScore').textContent = title;
-
+    
     const ctx = document.getElementById('comparisonChart').getContext('2d');
-
+    
     if (comparisonChart) {
         comparisonChart.destroy();
     }
-
+    
     // Create gradient for user's shot line
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, 'rgba(255, 107, 122, 0.3)');
     gradient.addColorStop(1, 'rgba(255, 107, 122, 0.05)');
 
+    // Stage colors for dots
+    const stageColors = {
+        shot_start: '#3b82f6', // Blue
+        set_point: '#fbbf24', // Yellow
+        follow_through: '#10b981' // Green
+    };
+    const stageLabels = {
+        shot_start: 'Shot Start',
+        set_point: 'Set Point',
+        follow_through: 'Follow Through'
+    };
+    
+    // Prepare data arrays with point markers
+    const benchmarkData = data.userTimes.map(() => 100);
+    const userData = [...data.userCloseness];
+    
+    // Arrays to store point styles for each data point
+    const benchmarkPointRadius = new Array(data.userTimes.length).fill(0);
+    const benchmarkPointBackgroundColor = new Array(data.userTimes.length).fill('transparent');
+    const benchmarkPointBorderColor = new Array(data.userTimes.length).fill('transparent');
+    
+    const userPointRadius = new Array(data.userTimes.length).fill(0);
+    const userPointBackgroundColor = new Array(data.userTimes.length).fill('transparent');
+    const userPointBorderColor = new Array(data.userTimes.length).fill('transparent');
+    
+    // Populate coordinate table first to get detected transitions
+    const transitions = populateCoordinateTable(data);
+    
+    // Add transition dots to graph arrays based on coordinate table transitions
+    if (transitions) {
+        // Add benchmark Set Point dots (blue)
+        transitions.benchSetPoint.forEach(time => {
+            let closestIdx = 0;
+            let minDiff = Math.abs(data.userTimes[0] - time);
+            for (let i = 1; i < data.userTimes.length; i++) {
+                const diff = Math.abs(data.userTimes[i] - time);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIdx = i;
+                }
+            }
+            if (closestIdx < benchmarkPointRadius.length) {
+                benchmarkPointRadius[closestIdx] = 8;
+                benchmarkPointBackgroundColor[closestIdx] = '#3b82f6'; // Blue
+                benchmarkPointBorderColor[closestIdx] = '#3b82f6';
+            }
+        });
+        
+        // Add benchmark Follow Through dots (yellow)
+        transitions.benchFollowThrough.forEach(time => {
+            let closestIdx = 0;
+            let minDiff = Math.abs(data.userTimes[0] - time);
+            for (let i = 1; i < data.userTimes.length; i++) {
+                const diff = Math.abs(data.userTimes[i] - time);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIdx = i;
+                }
+            }
+            if (closestIdx < benchmarkPointRadius.length) {
+                benchmarkPointRadius[closestIdx] = 8;
+                benchmarkPointBackgroundColor[closestIdx] = '#fbbf24'; // Yellow
+                benchmarkPointBorderColor[closestIdx] = '#fbbf24';
+            }
+        });
+        
+        // Add user Set Point dots (blue)
+        transitions.userSetPoint.forEach(time => {
+            let closestIdx = 0;
+            let minDiff = Math.abs(data.userTimes[0] - time);
+            for (let i = 1; i < data.userTimes.length; i++) {
+                const diff = Math.abs(data.userTimes[i] - time);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIdx = i;
+                }
+            }
+            if (closestIdx < userPointRadius.length) {
+                userPointRadius[closestIdx] = 8;
+                userPointBackgroundColor[closestIdx] = '#3b82f6'; // Blue
+                userPointBorderColor[closestIdx] = '#3b82f6';
+            }
+        });
+        
+        // Add user Follow Through dots (yellow)
+        transitions.userFollowThrough.forEach(time => {
+            let closestIdx = 0;
+            let minDiff = Math.abs(data.userTimes[0] - time);
+            for (let i = 1; i < data.userTimes.length; i++) {
+                const diff = Math.abs(data.userTimes[i] - time);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIdx = i;
+                }
+            }
+            if (closestIdx < userPointRadius.length) {
+                userPointRadius[closestIdx] = 8;
+                userPointBackgroundColor[closestIdx] = '#fbbf24'; // Yellow
+                userPointBorderColor[closestIdx] = '#fbbf24';
+            }
+        });
+        
+        // Add benchmark Shot End dots (green)
+        transitions.benchShotEnd.forEach(time => {
+            let closestIdx = 0;
+            let minDiff = Math.abs(data.userTimes[0] - time);
+            for (let i = 1; i < data.userTimes.length; i++) {
+                const diff = Math.abs(data.userTimes[i] - time);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIdx = i;
+                }
+            }
+            if (closestIdx < benchmarkPointRadius.length) {
+                benchmarkPointRadius[closestIdx] = 8;
+                benchmarkPointBackgroundColor[closestIdx] = '#10b981'; // Green
+                benchmarkPointBorderColor[closestIdx] = '#10b981';
+            }
+        });
+        
+        // Add user Shot End dots (green)
+        transitions.userShotEnd.forEach(time => {
+            let closestIdx = 0;
+            let minDiff = Math.abs(data.userTimes[0] - time);
+            for (let i = 1; i < data.userTimes.length; i++) {
+                const diff = Math.abs(data.userTimes[i] - time);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIdx = i;
+                }
+            }
+            if (closestIdx < userPointRadius.length) {
+                userPointRadius[closestIdx] = 8;
+                userPointBackgroundColor[closestIdx] = '#10b981'; // Green
+                userPointBorderColor[closestIdx] = '#10b981';
+            }
+        });
+        
+        console.log('Added transition dots to graph:', {
+            benchSetPoint: transitions.benchSetPoint.length,
+            benchFollowThrough: transitions.benchFollowThrough.length,
+            benchShotEnd: transitions.benchShotEnd.length,
+            userSetPoint: transitions.userSetPoint.length,
+            userFollowThrough: transitions.userFollowThrough.length,
+            userShotEnd: transitions.userShotEnd.length
+        });
+    }
+    
+    // Only use transition dots from highlighted rows (no old stage markers)
+    console.log('Benchmark point radius array:', benchmarkPointRadius.filter(r => r > 0).length, 'non-zero values');
+    console.log('User point radius array:', userPointRadius.filter(r => r > 0).length, 'non-zero values');
+    
     comparisonChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: data.userTimes.map(t => t.toFixed(2)),
             datasets: [{
                 label: 'Benchmark (100%)',
-                data: data.userTimes.map(() => 100),
+                data: benchmarkData,
                 borderColor: 'rgba(147, 112, 219, 0.8)',
                 backgroundColor: 'rgba(147, 112, 219, 0.1)',
                 borderDash: [8, 4],
                 borderWidth: 2,
-                pointRadius: 0,
+                pointRadius: (ctx) => {
+                    return benchmarkPointRadius[ctx.dataIndex] || 0;
+                },
+                pointBackgroundColor: (ctx) => {
+                    return benchmarkPointBackgroundColor[ctx.dataIndex] || 'transparent';
+                },
+                pointBorderColor: (ctx) => {
+                    return benchmarkPointBorderColor[ctx.dataIndex] || 'transparent';
+                },
+                pointBorderWidth: 2,
+                pointHoverRadius: 10,
                 tension: 0.4
             }, {
                 label: 'Your Shot',
-                data: data.userCloseness,
+                data: userData,
                 borderColor: 'rgb(255, 107, 122)',
                 backgroundColor: gradient,
                 borderWidth: 3,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 6,
+                pointRadius: (ctx) => {
+                    return userPointRadius[ctx.dataIndex] || 0;
+                },
+                pointBackgroundColor: (ctx) => {
+                    return userPointBackgroundColor[ctx.dataIndex] || 'transparent';
+                },
+                pointBorderColor: (ctx) => {
+                    return userPointBorderColor[ctx.dataIndex] || 'transparent';
+                },
+                pointBorderWidth: 2,
+                pointHoverRadius: 10,
                 pointHoverBackgroundColor: 'rgb(255, 107, 122)',
                 pointHoverBorderColor: 'white',
                 pointHoverBorderWidth: 2
@@ -1219,13 +2321,54 @@ function displayResults(data) {
                 },
                 legend: {
                     display: true,
-                    position: 'top',
+                    position: 'right',
                     labels: {
                         usePointStyle: true,
                         padding: 15,
                         font: {
                             size: 13,
                             family: "'Inter', sans-serif"
+                        },
+                        generateLabels: function(chart) {
+                            // Custom legend with stage markers (no shot_start since they start together)
+                            return [
+                                {
+                                    text: 'Benchmark (100%)',
+                                    fillStyle: 'rgba(147, 112, 219, 0.8)',
+                                    strokeStyle: 'rgba(147, 112, 219, 0.8)',
+                                    lineDash: [8, 4],
+                                    pointStyle: 'line'
+                                },
+                                {
+                                    text: 'Your Shot',
+                                    fillStyle: 'rgb(255, 107, 122)',
+                                    strokeStyle: 'rgb(255, 107, 122)',
+                                    pointStyle: 'line'
+                                },
+                                {
+                                    text: ' ', // Spacer
+                                    fillStyle: 'transparent',
+                                    strokeStyle: 'transparent'
+                                },
+                                {
+                                    text: 'Set Point',
+                                    fillStyle: '#3b82f6', // Blue
+                                    strokeStyle: '#3b82f6',
+                                    pointStyle: 'circle'
+                                },
+                                {
+                                    text: 'Follow Through',
+                                    fillStyle: '#fbbf24', // Yellow
+                                    strokeStyle: '#fbbf24',
+                                    pointStyle: 'circle'
+                                },
+                                {
+                                    text: 'Shot End',
+                                    fillStyle: '#10b981', // Green
+                                    strokeStyle: '#10b981',
+                                    pointStyle: 'circle'
+                                }
+                            ];
                         }
                     }
                 },
@@ -1314,6 +2457,9 @@ function displayResults(data) {
         }
     });
     
+    // Display stage-based angle analysis tabs
+    displayStageAngleTabs(data);
+    
     // Generate and display detailed feedback
     try {
         console.log('Generating feedback for player:', data.playerName, 'Data:', data);
@@ -1339,6 +2485,158 @@ function displayResults(data) {
     if (oldFeedbackSection) {
         oldFeedbackSection.style.display = 'none';
     }
+}
+
+// Display tabs showing angles for each shooting stage
+function displayStageAngleTabs(data) {
+    let stageAngleContainer = document.getElementById('stageAngleTabs');
+    if (!stageAngleContainer) {
+        // Create the container if it doesn't exist
+        const resultsEl = document.getElementById('results');
+        if (resultsEl) {
+            const container = document.createElement('div');
+            container.id = 'stageAngleTabs';
+            container.style.cssText = 'margin-top: 40px;';
+            resultsEl.appendChild(container);
+            stageAngleContainer = container;
+        } else {
+            return;
+        }
+    }
+    
+    const stages = [
+        { key: 'shot_start', label: 'Shot Start', color: '#10b981' },
+        { key: 'set_point', label: 'Set Point', color: '#3b82f6' },
+        { key: 'follow_through', label: 'Follow Through', color: '#f59e0b' }
+    ];
+    
+    // Create tabs HTML
+    let tabsHTML = '<div class="stage-tabs-container" style="margin-top: 40px; margin-bottom: 30px;">';
+    tabsHTML += '<h4 style="margin-bottom: 20px; font-size: 1.4em; font-weight: 700; color: #1a202c;">Angle Analysis by Stage</h4>';
+    tabsHTML += '<div class="stage-tabs" style="display: flex; gap: 10px; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px;">';
+    
+    stages.forEach((stage, idx) => {
+        tabsHTML += `<button class="stage-tab-btn" data-stage="${stage.key}" style="
+            padding: 12px 24px;
+            border: none;
+            background: ${idx === 0 ? stage.color : 'transparent'};
+            color: ${idx === 0 ? 'white' : '#4a5568'};
+            font-weight: ${idx === 0 ? '600' : '500'};
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid ${idx === 0 ? stage.color : 'transparent'};
+        ">${stage.label}</button>`;
+    });
+    
+    tabsHTML += '</div>';
+    
+    // Create tab content
+    tabsHTML += '<div class="stage-tab-content" style="min-height: 200px;">';
+    stages.forEach((stage, idx) => {
+        const userMarker = data.userStageMarkers && data.userStageMarkers[stage.key];
+        const benchMarker = data.benchStageMarkers && data.benchStageMarkers[stage.key];
+        
+        tabsHTML += `<div class="stage-tab-panel" data-stage="${stage.key}" style="display: ${idx === 0 ? 'block' : 'none'}; padding: 20px; background: #f8fafc; border-radius: 8px;">`;
+        
+        if (userMarker && benchMarker) {
+            // Calculate differences
+            const elbowDiff = userMarker.elbow_angle - benchMarker.elbow_angle;
+            const wristDiff = userMarker.wrist_angle - benchMarker.wrist_angle;
+            const armDiff = userMarker.arm_angle - benchMarker.arm_angle;
+            
+            tabsHTML += `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div class="angle-comparison-card" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid ${stage.color};">
+                        <h5 style="margin: 0 0 15px 0; color: #1a202c; font-size: 1.1em; font-weight: 600;">Elbow Angle</h5>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #718096;">Your:</span>
+                            <span style="font-weight: 600; color: ${elbowDiff > 10 || elbowDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.elbow_angle ? userMarker.elbow_angle.toFixed(1) : 'N/A'}°</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #718096;">Benchmark:</span>
+                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.elbow_angle ? benchMarker.elbow_angle.toFixed(1) : 'N/A'}°</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                            <span style="color: #718096;">Difference:</span>
+                            <span style="font-weight: 600; color: ${Math.abs(elbowDiff) > 10 ? '#ef4444' : '#10b981'};">${elbowDiff > 0 ? '+' : ''}${elbowDiff.toFixed(1)}°</span>
+                        </div>
+                    </div>
+                    
+                    <div class="angle-comparison-card" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid ${stage.color};">
+                        <h5 style="margin: 0 0 15px 0; color: #1a202c; font-size: 1.1em; font-weight: 600;">Wrist Angle</h5>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #718096;">Your:</span>
+                            <span style="font-weight: 600; color: ${wristDiff > 10 || wristDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.wrist_angle ? userMarker.wrist_angle.toFixed(1) : 'N/A'}°</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #718096;">Benchmark:</span>
+                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.wrist_angle ? benchMarker.wrist_angle.toFixed(1) : 'N/A'}°</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                            <span style="color: #718096;">Difference:</span>
+                            <span style="font-weight: 600; color: ${Math.abs(wristDiff) > 10 ? '#ef4444' : '#10b981'};">${wristDiff > 0 ? '+' : ''}${wristDiff.toFixed(1)}°</span>
+                        </div>
+                    </div>
+                    
+                    <div class="angle-comparison-card" style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid ${stage.color};">
+                        <h5 style="margin: 0 0 15px 0; color: #1a202c; font-size: 1.1em; font-weight: 600;">Arm Angle</h5>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #718096;">Your:</span>
+                            <span style="font-weight: 600; color: ${armDiff > 10 || armDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.arm_angle ? userMarker.arm_angle.toFixed(1) : 'N/A'}°</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #718096;">Benchmark:</span>
+                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.arm_angle ? benchMarker.arm_angle.toFixed(1) : 'N/A'}°</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                            <span style="color: #718096;">Difference:</span>
+                            <span style="font-weight: 600; color: ${Math.abs(armDiff) > 10 ? '#ef4444' : '#10b981'};">${armDiff > 0 ? '+' : ''}${armDiff.toFixed(1)}°</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            tabsHTML += `<p style="color: #718096; text-align: center; padding: 40px;">No data available for ${stage.label} stage.</p>`;
+        }
+        
+        tabsHTML += '</div>';
+    });
+    
+    tabsHTML += '</div></div>';
+    
+    stageAngleContainer.innerHTML = tabsHTML;
+    
+    // Add tab switching functionality
+    const tabButtons = stageAngleContainer.querySelectorAll('.stage-tab-btn');
+    const tabPanels = stageAngleContainer.querySelectorAll('.stage-tab-panel');
+    
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const stage = btn.dataset.stage;
+            
+            // Update button styles
+            tabButtons.forEach(b => {
+                const stageData = stages.find(s => s.key === b.dataset.stage);
+                b.style.background = 'transparent';
+                b.style.color = '#4a5568';
+                b.style.fontWeight = '500';
+                b.style.borderBottom = '3px solid transparent';
+            });
+            
+            const stageData = stages.find(s => s.key === stage);
+            btn.style.background = stageData.color;
+            btn.style.color = 'white';
+            btn.style.fontWeight = '600';
+            btn.style.borderBottom = `3px solid ${stageData.color}`;
+            
+            // Show/hide panels
+            tabPanels.forEach(panel => {
+                panel.style.display = panel.dataset.stage === stage ? 'block' : 'none';
+            });
+        });
+    });
 }
 
 function generatePlayerSpecificFeedback(data) {
@@ -1765,7 +3063,7 @@ async function sendEmailAutomatically(data) {
             
             <p style="margin-top: 30px; color: #666; font-size: 14px;">We hope this analysis helps you take your game to the next level!</p>
             <p style="margin-top: 20px;">Best regards,<br><strong>The ShotSync Team</strong></p>
-
+            
             <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
             <p style="text-align: center; color: #999; font-size: 12px;">ShotSync - Your Basketball Shot Analysis Partner</p>
         </div>
@@ -1887,14 +3185,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (user) {
                 // User is signed in, update profile and show it
                 updateProfileUI(user);
-
+                
                 const firstName = user.displayName?.split(' ')[0] || '';
                 const lastName = user.displayName?.split(' ').slice(1).join(' ') || '';
                 const email = user.email || '';
-
+                
                 // Store user info
                 userInfo = { firstName, lastName, email };
-
+                
                 // Hide sign-in button since user is already signed in
                 const signInSection = document.getElementById('signInSection');
                 if (signInSection) {
@@ -1968,38 +3266,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // Back to players buttons (using class since there are multiple)
     const backToPlayersButtons = document.querySelectorAll('.backToPlayers');
     backToPlayersButtons.forEach(backToPlayersBtn => {
-        if (backToPlayersBtn) {
-            backToPlayersBtn.addEventListener('click', () => {
-                // Stop any active recordings
-                if (benchmarkCamera) {
-                    benchmarkCamera.stop();
-                    benchmarkCamera = null;
-                }
-                if (userCamera) {
-                    userCamera.stop();
-                    userCamera = null;
-                }
-                if (benchmarkStream) {
-                    benchmarkStream.getTracks().forEach(track => track.stop());
-                    benchmarkStream = null;
-                }
-                if (userStream) {
-                    userStream.getTracks().forEach(track => track.stop());
-                    userStream = null;
-                }
-
-                // Hide all steps
-                document.querySelectorAll('.step').forEach(step => {
-                    step.classList.remove('active');
-                    step.style.display = 'none';
-                });
-
-                // Show player selection
-                const step0_5 = document.getElementById('step0_5');
-                if (step0_5) {
-                    step0_5.classList.add('active');
-                    step0_5.style.display = 'block';
-                }
+    if (backToPlayersBtn) {
+        backToPlayersBtn.addEventListener('click', () => {
+            // Stop any active recordings
+            if (benchmarkCamera) {
+                benchmarkCamera.stop();
+                benchmarkCamera = null;
+            }
+            if (userCamera) {
+                userCamera.stop();
+                userCamera = null;
+            }
+            if (benchmarkStream) {
+                benchmarkStream.getTracks().forEach(track => track.stop());
+                benchmarkStream = null;
+            }
+            if (userStream) {
+                userStream.getTracks().forEach(track => track.stop());
+                userStream = null;
+            }
+            
+            // Hide all steps
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+                step.style.display = 'none';
+            });
+            
+            // Show player selection
+            const step0_5 = document.getElementById('step0_5');
+            if (step0_5) {
+                step0_5.classList.add('active');
+                step0_5.style.display = 'block';
+            }
             });
         }
     });
@@ -2168,6 +3466,10 @@ async function handlePlayerPageSignIn() {
             playerGoogleSignInBtn.textContent = 'Signing in...';
         }
 
+        if (!window.signInWithGoogle || typeof window.signInWithGoogle !== 'function') {
+            throw new Error('Sign-in function is not available. Please refresh the page and try again.');
+        }
+
         const userData = await window.signInWithGoogle();
 
         // Store user info
@@ -2179,6 +3481,11 @@ async function handlePlayerPageSignIn() {
         // Save to Firestore
         if (window.saveUserEmail && window.firebaseAuth?.currentUser) {
             await window.saveUserEmail(userData.email, userData.firstName, userData.lastName);
+        }
+        
+        // Update login streak
+        if (window.updateLoginStreak && window.firebaseAuth?.currentUser) {
+            await window.updateLoginStreak(window.firebaseAuth.currentUser.uid);
         }
 
         // Enable player selection
@@ -2195,14 +3502,24 @@ async function handlePlayerPageSignIn() {
         }
     } catch (error) {
         console.error('Error signing in with Google:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
 
-        let errorMessage = 'Failed to sign in with Google. ';
+        let errorMessage = 'Failed to sign in with Google.\n\n';
         if (error.code === 'auth/operation-not-allowed') {
-            errorMessage += 'Google Sign-In is not enabled in Firebase. Please enable it in Firebase Console.';
+            errorMessage += 'Google Sign-In is not enabled in Firebase. Please enable it in Firebase Console under Authentication > Sign-in method.';
         } else if (error.code === 'auth/unauthorized-domain') {
-            errorMessage += 'This domain is not authorized. Please add it to Firebase authorized domains.';
+            errorMessage += 'This domain is not authorized. Please add this domain to Firebase authorized domains.';
+        } else if (error.code === 'auth/popup-blocked') {
+            errorMessage += 'Popup was blocked by your browser. Please allow popups for this site and try again.';
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            errorMessage += 'Sign-in popup was closed. Please try again.';
+        } else if (error.code === 'auth/cancelled-popup-request') {
+            errorMessage += 'Another sign-in attempt is already in progress. Please wait and try again.';
+        } else if (error.code) {
+            errorMessage += `Error code: ${error.code}\nError message: ${error.message || 'Unknown error'}`;
         } else {
-            errorMessage += 'Please try again.';
+            errorMessage += `Error: ${error.message || 'Unknown error occurred. Please check the browser console for details.'}`;
         }
 
         alert(errorMessage);
@@ -2223,6 +3540,10 @@ async function handleGoogleSignIn() {
             googleSignInBtn.textContent = 'Signing in...';
         }
         
+        if (!window.signInWithGoogle || typeof window.signInWithGoogle !== 'function') {
+            throw new Error('Sign-in function is not available. Please refresh the page and try again.');
+        }
+        
         const userData = await window.signInWithGoogle();
         
         // Store user info
@@ -2237,6 +3558,11 @@ async function handleGoogleSignIn() {
         if (window.saveUserEmail && window.firebaseAuth?.currentUser) {
             await window.saveUserEmail(userData.email, userData.firstName, userData.lastName);
         }
+        
+        // Update login streak
+        if (window.updateLoginStreak && window.firebaseAuth?.currentUser) {
+            await window.updateLoginStreak(window.firebaseAuth.currentUser.uid);
+        }
     
     // Move to player selection step
     document.getElementById('step0').classList.remove('active');
@@ -2245,15 +3571,25 @@ async function handleGoogleSignIn() {
     document.getElementById('step0_5').style.display = 'block';
     } catch (error) {
         console.error('Error signing in with Google:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
         
         // Provide more specific error messages
-        let errorMessage = 'Failed to sign in with Google. ';
+        let errorMessage = 'Failed to sign in with Google.\n\n';
         if (error.code === 'auth/operation-not-allowed') {
-            errorMessage += 'Google Sign-In is not enabled in Firebase. Please enable it in Firebase Console.';
+            errorMessage += 'Google Sign-In is not enabled in Firebase. Please enable it in Firebase Console under Authentication > Sign-in method.';
         } else if (error.code === 'auth/unauthorized-domain') {
-            errorMessage += 'This domain is not authorized. Please add shubh-go.github.io to Firebase authorized domains.';
+            errorMessage += 'This domain is not authorized. Please add this domain to Firebase authorized domains.';
+        } else if (error.code === 'auth/popup-blocked') {
+            errorMessage += 'Popup was blocked by your browser. Please allow popups for this site and try again.';
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            errorMessage += 'Sign-in popup was closed. Please try again.';
+        } else if (error.code === 'auth/cancelled-popup-request') {
+            errorMessage += 'Another sign-in attempt is already in progress. Please wait and try again.';
+        } else if (error.code) {
+            errorMessage += `Error code: ${error.code}\nError message: ${error.message || 'Unknown error'}`;
         } else {
-            errorMessage += 'Please try again or use the form below.';
+            errorMessage += `Error: ${error.message || 'Unknown error occurred. Please check the browser console for details.'}`;
         }
         
         alert(errorMessage);
@@ -2306,28 +3642,28 @@ function updateProfileUI(user) {
     const profileName = document.getElementById('profileName');
     const menuUserName = document.getElementById('menuUserName');
     const menuUserEmail = document.getElementById('menuUserEmail');
-
+    
     if (!profileDropdown) return;
-
+    
     // Show profile dropdown
     profileDropdown.style.display = 'block';
-
+    
     // Get user name
     const displayName = user.displayName || 'User';
     const firstName = displayName.split(' ')[0] || 'User';
     const lastName = displayName.split(' ').slice(1).join(' ') || '';
-
+    
     // Set initials
     const initials = (firstName[0] || '') + (lastName[0] || '') || 'U';
     if (profileInitials) {
         profileInitials.textContent = initials.toUpperCase();
     }
-
+    
     // Set name
     if (profileName) {
         profileName.textContent = displayName;
     }
-
+    
     // Set menu info
     if (menuUserName) {
         menuUserName.textContent = displayName;

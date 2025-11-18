@@ -63,6 +63,168 @@
             background: #f8f9fa;
             border-radius: 4px;
         }
+        
+        /* Navbar Tab Styles */
+        .nav-tab {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .nav-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        /* Stat Card Styles */
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        /* Badge Card Styles */
+        .badge-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .badge-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .badge-card.locked {
+            opacity: 0.6;
+        }
+        
+        .badge-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+        
+        .badge-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        .badge-level {
+            font-weight: 600;
+        }
+        
+        .badge-level.bronze {
+            color: #cd7f32;
+        }
+        
+        .badge-level.silver {
+            color: #c0c0c0;
+        }
+        
+        .badge-level.gold {
+            color: #ffd700;
+        }
+        
+        .badge-level.none {
+            color: #999;
+        }
+        
+        /* Chart Tab Styles */
+        .chart-tab {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .chart-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .chart-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        /* Food Log Entry Styles */
+        .food-log-entry {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .food-log-entry.editing {
+            background: #fff3cd;
+        }
+        
+        .favorite-badge {
+            display: inline-block;
+            padding: 8px 15px;
+            background: #e7f3ff;
+            border: 2px solid #3b82f6;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Courier Prime', monospace;
+            font-size: 14px;
+        }
+        
+        .favorite-badge:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .favorite-badge input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #3b82f6;
+            border-radius: 4px;
+            text-align: center;
+            font-family: 'Courier Prime', monospace;
+        }
     </style>
     <!-- MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -71,6 +233,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
     <!-- EmailJS -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <!-- Firebase -->
@@ -78,7 +241,7 @@
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration
         const firebaseConfig = {
@@ -102,6 +265,12 @@
         window.googleProvider = googleProvider;
         window.signInWithGoogle = async () => {
             try {
+                if (!auth) {
+                    throw new Error('Firebase auth is not initialized');
+                }
+                if (!googleProvider) {
+                    throw new Error('Google provider is not initialized');
+                }
                 const result = await signInWithPopup(auth, googleProvider);
                 const user = result.user;
                 return {
@@ -111,6 +280,12 @@
                 };
             } catch (error) {
                 console.error('Error signing in:', error);
+                console.error('Error details:', {
+                    code: error.code,
+                    message: error.message,
+                    email: error.email,
+                    credential: error.credential
+                });
                 throw error;
             }
         };
@@ -143,6 +318,871 @@
                 console.error('Error saving analysis:', error);
             }
         };
+        
+        // Save similarity score to training database
+        window.saveSimilarityScore = async (userId, player, similarityScore) => {
+            try {
+                await addDoc(collection(db, 'trainingScores'), {
+                    userId: userId,
+                    player: player,
+                    similarityScore: similarityScore,
+                    createdAt: serverTimestamp()
+                });
+            } catch (error) {
+                console.error('Error saving similarity score:', error);
+            }
+        };
+        
+        // Get training scores for a user
+        window.getTrainingScores = async (userId, player = null) => {
+            try {
+                let q;
+                if (player) {
+                    q = query(collection(db, 'trainingScores'), where('userId', '==', userId), where('player', '==', player));
+                } else {
+                    q = query(collection(db, 'trainingScores'), where('userId', '==', userId));
+                }
+                const querySnapshot = await getDocs(q);
+                const scores = [];
+                querySnapshot.forEach((doc) => {
+                    scores.push({ id: doc.id, ...doc.data() });
+                });
+                // Sort by createdAt descending (client-side if orderBy fails)
+                scores.sort((a, b) => {
+                    const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt?.seconds || 0) * 1000;
+                    const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt?.seconds || 0) * 1000;
+                    return bTime - aTime;
+                });
+                return scores;
+            } catch (error) {
+                console.error('Error getting training scores:', error);
+                // If index error, try without orderBy
+                try {
+                    let q = query(collection(db, 'trainingScores'), where('userId', '==', userId));
+                    if (player) {
+                        q = query(collection(db, 'trainingScores'), where('userId', '==', userId), where('player', '==', player));
+                    }
+                    const querySnapshot = await getDocs(q);
+                    const scores = [];
+                    querySnapshot.forEach((doc) => {
+                        scores.push({ id: doc.id, ...doc.data() });
+                    });
+                    scores.sort((a, b) => {
+                        const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt?.seconds || 0) * 1000;
+                        const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt?.seconds || 0) * 1000;
+                        return bTime - aTime;
+                    });
+                    return scores;
+                } catch (retryError) {
+                    console.error('Error retrying query:', retryError);
+                    return [];
+                }
+            }
+        };
+        
+        // Track login streak
+        window.updateLoginStreak = async (userId) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                const today = new Date().toDateString();
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const lastLogin = userData.lastLoginDate;
+                    const currentStreak = userData.loginStreak || 0;
+                    
+                    if (lastLogin === today) {
+                        // Already logged in today
+                        return currentStreak;
+                    }
+                    
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayStr = yesterday.toDateString();
+                    
+                    let newStreak = 1;
+                    if (lastLogin === yesterdayStr) {
+                        // Continuing streak
+                        newStreak = currentStreak + 1;
+                    }
+                    
+                    await updateDoc(userRef, {
+                        lastLoginDate: today,
+                        loginStreak: newStreak
+                    });
+                    
+                    return newStreak;
+                } else {
+                    // First login
+                    await setDoc(userRef, {
+                        lastLoginDate: today,
+                        loginStreak: 1
+                    }, { merge: true });
+                    return 1;
+                }
+            } catch (error) {
+                console.error('Error updating login streak:', error);
+                return 0;
+            }
+        };
+        
+        // Get user badges
+        window.getUserBadges = async (userId) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                    return userDoc.data().badges || {};
+                }
+                return {};
+            } catch (error) {
+                console.error('Error getting user badges:', error);
+                return {};
+            }
+        };
+        
+        // Award badge
+        window.awardBadge = async (userId, badgeType, level) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                const badges = userDoc.exists() ? (userDoc.data().badges || {}) : {};
+                
+                // Only award if user doesn't already have this badge at this level or higher
+                const currentLevel = badges[badgeType] || 'none';
+                const levels = { 'none': 0, 'bronze': 1, 'silver': 2, 'gold': 3 };
+                
+                if (levels[level] > levels[currentLevel]) {
+                    badges[badgeType] = level;
+                    await updateDoc(userRef, {
+                        badges: badges
+                    }, { merge: true });
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error awarding badge:', error);
+                return false;
+            }
+        };
+        
+        // Save nutrition goals
+        window.saveNutritionGoals = async (userId, calorieGoal, idealWeight, proteinGoal) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                await updateDoc(userRef, {
+                    nutritionGoals: {
+                        calorieGoal: calorieGoal,
+                        idealWeight: idealWeight,
+                        proteinGoal: proteinGoal
+                    }
+                }, { merge: true });
+                return true;
+            } catch (error) {
+                console.error('Error saving nutrition goals:', error);
+                return false;
+            }
+        };
+        
+        // Get nutrition goals
+        window.getNutritionGoals = async (userId) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                    return userDoc.data().nutritionGoals || { calorieGoal: 2000, idealWeight: 150, proteinGoal: 150 };
+                }
+                return { calorieGoal: 2000, idealWeight: 150, proteinGoal: 150 };
+            } catch (error) {
+                console.error('Error getting nutrition goals:', error);
+                return { calorieGoal: 2000, idealWeight: 150, proteinGoal: 150 };
+            }
+        };
+        
+        // Save food entry
+        window.saveFoodEntry = async (userId, foodData) => {
+            try {
+                await addDoc(collection(db, 'nutritionEntries'), {
+                    userId: userId,
+                    ...foodData,
+                    createdAt: serverTimestamp()
+                });
+                return true;
+            } catch (error) {
+                console.error('Error saving food entry:', error);
+                return false;
+            }
+        };
+        
+        // Get nutrition entries for a date
+        window.getNutritionEntries = async (userId, date = null) => {
+            try {
+                const targetDate = date || new Date().toDateString();
+                let q = query(collection(db, 'nutritionEntries'), where('userId', '==', userId));
+                const querySnapshot = await getDocs(q);
+                const entries = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const entryDate = data.createdAt?.toDate ? data.createdAt.toDate().toDateString() : new Date().toDateString();
+                    if (entryDate === targetDate) {
+                        entries.push({ id: doc.id, ...data });
+                    }
+                });
+                // Sort by time (most recent first)
+                entries.sort((a, b) => {
+                    const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                    const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                    return bTime - aTime;
+                });
+                return entries;
+            } catch (error) {
+                console.error('Error getting nutrition entries:', error);
+                return [];
+            }
+        };
+        
+        // Get all nutrition entries for chart
+        window.getAllNutritionEntries = async (userId) => {
+            try {
+                let q = query(collection(db, 'nutritionEntries'), where('userId', '==', userId));
+                const querySnapshot = await getDocs(q);
+                const entries = [];
+                querySnapshot.forEach((doc) => {
+                    entries.push({ id: doc.id, ...doc.data() });
+                });
+                // Sort by date
+                entries.sort((a, b) => {
+                    const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                    const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                    return aTime - bTime;
+                });
+                return entries;
+            } catch (error) {
+                console.error('Error getting all nutrition entries:', error);
+                return [];
+            }
+        };
+        
+        // Save weight entry
+        window.saveWeightEntry = async (userId, weight, date = null) => {
+            try {
+                const entryDate = date || new Date().toDateString();
+                await addDoc(collection(db, 'weightEntries'), {
+                    userId: userId,
+                    weight: weight,
+                    date: entryDate,
+                    createdAt: serverTimestamp()
+                });
+                return true;
+            } catch (error) {
+                console.error('Error saving weight entry:', error);
+                return false;
+            }
+        };
+        
+        // Get weight entries
+        window.getWeightEntries = async (userId) => {
+            try {
+                let q = query(collection(db, 'weightEntries'), where('userId', '==', userId));
+                const querySnapshot = await getDocs(q);
+                const entries = [];
+                querySnapshot.forEach((doc) => {
+                    entries.push({ id: doc.id, ...doc.data() });
+                });
+                entries.sort((a, b) => {
+                    const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                    const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                    return aTime - bTime;
+                });
+                return entries;
+            } catch (error) {
+                console.error('Error getting weight entries:', error);
+                return [];
+            }
+        };
+        
+        // Save favorite food
+        window.saveFavoriteFood = async (userId, favoriteData) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                const favorites = userDoc.exists() ? (userDoc.data().favoriteFoods || []) : [];
+                
+                // Check if favorite already exists
+                const existingIndex = favorites.findIndex(f => f.name.toLowerCase() === favoriteData.name.toLowerCase());
+                if (existingIndex !== -1) {
+                    favorites[existingIndex] = favoriteData;
+                } else {
+                    favorites.push(favoriteData);
+                }
+                
+                await updateDoc(userRef, {
+                    favoriteFoods: favorites
+                }, { merge: true });
+                return true;
+            } catch (error) {
+                console.error('Error saving favorite food:', error);
+                return false;
+            }
+        };
+        
+        // Get favorite foods
+        window.getFavoriteFoods = async (userId) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                    return userDoc.data().favoriteFoods || [];
+                }
+                return [];
+            } catch (error) {
+                console.error('Error getting favorite foods:', error);
+                return [];
+            }
+        };
+        
+        // Delete favorite food
+        window.deleteFavoriteFood = async (userId, favoriteName) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                    const favorites = userDoc.data().favoriteFoods || [];
+                    const updatedFavorites = favorites.filter(f => f.name !== favoriteName);
+                    await updateDoc(userRef, {
+                        favoriteFoods: updatedFavorites
+                    }, { merge: true });
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error deleting favorite food:', error);
+                return false;
+            }
+        };
+        
+        // Delete food entry from database
+        window.deleteFoodEntryFromDB = async (entryId) => {
+            try {
+                await deleteDoc(doc(db, 'nutritionEntries', entryId));
+                return true;
+            } catch (error) {
+                console.error('Error deleting food entry:', error);
+                return false;
+            }
+        };
+        
+        // Update food entry
+        window.updateFoodEntry = async (entryId, foodData) => {
+            try {
+                const entryRef = doc(db, 'nutritionEntries', entryId);
+                await updateDoc(entryRef, foodData);
+                return true;
+            } catch (error) {
+                console.error('Error updating food entry:', error);
+                return false;
+            }
+        };
+        
+        // Save workout entry
+        window.saveWorkoutEntry = async (userId, workoutData) => {
+            try {
+                await addDoc(collection(db, 'workoutEntries'), {
+                    userId: userId,
+                    ...workoutData,
+                    createdAt: serverTimestamp()
+                });
+                return true;
+            } catch (error) {
+                console.error('Error saving workout entry:', error);
+                return false;
+            }
+        };
+        
+        // Get workout entries for a specific date (defaults to today)
+        window.getWorkoutEntries = async (userId, date = null) => {
+            try {
+                const targetDate = date || new Date().toDateString();
+                let q = query(collection(db, 'workoutEntries'), where('userId', '==', userId));
+                const querySnapshot = await getDocs(q);
+                const entries = [];
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const entryDate = data.createdAt?.toDate ? data.createdAt.toDate().toDateString() : new Date().toDateString();
+                    if (entryDate === targetDate) {
+                        entries.push({
+                            id: doc.id,
+                            ...data
+                        });
+                    }
+                });
+                return entries;
+            } catch (error) {
+                console.error('Error getting workout entries:', error);
+                return [];
+            }
+        };
+        
+        // Get all workout entries for a user
+        window.getAllWorkoutEntries = async (userId) => {
+            try {
+                let q = query(collection(db, 'workoutEntries'), where('userId', '==', userId));
+                const querySnapshot = await getDocs(q);
+                const entries = [];
+                querySnapshot.forEach(doc => {
+                    entries.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                return entries;
+            } catch (error) {
+                console.error('Error getting all workout entries:', error);
+                return [];
+            }
+        };
+        
+        // Delete workout entry from database
+        window.deleteWorkoutEntryFromDB = async (entryId) => {
+            try {
+                await deleteDoc(doc(db, 'workoutEntries', entryId));
+                return true;
+            } catch (error) {
+                console.error('Error deleting workout entry:', error);
+                return false;
+            }
+        };
+        
+        // Update workout entry
+        window.updateWorkoutEntry = async (entryId, workoutData) => {
+            try {
+                const entryRef = doc(db, 'workoutEntries', entryId);
+                await updateDoc(entryRef, workoutData);
+                return true;
+            } catch (error) {
+                console.error('Error updating workout entry:', error);
+                return false;
+            }
+        };
+        
+        // Weekly Schedule Functions
+        window.saveWeeklySchedule = async (userId, scheduleData) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                await updateDoc(userRef, {
+                    weeklySchedule: scheduleData
+                }, { merge: true });
+                return true;
+            } catch (error) {
+                console.error('Error saving weekly schedule:', error);
+                return false;
+            }
+        };
+        
+        window.getWeeklySchedule = async (userId) => {
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                    return userDoc.data().weeklySchedule || {};
+                }
+                return {};
+            } catch (error) {
+                console.error('Error getting weekly schedule:', error);
+                return {};
+            }
+        };
+        
+        // Custom Gym Workout Functions
+        window.saveCustomGymWorkout = async (userId, workoutData) => {
+            try {
+                await addDoc(collection(db, 'customGymWorkouts'), {
+                    userId: userId,
+                    ...workoutData,
+                    createdAt: serverTimestamp()
+                });
+                return true;
+            } catch (error) {
+                console.error('Error saving custom gym workout:', error);
+                return false;
+            }
+        };
+        
+        window.getCustomGymWorkouts = async (userId) => {
+            try {
+                let q = query(collection(db, 'customGymWorkouts'), where('userId', '==', userId));
+                const querySnapshot = await getDocs(q);
+                const workouts = [];
+                querySnapshot.forEach(doc => {
+                    workouts.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                return workouts;
+            } catch (error) {
+                console.error('Error getting custom gym workouts:', error);
+                return [];
+            }
+        };
+        
+        window.updateCustomGymWorkout = async (workoutId, workoutData) => {
+            try {
+                const workoutRef = doc(db, 'customGymWorkouts', workoutId);
+                await updateDoc(workoutRef, workoutData);
+                return true;
+            } catch (error) {
+                console.error('Error updating custom gym workout:', error);
+                return false;
+            }
+        };
+        
+        window.deleteCustomGymWorkout = async (workoutId) => {
+            try {
+                await deleteDoc(doc(db, 'customGymWorkouts', workoutId));
+                return true;
+            } catch (error) {
+                console.error('Error deleting custom gym workout:', error);
+                return false;
+            }
+        };
+        
+        // Custom Sports Workout Functions
+        window.saveCustomSportsWorkout = async (userId, workoutData) => {
+            try {
+                await addDoc(collection(db, 'customSportsWorkouts'), {
+                    userId: userId,
+                    ...workoutData,
+                    createdAt: serverTimestamp()
+                });
+                return true;
+            } catch (error) {
+                console.error('Error saving custom sports workout:', error);
+                return false;
+            }
+        };
+        
+        window.getCustomSportsWorkouts = async (userId) => {
+            try {
+                let q = query(collection(db, 'customSportsWorkouts'), where('userId', '==', userId));
+                const querySnapshot = await getDocs(q);
+                const workouts = [];
+                querySnapshot.forEach(doc => {
+                    workouts.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                return workouts;
+            } catch (error) {
+                console.error('Error getting custom sports workouts:', error);
+                return [];
+            }
+        };
+        
+        window.updateCustomSportsWorkout = async (workoutId, workoutData) => {
+            try {
+                const workoutRef = doc(db, 'customSportsWorkouts', workoutId);
+                await updateDoc(workoutRef, workoutData);
+                return true;
+            } catch (error) {
+                console.error('Error updating custom sports workout:', error);
+                return false;
+            }
+        };
+        
+        window.deleteCustomSportsWorkout = async (workoutId) => {
+            try {
+                await deleteDoc(doc(db, 'customSportsWorkouts', workoutId));
+                return true;
+            } catch (error) {
+                console.error('Error deleting custom sports workout:', error);
+                return false;
+            }
+        };
+        
+        // Check and award all badges based on user's training data
+        window.checkAllBadges = async (userId) => {
+            try {
+                const scores = await window.getTrainingScores(userId);
+                if (scores.length === 0) return;
+                
+                const badges = await window.getUserBadges(userId);
+                const today = new Date().toDateString();
+                
+                // Get user document to check session dates
+                const userRef = doc(db, 'users', userId);
+                const userDoc = await getDoc(userRef);
+                const userData = userDoc.exists() ? userDoc.data() : {};
+                
+                // Calculate statistics
+                const totalSessions = scores.length;
+                const scoreValues = scores.map(s => s.similarityScore);
+                const maxScore = Math.max(...scoreValues);
+                const avgScore = scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length;
+                
+                // Group scores by player
+                const playerScores = {};
+                scores.forEach(score => {
+                    const player = score.player || 'custom';
+                    if (!playerScores[player]) playerScores[player] = [];
+                    playerScores[player].push(score);
+                });
+                
+                // Get unique players tried
+                const uniquePlayers = Object.keys(playerScores);
+                const playersWithHighScores = uniquePlayers.filter(player => {
+                    const playerMax = Math.max(...playerScores[player].map(s => s.similarityScore));
+                    return playerMax >= 85;
+                });
+                
+                // Calculate improvements
+                const recentScores = scoreValues.slice(0, 5);
+                const olderScores = scoreValues.slice(5, 10);
+                const recentAvg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
+                const olderAvg = olderScores.length > 0 ? olderScores.reduce((a, b) => a + b, 0) / olderScores.length : 0;
+                const improvement = recentAvg > 0 && olderAvg > 0 ? recentAvg - olderAvg : 0;
+                
+                // Check consecutive days with sessions
+                const sessionDates = scores.map(s => {
+                    const date = s.createdAt?.toDate ? s.createdAt.toDate() : new Date();
+                    return date.toDateString();
+                });
+                const uniqueDates = [...new Set(sessionDates)];
+                uniqueDates.sort((a, b) => new Date(a) - new Date(b));
+                
+                let consecutiveDays = 1;
+                let maxConsecutive = 1;
+                for (let i = 1; i < uniqueDates.length; i++) {
+                    const prevDate = new Date(uniqueDates[i - 1]);
+                    const currDate = new Date(uniqueDates[i]);
+                    const daysDiff = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+                    if (daysDiff === 1) {
+                        consecutiveDays++;
+                        maxConsecutive = Math.max(maxConsecutive, consecutiveDays);
+                    } else {
+                        consecutiveDays = 1;
+                    }
+                }
+                
+                // Check last 5 consecutive scores
+                const last5Scores = scoreValues.slice(0, 5);
+                const allLast5High = last5Scores.length === 5 && last5Scores.every(s => s >= 85);
+                const last5Consecutive = last5Scores.length === 5 && last5Scores.every(s => s >= 80);
+                
+                // Practice Warrior badges (total sessions)
+                if (totalSessions >= 10 && totalSessions < 50 && (!badges.practiceWarrior || badges.practiceWarrior === 'none')) {
+                    await window.awardBadge(userId, 'practiceWarrior', 'bronze');
+                } else if (totalSessions >= 50 && totalSessions < 100 && (!badges.practiceWarrior || badges.practiceWarrior === 'bronze')) {
+                    await window.awardBadge(userId, 'practiceWarrior', 'silver');
+                } else if (totalSessions >= 100 && badges.practiceWarrior !== 'gold') {
+                    await window.awardBadge(userId, 'practiceWarrior', 'gold');
+                }
+                
+                // Milestone badges
+                if (totalSessions >= 50 && totalSessions < 100 && !badges.halfCentury) {
+                    await window.awardBadge(userId, 'halfCentury', 'bronze');
+                } else if (totalSessions >= 100 && totalSessions < 300 && badges.halfCentury !== 'silver') {
+                    await window.awardBadge(userId, 'halfCentury', 'silver');
+                } else if (totalSessions >= 300 && badges.halfCentury !== 'gold') {
+                    await window.awardBadge(userId, 'halfCentury', 'gold');
+                }
+                
+                // First Steps
+                if (totalSessions >= 1 && totalSessions < 5 && !badges.firstSteps) {
+                    await window.awardBadge(userId, 'firstSteps', 'bronze');
+                } else if (totalSessions >= 5 && totalSessions < 10 && (!badges.firstSteps || badges.firstSteps === 'bronze')) {
+                    await window.awardBadge(userId, 'firstSteps', 'silver');
+                } else if (totalSessions >= 10 && badges.firstSteps !== 'gold') {
+                    await window.awardBadge(userId, 'firstSteps', 'gold');
+                }
+                
+                // Improvement badges
+                if (improvement >= 10 && improvement < 20 && (!badges.risingStar || badges.risingStar === 'none')) {
+                    await window.awardBadge(userId, 'risingStar', 'bronze');
+                } else if (improvement >= 20 && improvement < 30 && (!badges.risingStar || badges.risingStar === 'bronze')) {
+                    await window.awardBadge(userId, 'risingStar', 'silver');
+                } else if (improvement >= 30 && badges.risingStar !== 'gold') {
+                    await window.awardBadge(userId, 'risingStar', 'gold');
+                }
+                
+                if (improvement >= 15 && improvement < 20 && last5Scores.length >= 3 && (!badges.fastTrack || badges.fastTrack === 'none')) {
+                    await window.awardBadge(userId, 'fastTrack', 'bronze');
+                } else if (improvement >= 20 && improvement < 25 && last5Scores.length >= 5 && (!badges.fastTrack || badges.fastTrack === 'bronze')) {
+                    await window.awardBadge(userId, 'fastTrack', 'silver');
+                } else if (improvement >= 25 && last5Scores.length >= 7 && badges.fastTrack !== 'gold') {
+                    await window.awardBadge(userId, 'fastTrack', 'gold');
+                }
+                
+                // Check for breakthrough (new personal best)
+                // Count how many times user achieved a new PB
+                let pbCount = 0;
+                if (scoreValues.length >= 2) {
+                    let currentMax = scoreValues[scoreValues.length - 1];
+                    for (let i = scoreValues.length - 2; i >= 0; i--) {
+                        if (scoreValues[i] > currentMax) {
+                            pbCount++;
+                            currentMax = scoreValues[i];
+                        }
+                    }
+                }
+                
+                if (pbCount >= 1 && pbCount < 3 && (!badges.breakthrough || badges.breakthrough === 'none')) {
+                    await window.awardBadge(userId, 'breakthrough', 'bronze');
+                } else if (pbCount >= 3 && pbCount < 5 && (!badges.breakthrough || badges.breakthrough === 'bronze')) {
+                    await window.awardBadge(userId, 'breakthrough', 'silver');
+                } else if (pbCount >= 5 && badges.breakthrough !== 'gold') {
+                    await window.awardBadge(userId, 'breakthrough', 'gold');
+                }
+                
+                // Player mastery badges
+                for (const player of ['curry', 'lebron', 'jordan', 'durant', 'clark']) {
+                    if (playerScores[player]) {
+                        const playerSessions = playerScores[player].length;
+                        const playerMax = Math.max(...playerScores[player].map(s => s.similarityScore));
+                        const badgeName = player + 'Specialist';
+                        
+                        if (playerSessions >= 5 && playerMax >= 85 && playerMax < 90 && (!badges[badgeName] || badges[badgeName] === 'none')) {
+                            await window.awardBadge(userId, badgeName, 'bronze');
+                        } else if (playerSessions >= 10 && playerMax >= 90 && playerMax < 95 && (!badges[badgeName] || badges[badgeName] === 'bronze')) {
+                            await window.awardBadge(userId, badgeName, 'silver');
+                        } else if (playerSessions >= 15 && playerMax >= 95 && badges[badgeName] !== 'gold') {
+                            await window.awardBadge(userId, badgeName, 'gold');
+                        }
+                    }
+                }
+                
+                // Versatile Shooter
+                if (playersWithHighScores.length >= 3 && playersWithHighScores.length < 4 && (!badges.versatileShooter || badges.versatileShooter === 'none')) {
+                    await window.awardBadge(userId, 'versatileShooter', 'bronze');
+                } else if (playersWithHighScores.length >= 4 && playersWithHighScores.length < 5 && (!badges.versatileShooter || badges.versatileShooter === 'bronze')) {
+                    await window.awardBadge(userId, 'versatileShooter', 'silver');
+                } else if (playersWithHighScores.length >= 5 && badges.versatileShooter !== 'gold') {
+                    await window.awardBadge(userId, 'versatileShooter', 'gold');
+                }
+                
+                // Consistency badges
+                if (avgScore >= 80 && avgScore < 90 && totalSessions >= 10 && (!badges.steadyHand || badges.steadyHand === 'none')) {
+                    await window.awardBadge(userId, 'steadyHand', 'bronze');
+                } else if (avgScore >= 90 && avgScore < 95 && totalSessions >= 20 && (!badges.steadyHand || badges.steadyHand === 'bronze')) {
+                    await window.awardBadge(userId, 'steadyHand', 'silver');
+                } else if (avgScore >= 95 && totalSessions >= 30 && badges.steadyHand !== 'gold') {
+                    await window.awardBadge(userId, 'steadyHand', 'gold');
+                }
+                
+                const last10High = scoreValues.length >= 10 && scoreValues.slice(0, 10).every(s => s >= 85);
+                const last15High = scoreValues.length >= 15 && scoreValues.slice(0, 15).every(s => s >= 85);
+                
+                if (allLast5High && !last10High && (!badges.rockSolid || badges.rockSolid === 'none')) {
+                    await window.awardBadge(userId, 'rockSolid', 'bronze');
+                } else if (last10High && !last15High && (!badges.rockSolid || badges.rockSolid === 'bronze')) {
+                    await window.awardBadge(userId, 'rockSolid', 'silver');
+                } else if (last15High && badges.rockSolid !== 'gold') {
+                    await window.awardBadge(userId, 'rockSolid', 'gold');
+                }
+                
+                // Perfect form badges
+                if (maxScore >= 95 && maxScore < 98 && (!badges.nearPerfect || badges.nearPerfect === 'none')) {
+                    await window.awardBadge(userId, 'nearPerfect', 'bronze');
+                } else if (maxScore >= 98 && maxScore < 100 && (!badges.nearPerfect || badges.nearPerfect === 'bronze')) {
+                    await window.awardBadge(userId, 'nearPerfect', 'silver');
+                } else if (maxScore >= 100 && badges.nearPerfect !== 'gold') {
+                    await window.awardBadge(userId, 'nearPerfect', 'gold');
+                }
+                
+                const perfectScores = scoreValues.filter(s => s >= 100).length;
+                
+                if (maxScore >= 98 && maxScore < 100 && (!badges.perfectionist || badges.perfectionist === 'none')) {
+                    await window.awardBadge(userId, 'perfectionist', 'bronze');
+                } else if (maxScore >= 100 && perfectScores < 3 && badges.perfectionist !== 'silver') {
+                    await window.awardBadge(userId, 'perfectionist', 'silver');
+                } else if (perfectScores >= 3 && badges.perfectionist !== 'gold') {
+                    await window.awardBadge(userId, 'perfectionist', 'gold');
+                }
+                
+                // Dedication badges (consecutive days with sessions)
+                if (maxConsecutive >= 7 && maxConsecutive < 30 && (!badges.weekWarrior || badges.weekWarrior === 'none')) {
+                    await window.awardBadge(userId, 'weekWarrior', 'bronze');
+                } else if (maxConsecutive >= 30 && maxConsecutive < 365 && (!badges.weekWarrior || badges.weekWarrior === 'bronze')) {
+                    await window.awardBadge(userId, 'weekWarrior', 'silver');
+                } else if (maxConsecutive >= 365 && badges.weekWarrior !== 'gold') {
+                    await window.awardBadge(userId, 'weekWarrior', 'gold');
+                }
+                
+                // Daily Grinder
+                if (maxConsecutive >= 3 && maxConsecutive < 7 && (!badges.dailyGrinder || badges.dailyGrinder === 'none')) {
+                    await window.awardBadge(userId, 'dailyGrinder', 'bronze');
+                } else if (maxConsecutive >= 7 && maxConsecutive < 14 && (!badges.dailyGrinder || badges.dailyGrinder === 'bronze')) {
+                    await window.awardBadge(userId, 'dailyGrinder', 'silver');
+                } else if (maxConsecutive >= 14 && badges.dailyGrinder !== 'gold') {
+                    await window.awardBadge(userId, 'dailyGrinder', 'gold');
+                }
+                
+                // Exploration badges
+                const hasCustom = playerScores['custom'] && playerScores['custom'].length > 0;
+                const allPlayersMastered = playersWithHighScores.length >= 5;
+                
+                if (uniquePlayers.length >= 5 && !hasCustom && (!badges.explorer || badges.explorer === 'none')) {
+                    await window.awardBadge(userId, 'explorer', 'bronze');
+                } else if (uniquePlayers.length >= 5 && hasCustom && (!badges.explorer || badges.explorer === 'bronze')) {
+                    await window.awardBadge(userId, 'explorer', 'silver');
+                } else if (allPlayersMastered && badges.explorer !== 'gold') {
+                    await window.awardBadge(userId, 'explorer', 'gold');
+                }
+                
+                if (playerScores['custom'] && playerScores['custom'].length >= 1 && playerScores['custom'].length < 5 && (!badges.adventurer || badges.adventurer === 'none')) {
+                    await window.awardBadge(userId, 'adventurer', 'bronze');
+                } else if (playerScores['custom'] && playerScores['custom'].length >= 5 && playerScores['custom'].length < 10 && (!badges.adventurer || badges.adventurer === 'bronze')) {
+                    await window.awardBadge(userId, 'adventurer', 'silver');
+                } else if (playerScores['custom'] && playerScores['custom'].length >= 10 && badges.adventurer !== 'gold') {
+                    await window.awardBadge(userId, 'adventurer', 'gold');
+                }
+                
+                // Complete Collection - check for different score thresholds
+                const playersAt90 = uniquePlayers.filter(p => {
+                    const playerMax = Math.max(...playerScores[p].map(s => s.similarityScore));
+                    return playerMax >= 90;
+                }).length;
+                const playersAt95 = uniquePlayers.filter(p => {
+                    const playerMax = Math.max(...playerScores[p].map(s => s.similarityScore));
+                    return playerMax >= 95;
+                }).length;
+                
+                if (playersWithHighScores.length >= 5 && playersAt90 < 5 && (!badges.completeCollection || badges.completeCollection === 'none')) {
+                    await window.awardBadge(userId, 'completeCollection', 'bronze');
+                } else if (playersAt90 >= 5 && playersAt95 < 5 && (!badges.completeCollection || badges.completeCollection === 'bronze')) {
+                    await window.awardBadge(userId, 'completeCollection', 'silver');
+                } else if (playersAt95 >= 5 && badges.completeCollection !== 'gold') {
+                    await window.awardBadge(userId, 'completeCollection', 'gold');
+                }
+                
+                // Quick Learner
+                if (totalSessions <= 5 && maxScore >= 80 && maxScore < 85 && (!badges.quickLearner || badges.quickLearner === 'none')) {
+                    await window.awardBadge(userId, 'quickLearner', 'bronze');
+                } else if (totalSessions <= 5 && maxScore >= 85 && maxScore < 90 && (!badges.quickLearner || badges.quickLearner === 'bronze')) {
+                    await window.awardBadge(userId, 'quickLearner', 'silver');
+                } else if (totalSessions <= 5 && maxScore >= 90 && badges.quickLearner !== 'gold') {
+                    await window.awardBadge(userId, 'quickLearner', 'gold');
+                }
+                
+                // Rapid Rise
+                if (scoreValues.length >= 10) {
+                    const first5Avg = scoreValues.slice(-10, -5).reduce((a, b) => a + b, 0) / 5;
+                    const last5Avg = scoreValues.slice(0, 5).reduce((a, b) => a + b, 0) / 5;
+                    if (first5Avg < 60 && last5Avg >= 85 && last5Avg < 90 && (!badges.rapidRise || badges.rapidRise === 'none')) {
+                        await window.awardBadge(userId, 'rapidRise', 'bronze');
+                    } else if (first5Avg < 60 && last5Avg >= 90 && last5Avg < 95 && (!badges.rapidRise || badges.rapidRise === 'bronze')) {
+                        await window.awardBadge(userId, 'rapidRise', 'silver');
+                    } else if (first5Avg < 60 && last5Avg >= 95 && badges.rapidRise !== 'gold') {
+                        await window.awardBadge(userId, 'rapidRise', 'gold');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error checking badges:', error);
+            }
+        };
     </script>
 </head>
 <body>
@@ -152,11 +1192,18 @@
             <div class="nav-content">
                 <div class="logo">
                     <a href="../index.html" style="display: flex; align-items: center; text-decoration: none;">
-                        <img src="../RootsLogo.png" alt="Roots Logo" style="height: 40px; width: 40px; border-radius: 50%; object-fit: cover; margin-right: 12px; cursor: pointer;">
+                        <img src="../RootsLogo.png" alt="Roots Logo" style="height: 40px; width: auto; margin-right: 12px; cursor: pointer; object-fit: contain;">
                         <h2 style="font-size: 24px; font-weight: 700; color: var(--text-dark); font-family: 'Courier Prime', monospace;">Roots</h2>
                     </a>
                 </div>
-                <a href="../index.html" class="badge" style="cursor: pointer; margin-bottom: 0; text-decoration: none; display: inline-block;">Back to Home</a>
+                <div class="nav-tabs" style="display: flex; gap: 20px; align-items: center;">
+                    <button id="shotSyncTab" class="nav-tab active" onclick="showShotSync()">Shot Sync</button>
+                    <button id="trainingDbTab" class="nav-tab" onclick="showTrainingDatabase()">Training Database</button>
+                    <button id="badgesTab" class="nav-tab" onclick="showBadges()">Badges</button>
+                    <button id="nutritionTab" class="nav-tab" onclick="showNutrition()">Nutrition</button>
+                    <button id="workoutsTab" class="nav-tab" onclick="showWorkouts()">Workouts</button>
+                    <button id="backToHomeTab" class="nav-tab">Home</button>
+                </div>
             </div>
         </div>
     </nav>
@@ -201,7 +1248,7 @@
                     <p style="font-size: 16px; color: #333; margin-bottom: 20px; font-weight: 500;">
                         Sign in with Google to get started
                     </p>
-                    <button id="googleSignInBtn" class="btn" style="background: white; color: #333; border: 1px solid #ddd; display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <button id="googleSignInBtn" onclick="handleGoogleSignInClick()" class="btn" style="background: white; color: #333; border: 1px solid #ddd; display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                         <svg width="20" height="20" viewBox="0 0 18 18">
                             <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
                             <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
@@ -220,7 +1267,7 @@
                     <div id="playerSignInSection" style="display: block; text-align: center; margin-bottom: 32px; padding: 32px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
                         <h2 style="font-size: 22px; color: #333; margin-bottom: 12px; font-weight: 600;">Sign in to get started</h2>
                         <p style="color: #666; margin-bottom: 20px; font-size: 15px;">Sign in with Google to compare your shot and track your progress</p>
-                        <button id="playerGoogleSignInBtn" class="btn" style="background: white; color: #333; border: 2px solid #ddd; display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <button id="playerGoogleSignInBtn" onclick="handlePlayerPageSignInClick()" class="btn" style="background: white; color: #333; border: 2px solid #ddd; display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                             <svg width="20" height="20" viewBox="0 0 18 18">
                                 <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
                                 <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
@@ -361,6 +1408,25 @@
                     <div class="chart-container">
                         <canvas id="comparisonChart"></canvas>
                     </div>
+                    <!-- Coordinate Table -->
+                    <div id="coordinateTableContainer" style="margin-top: 30px; overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                        <table id="coordinateTable" style="width: 100%; border-collapse: collapse; font-size: 12px; background: white; border-radius: 8px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: #f3f4f6; position: sticky; top: 0; z-index: 10;">
+                                    <th style="padding: 10px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Time (s)</th>
+                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Benchmark<br>Wrist (x,y,z)</th>
+                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Benchmark<br>Elbow (x,y,z)</th>
+                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Benchmark<br>Shoulder (x,y,z)</th>
+                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Your Shot<br>Wrist (x,y,z)</th>
+                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Your Shot<br>Elbow (x,y,z)</th>
+                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Your Shot<br>Shoulder (x,y,z)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coordinateTableBody">
+                                <!-- Table rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                     <!-- Detailed Feedback Section -->
                     <div id="detailedFeedback" class="detailed-feedback-section" style="display: none;">
                         <h3 id="playerComparisonTitle">Shot Analysis</h3>
@@ -430,15 +1496,2265 @@
         </div>
     </div>
 
+    <!-- Training Database View -->
+    <div id="trainingDatabaseView" class="tab-view" style="display: none;">
+        <div class="container" style="max-width: 1200px; margin: 40px auto; padding: 20px;">
+            <h2 style="font-family: 'Courier Prime', monospace; margin-bottom: 30px;">Training Database</h2>
+            <div style="margin-bottom: 20px;">
+                <label for="playerFilter" style="display: block; margin-bottom: 10px; font-weight: 600;">Filter by Player:</label>
+                <select id="playerFilter" style="padding: 10px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; font-family: 'Courier Prime', monospace; min-width: 200px;">
+                    <option value="">All Players</option>
+                    <option value="curry">Stephen Curry</option>
+                    <option value="lebron">LeBron James</option>
+                    <option value="jordan">Michael Jordan</option>
+                    <option value="durant">Kevin Durant</option>
+                    <option value="clark">Caitlin Clark</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <canvas id="trainingChart" style="max-height: 400px;"></canvas>
+            </div>
+            <div id="trainingStats" style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <!-- Stats will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges View -->
+    <div id="badgesView" class="tab-view" style="display: none;">
+        <div class="container" style="max-width: 1200px; margin: 40px auto; padding: 20px;">
+            <h2 style="font-family: 'Courier Prime', monospace; margin-bottom: 30px;">Your Badges</h2>
+            <div id="badgesContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 30px;">
+                <!-- Badges will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Workouts View -->
+    <div id="workoutsView" class="tab-view" style="display: none;">
+        <div class="container" style="max-width: 1200px; margin: 40px auto; padding: 20px;">
+            <h2 style="font-family: 'Courier Prime', monospace; margin-bottom: 30px;">Workout Tracker</h2>
+            
+            <!-- Tabs for different workout sections -->
+            <div style="display: flex; gap: 10px; border-bottom: 2px solid #e2e8f0; margin-bottom: 30px;">
+                <button id="weeklyScheduleTab" class="chart-tab active" onclick="switchWorkoutTab('schedule')" style="padding: 10px 20px; background: none; border: none; border-bottom: 3px solid var(--primary-color); color: var(--primary-color); font-weight: 600; cursor: pointer; font-family: 'Courier Prime', monospace;">Weekly Schedule</button>
+                <button id="customGymTab" class="chart-tab" onclick="switchWorkoutTab('gym')" style="padding: 10px 20px; background: none; border: none; border-bottom: 3px solid transparent; color: #666; cursor: pointer; font-family: 'Courier Prime', monospace;">Custom Gym Workouts</button>
+                <button id="customSportsTab" class="chart-tab" onclick="switchWorkoutTab('sports')" style="padding: 10px 20px; background: none; border: none; border-bottom: 3px solid transparent; color: #666; cursor: pointer; font-family: 'Courier Prime', monospace;">Custom Sports Workouts</button>
+            </div>
+            
+            <!-- Weekly Schedule Section -->
+            <div id="weeklyScheduleSection" class="workout-section">
+                <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-family: 'Courier Prime', monospace; margin: 0;">Weekly Workout Schedule</h3>
+                        <button id="editScheduleBtn" onclick="toggleScheduleEditMode()" class="btn btn-secondary" style="padding: 8px 16px;">Edit</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <div id="weeklyScheduleContainer" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 15px; font-family: 'Courier Prime', monospace;">
+                            <!-- Weekly schedule will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Add Workout to Day Modal/Form -->
+                <div id="addWorkoutToDayForm" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;">
+                    <h3 style="font-family: 'Courier Prime', monospace; margin-bottom: 20px;">Add Workout to <span id="selectedDayName"></span></h3>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Select Workout:</label>
+                        <select id="workoutSelect" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                            <option value="">-- Select a workout --</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="addWorkoutToDay()" class="btn" style="padding: 10px 20px; background: #6b7280; color: white;">Add</button>
+                        <button onclick="cancelAddWorkoutToDay()" class="btn btn-secondary" style="padding: 10px 20px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Custom Gym Workouts Section -->
+            <div id="customGymSection" class="workout-section" style="display: none;">
+                <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-family: 'Courier Prime', monospace; margin: 0;">My Custom Gym Workouts</h3>
+                        <button onclick="showCreateGymWorkoutForm()" class="btn" style="padding: 10px 20px; background: #6b7280; color: white;">Create New Workout</button>
+                    </div>
+                    <div id="customGymWorkoutsList">
+                        <!-- Custom gym workouts will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Create/Edit Gym Workout Form -->
+                <div id="createGymWorkoutForm" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;">
+                    <h3 style="font-family: 'Courier Prime', monospace; margin-bottom: 20px;" id="gymWorkoutFormTitle">Create Custom Gym Workout</h3>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Workout Name:</label>
+                        <input type="text" id="gymWorkoutName" placeholder="e.g., Push Day" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div id="gymWorkoutExercises" style="margin-bottom: 20px;">
+                        <h4 style="font-family: 'Courier Prime', monospace; margin-bottom: 15px;">Exercises</h4>
+                        <div id="gymWorkoutExercisesList">
+                            <!-- Exercises will be added here -->
+                        </div>
+                        <button onclick="addExerciseToGymWorkout()" class="btn btn-secondary" style="padding: 8px 16px; margin-top: 10px;">+ Add Exercise</button>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="saveGymWorkout()" class="btn" style="padding: 10px 20px; background: #6b7280; color: white;">Save Workout</button>
+                        <button onclick="cancelGymWorkoutForm()" class="btn btn-secondary" style="padding: 10px 20px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Custom Sports Workouts Section -->
+            <div id="customSportsSection" class="workout-section" style="display: none;">
+                <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-family: 'Courier Prime', monospace; margin: 0;">My Custom Sports Workouts</h3>
+                        <button onclick="showCreateSportsWorkoutForm()" class="btn" style="padding: 10px 20px; background: #6b7280; color: white;">Create New Workout</button>
+                    </div>
+                    <div id="customSportsWorkoutsList">
+                        <!-- Custom sports workouts will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Create/Edit Sports Workout Form -->
+                <div id="createSportsWorkoutForm" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;">
+                    <h3 style="font-family: 'Courier Prime', monospace; margin-bottom: 20px;" id="sportsWorkoutFormTitle">Create Custom Sports Workout</h3>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Workout Name:</label>
+                        <input type="text" id="sportsWorkoutName" placeholder="e.g., Shooting Practice" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Workout Details:</label>
+                        <textarea id="sportsWorkoutDetails" placeholder="e.g., Shoot 1000 shots from the three-point line, focusing on form and consistency" rows="5" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace; resize: vertical;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="saveSportsWorkout()" class="btn" style="padding: 10px 20px; background: #6b7280; color: white;">Save Workout</button>
+                        <button onclick="cancelSportsWorkoutForm()" class="btn btn-secondary" style="padding: 10px 20px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nutrition View -->
+    <div id="nutritionView" class="tab-view" style="display: none;">
+        <div class="container" style="max-width: 1200px; margin: 40px auto; padding: 20px;">
+            <h2 style="font-family: 'Courier Prime', monospace; margin-bottom: 30px;">Nutrition Tracker</h2>
+            
+            <!-- Settings for goals -->
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                <h3 style="font-family: 'Courier Prime', monospace; margin-bottom: 15px;">Daily Goals</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Daily Calorie Goal:</label>
+                        <input type="number" id="calorieGoal" placeholder="2000" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ideal Weight (lbs):</label>
+                        <input type="number" id="idealWeight" placeholder="150" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Daily Protein Goal (g):</label>
+                        <input type="number" id="proteinGoal" placeholder="150" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button onclick="saveNutritionGoalsLocal()" class="btn btn-primary" style="width: 100%;">Save Goals</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Tabs -->
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                <div style="display: flex; gap: 10px; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px;">
+                    <button id="calorieChartTab" class="chart-tab active" onclick="switchNutritionChart('calories')">Daily Calories</button>
+                    <button id="weightChartTab" class="chart-tab" onclick="switchNutritionChart('weight')">Weight</button>
+                </div>
+                <canvas id="nutritionChart" style="max-height: 400px;"></canvas>
+                <!-- Weight Entry Form (shown only on weight tab) -->
+                <div id="weightEntryForm" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                    <h4 style="font-family: 'Courier Prime', monospace; margin-bottom: 15px;">Add Weight Entry</h4>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Weight (lbs):</label>
+                            <input type="number" id="weightInput" placeholder="150" step="0.1" min="0" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                        </div>
+                        <div>
+                            <button onclick="addWeightEntry()" class="btn" style="padding: 10px 20px; background: #6b7280; color: white;">Add Weight</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Food Log -->
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                <h3 style="font-family: 'Courier Prime', monospace; margin-bottom: 20px;">Today's Food Log</h3>
+                <div id="dailyFoodLog" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Food log entries will be populated here -->
+                </div>
+                <div id="dailyTotals" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                    <!-- Totals will be calculated and displayed here -->
+                </div>
+            </div>
+
+            <!-- Food Entry Section -->
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                <h3 style="font-family: 'Courier Prime', monospace; margin-bottom: 20px;">Add Food</h3>
+                
+                <!-- Regular Food Entry -->
+                <div id="regularFoodEntry" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 20px; align-items: end;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Food Name:</label>
+                        <input type="text" id="foodName" placeholder="e.g., Grilled Chicken" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Servings:</label>
+                        <input type="number" id="foodServings" placeholder="1" step="0.25" min="0" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Calories per serving:</label>
+                        <input type="number" id="foodCalories" placeholder="200" min="0" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Protein per serving (g):</label>
+                        <input type="number" id="foodProtein" placeholder="25" min="0" step="0.1" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div>
+                        <button onclick="addFood()" class="btn" style="padding: 10px 20px; background: #6b7280; color: white;">Add</button>
+                    </div>
+                </div>
+
+                <!-- Favorites Section -->
+                <div style="border-top: 2px solid #e2e8f0; padding-top: 20px;">
+                    <h4 style="font-family: 'Courier Prime', monospace; margin-bottom: 15px;">Favorites</h4>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Add to Favorites:</label>
+                            <input type="text" id="favoriteFoodName" placeholder="Food name" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Calories per serving:</label>
+                            <input type="number" id="favoriteCalories" placeholder="200" min="0" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Protein per serving (g):</label>
+                            <input type="number" id="favoriteProtein" placeholder="25" min="0" step="0.1" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: 'Courier Prime', monospace;">
+                        </div>
+                        <div>
+                            <button onclick="addFavorite()" class="btn" style="padding: 10px 20px; white-space: nowrap; background: #6b7280; color: white;">Save Favorite</button>
+                        </div>
+                    </div>
+                    <div id="favoritesList" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Favorites will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Player Benchmark Data -->
     <script src="player_data/lebron_benchmark.js"></script>
+    <script src="player_data/curry_benchmark.js"></script>
     <script>
         // Make lebron_data available globally
         if (typeof lebron_data !== 'undefined') {
             window.lebron_benchmark_data = lebron_data;
         }
+        // Make curry_data available globally
+        if (typeof curry_data !== 'undefined') {
+            window.curry_benchmark_data = curry_data;
+        }
     </script>
     <script src="app.js"></script>
+    <script>
+        // Tab navigation functions
+        let trainingChart = null;
+        
+        function showShotSync() {
+            // Hide all tab views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            
+            // Show ShotSync header
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'block';
+            
+            // Show main content (player selection page)
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('shotSyncTab').classList.add('active');
+            
+            // Save active tab to localStorage
+            localStorage.setItem('activeTab', 'shotSync');
+        }
+        
+        window.showWorkouts = showWorkouts;
+        
+        function showTrainingDatabase() {
+            // Hide all views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'none';
+            
+            // Show ShotSync header
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'block';
+            
+            // Show training database
+            document.getElementById('trainingDatabaseView').style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('trainingDbTab').classList.add('active');
+            
+            // Save active tab to localStorage
+            localStorage.setItem('activeTab', 'trainingDatabase');
+            
+            // Load training data
+            loadTrainingDatabase();
+        }
+        
+        function showBadges() {
+            // Hide all views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'none';
+            
+            // Show ShotSync header
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'block';
+            
+            // Show badges
+            document.getElementById('badgesView').style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('badgesTab').classList.add('active');
+            
+            // Save active tab to localStorage
+            localStorage.setItem('activeTab', 'badges');
+            
+            // Load badges
+            loadBadges();
+        }
+        
+        function showMainContent() {
+            // Hide all tab views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            
+            // Show main content
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+        }
+        
+        async function loadTrainingDatabase() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                document.getElementById('trainingChart').parentElement.innerHTML = '<p style="text-align: center; padding: 40px;">Please sign in to view your training database.</p>';
+                return;
+            }
+            
+            const playerFilter = document.getElementById('playerFilter').value;
+            const scores = await window.getTrainingScores(user.uid, playerFilter || null);
+            
+            if (scores.length === 0) {
+                document.getElementById('trainingChart').parentElement.innerHTML = '<p style="text-align: center; padding: 40px;">No training data yet. Start practicing to see your progress!</p>';
+                document.getElementById('trainingStats').innerHTML = '';
+                return;
+            }
+            
+            // Prepare chart data
+            const labels = [];
+            const dataPoints = [];
+            const playerNames = {
+                'curry': 'Stephen Curry',
+                'lebron': 'LeBron James',
+                'jordan': 'Michael Jordan',
+                'durant': 'Kevin Durant',
+                'clark': 'Caitlin Clark',
+                'custom': 'Custom'
+            };
+            
+            // Reverse to show chronological order
+            scores.reverse().forEach((score, index) => {
+                const date = score.createdAt?.toDate ? score.createdAt.toDate() : new Date();
+                labels.push(date.toLocaleDateString());
+                dataPoints.push(score.similarityScore);
+            });
+            
+            // Create or update chart
+            const ctx = document.getElementById('trainingChart').getContext('2d');
+            if (trainingChart) {
+                trainingChart.destroy();
+            }
+            
+            trainingChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Similarity Score (%)',
+                        data: dataPoints,
+                        borderColor: 'rgb(255, 107, 122)',
+                        backgroundColor: 'rgba(255, 107, 122, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Training Progress ${playerFilter ? `- ${playerNames[playerFilter] || playerFilter}` : ''}`,
+                            font: {
+                                size: 18,
+                                family: "'Courier Prime', monospace"
+                            }
+                        },
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Calculate stats
+            const avgScore = dataPoints.reduce((a, b) => a + b, 0) / dataPoints.length;
+            const maxScore = Math.max(...dataPoints);
+            const minScore = Math.min(...dataPoints);
+            const recentScores = dataPoints.slice(-5);
+            const recentAvg = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+            
+            document.getElementById('trainingStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Sessions</div>
+                    <div class="stat-value">${scores.length}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Score</div>
+                    <div class="stat-value">${avgScore.toFixed(1)}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Best Score</div>
+                    <div class="stat-value">${maxScore.toFixed(1)}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Recent Average</div>
+                    <div class="stat-value">${recentAvg.toFixed(1)}%</div>
+                </div>
+            `;
+        }
+        
+        async function loadBadges() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                document.getElementById('badgesContainer').innerHTML = '<p style="text-align: center; padding: 40px;">Please sign in to view your badges.</p>';
+                return;
+            }
+            
+            // Check all badges first
+            if (window.checkAllBadges) {
+                await window.checkAllBadges(user.uid);
+            }
+            
+            const badges = await window.getUserBadges(user.uid);
+            const loginStreak = await window.updateLoginStreak(user.uid);
+            
+            // Get training data for calculations
+            const scores = await window.getTrainingScores(user.uid);
+            const totalSessions = scores.length;
+            const scoreValues = scores.map(s => s.similarityScore);
+            const maxSimilarity = scoreValues.length > 0 ? Math.max(...scoreValues) : 0;
+            const avgScore = scoreValues.length > 0 ? scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length : 0;
+            
+            // Group by player
+            const playerScores = {};
+            scores.forEach(score => {
+                const player = score.player || 'custom';
+                if (!playerScores[player]) playerScores[player] = [];
+                playerScores[player].push(score);
+            });
+            const uniquePlayers = Object.keys(playerScores);
+            const playersWithHighScores = uniquePlayers.filter(player => {
+                const playerMax = Math.max(...playerScores[player].map(s => s.similarityScore));
+                return playerMax >= 85;
+            });
+            
+            // Calculate consecutive days
+            const sessionDates = scores.map(s => {
+                const date = s.createdAt?.toDate ? s.createdAt.toDate() : new Date();
+                return date.toDateString();
+            });
+            const uniqueDates = [...new Set(sessionDates)];
+            uniqueDates.sort((a, b) => new Date(a) - new Date(b));
+            let maxConsecutive = 1;
+            let consecutiveDays = 1;
+            for (let i = 1; i < uniqueDates.length; i++) {
+                const prevDate = new Date(uniqueDates[i - 1]);
+                const currDate = new Date(uniqueDates[i]);
+                const daysDiff = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+                if (daysDiff === 1) {
+                    consecutiveDays++;
+                    maxConsecutive = Math.max(maxConsecutive, consecutiveDays);
+                } else {
+                    consecutiveDays = 1;
+                }
+            }
+            
+            // Calculate improvements
+            const recentScores = scoreValues.slice(0, 5);
+            const olderScores = scoreValues.slice(5, 10);
+            const recentAvg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
+            const olderAvg = olderScores.length > 0 ? olderScores.reduce((a, b) => a + b, 0) / olderScores.length : 0;
+            const improvement = recentAvg > 0 && olderAvg > 0 ? recentAvg - olderAvg : 0;
+            
+            // Player-specific stats
+            const playerStats = {};
+            ['curry', 'lebron', 'jordan', 'durant', 'clark'].forEach(player => {
+                if (playerScores[player]) {
+                    playerStats[player] = {
+                        sessions: playerScores[player].length,
+                        maxScore: Math.max(...playerScores[player].map(s => s.similarityScore))
+                    };
+                }
+            });
+            
+            // Display all badges
+            const badgeDefinitions = [
+                {
+                    id: 'loginStreak',
+                    name: 'Consistency Champion',
+                    description: 'Log in consecutive days',
+                    icon: '🔥',
+                    levels: [
+                        { level: 'bronze', requirement: '5 days', current: loginStreak + ' days' },
+                        { level: 'silver', requirement: '10 days', current: loginStreak + ' days' },
+                        { level: 'gold', requirement: '30 days', current: loginStreak + ' days' }
+                    ]
+                },
+                {
+                    id: 'similarity',
+                    name: 'Form Master',
+                    description: 'Achieve high similarity scores',
+                    icon: '🎯',
+                    levels: [
+                        { level: 'bronze', requirement: '80%', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'silver', requirement: '90%', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'gold', requirement: '95%', current: maxSimilarity.toFixed(1) + '%' }
+                    ]
+                },
+                {
+                    id: 'practiceWarrior',
+                    name: 'Practice Warrior',
+                    description: 'Complete training sessions',
+                    icon: '💪',
+                    levels: [
+                        { level: 'bronze', requirement: '10 sessions', current: totalSessions + ' sessions' },
+                        { level: 'silver', requirement: '50 sessions', current: totalSessions + ' sessions' },
+                        { level: 'gold', requirement: '100 sessions', current: totalSessions + ' sessions' }
+                    ]
+                },
+                {
+                    id: 'firstSteps',
+                    name: 'First Steps',
+                    description: 'Complete your first analysis',
+                    icon: '👣',
+                    levels: [
+                        { level: 'bronze', requirement: '1 session', current: totalSessions + ' sessions' },
+                        { level: 'silver', requirement: '5 sessions', current: totalSessions + ' sessions' },
+                        { level: 'gold', requirement: '10 sessions', current: totalSessions + ' sessions' }
+                    ]
+                },
+                {
+                    id: 'halfCentury',
+                    name: 'Milestone Master',
+                    description: 'Reach session milestones',
+                    icon: '🏆',
+                    levels: [
+                        { level: 'bronze', requirement: '50 sessions', current: totalSessions + ' sessions' },
+                        { level: 'silver', requirement: '100 sessions', current: totalSessions + ' sessions' },
+                        { level: 'gold', requirement: '300 sessions', current: totalSessions + ' sessions' }
+                    ]
+                },
+                {
+                    id: 'risingStar',
+                    name: 'Rising Star',
+                    description: 'Improve your scores over time',
+                    icon: '⭐',
+                    levels: [
+                        { level: 'bronze', requirement: '10% improvement', current: improvement.toFixed(1) + '%' },
+                        { level: 'silver', requirement: '20% improvement', current: improvement.toFixed(1) + '%' },
+                        { level: 'gold', requirement: '30% improvement', current: improvement.toFixed(1) + '%' }
+                    ]
+                },
+                {
+                    id: 'fastTrack',
+                    name: 'Fast Track',
+                    description: 'Rapid improvement in sessions',
+                    icon: '⚡',
+                    levels: [
+                        { level: 'bronze', requirement: '15% in 3 sessions', current: improvement.toFixed(1) + '%' },
+                        { level: 'silver', requirement: '20% in 5 sessions', current: improvement.toFixed(1) + '%' },
+                        { level: 'gold', requirement: '25% in 7 sessions', current: improvement.toFixed(1) + '%' }
+                    ]
+                },
+                {
+                    id: 'breakthrough',
+                    name: 'Breakthrough',
+                    description: 'Achieve new personal bests',
+                    icon: '💥',
+                    levels: [
+                        { level: 'bronze', requirement: '1 new PB', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'silver', requirement: '3 new PBs', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'gold', requirement: '5 new PBs', current: maxSimilarity.toFixed(1) + '%' }
+                    ]
+                },
+                {
+                    id: 'versatileShooter',
+                    name: 'Versatile Shooter',
+                    description: 'Master multiple players',
+                    icon: '🎨',
+                    levels: [
+                        { level: 'bronze', requirement: '3 players at 85%+', current: playersWithHighScores.length + ' players' },
+                        { level: 'silver', requirement: '4 players at 85%+', current: playersWithHighScores.length + ' players' },
+                        { level: 'gold', requirement: '5 players at 85%+', current: playersWithHighScores.length + ' players' }
+                    ]
+                },
+                {
+                    id: 'steadyHand',
+                    name: 'Steady Hand',
+                    description: 'Maintain consistent high scores',
+                    icon: '🤲',
+                    levels: [
+                        { level: 'bronze', requirement: '80%+ avg (10 sessions)', current: avgScore.toFixed(1) + '% avg' },
+                        { level: 'silver', requirement: '90%+ avg (20 sessions)', current: avgScore.toFixed(1) + '% avg' },
+                        { level: 'gold', requirement: '95%+ avg (30 sessions)', current: avgScore.toFixed(1) + '% avg' }
+                    ]
+                },
+                {
+                    id: 'rockSolid',
+                    name: 'Rock Solid',
+                    description: 'Consecutive sessions at 85%+',
+                    icon: '🪨',
+                    levels: [
+                        { level: 'bronze', requirement: '5x 85%+', current: recentScores.length >= 5 ? recentScores.every(s => s >= 85) ? 'Achieved!' : 'In progress' : 'Need 5 sessions' },
+                        { level: 'silver', requirement: '10x 85%+', current: scoreValues.length >= 10 ? scoreValues.slice(0, 10).every(s => s >= 85) ? 'Achieved!' : 'In progress' : 'Need 10 sessions' },
+                        { level: 'gold', requirement: '15x 85%+', current: scoreValues.length >= 15 ? scoreValues.slice(0, 15).every(s => s >= 85) ? 'Achieved!' : 'In progress' : 'Need 15 sessions' }
+                    ]
+                },
+                {
+                    id: 'nearPerfect',
+                    name: 'Near Perfect',
+                    description: 'Achieve near-perfect scores',
+                    icon: '✨',
+                    levels: [
+                        { level: 'bronze', requirement: '95%', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'silver', requirement: '98%', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'gold', requirement: '100%', current: maxSimilarity.toFixed(1) + '%' }
+                    ]
+                },
+                {
+                    id: 'perfectionist',
+                    name: 'Perfectionist',
+                    description: 'Achieve perfect form',
+                    icon: '💎',
+                    levels: [
+                        { level: 'bronze', requirement: '98%', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'silver', requirement: '100%', current: maxSimilarity.toFixed(1) + '%' },
+                        { level: 'gold', requirement: '100% multiple times', current: maxSimilarity.toFixed(1) + '%' }
+                    ]
+                },
+                {
+                    id: 'weekWarrior',
+                    name: 'Week Warrior',
+                    description: 'Practice consecutive days',
+                    icon: '📅',
+                    levels: [
+                        { level: 'bronze', requirement: '7 days', current: maxConsecutive + ' days' },
+                        { level: 'silver', requirement: '30 days', current: maxConsecutive + ' days' },
+                        { level: 'gold', requirement: '365 days', current: maxConsecutive + ' days' }
+                    ]
+                },
+                {
+                    id: 'dailyGrinder',
+                    name: 'Daily Grinder',
+                    description: 'Consecutive days with sessions',
+                    icon: '🌅',
+                    levels: [
+                        { level: 'bronze', requirement: '3 days', current: maxConsecutive + ' days' },
+                        { level: 'silver', requirement: '7 days', current: maxConsecutive + ' days' },
+                        { level: 'gold', requirement: '14 days', current: maxConsecutive + ' days' }
+                    ]
+                },
+                {
+                    id: 'explorer',
+                    name: 'Explorer',
+                    description: 'Try all pro players',
+                    icon: '🗺️',
+                    levels: [
+                        { level: 'bronze', requirement: '5 players', current: uniquePlayers.length + ' players' },
+                        { level: 'silver', requirement: '5 players + custom', current: uniquePlayers.length + ' players' },
+                        { level: 'gold', requirement: 'All players mastered', current: playersWithHighScores.length + ' mastered' }
+                    ]
+                },
+                {
+                    id: 'adventurer',
+                    name: 'Adventurer',
+                    description: 'Try custom benchmarks',
+                    icon: '🧭',
+                    levels: [
+                        { level: 'bronze', requirement: '1 custom session', current: playerScores['custom'] ? playerScores['custom'].length + ' sessions' : 'Not yet' },
+                        { level: 'silver', requirement: '5 custom sessions', current: playerScores['custom'] ? playerScores['custom'].length + ' sessions' : 'Not yet' },
+                        { level: 'gold', requirement: '10 custom sessions', current: playerScores['custom'] ? playerScores['custom'].length + ' sessions' : 'Not yet' }
+                    ]
+                },
+                {
+                    id: 'completeCollection',
+                    name: 'Complete Collection',
+                    description: 'Master all players (85%+)',
+                    icon: '📚',
+                    levels: [
+                        { level: 'bronze', requirement: 'All 5 players', current: playersWithHighScores.length + '/5 players' },
+                        { level: 'silver', requirement: 'All 5 at 90%+', current: uniquePlayers.filter(p => {
+                            const playerMax = Math.max(...playerScores[p].map(s => s.similarityScore));
+                            return playerMax >= 90;
+                        }).length + '/5 players' },
+                        { level: 'gold', requirement: 'All 5 at 95%+', current: uniquePlayers.filter(p => {
+                            const playerMax = Math.max(...playerScores[p].map(s => s.similarityScore));
+                            return playerMax >= 95;
+                        }).length + '/5 players' }
+                    ]
+                },
+                {
+                    id: 'quickLearner',
+                    name: 'Quick Learner',
+                    description: 'Reach high scores quickly',
+                    icon: '🧠',
+                    levels: [
+                        { level: 'bronze', requirement: '80%+ in 5 sessions', current: totalSessions <= 5 && maxSimilarity >= 80 ? 'Achieved!' : totalSessions > 5 ? 'Time passed' : 'In progress' },
+                        { level: 'silver', requirement: '85%+ in 5 sessions', current: totalSessions <= 5 && maxSimilarity >= 85 ? 'Achieved!' : totalSessions > 5 ? 'Time passed' : 'In progress' },
+                        { level: 'gold', requirement: '90%+ in 5 sessions', current: totalSessions <= 5 && maxSimilarity >= 90 ? 'Achieved!' : totalSessions > 5 ? 'Time passed' : 'In progress' }
+                    ]
+                },
+                {
+                    id: 'rapidRise',
+                    name: 'Rapid Rise',
+                    description: 'Dramatic improvement in 10 sessions',
+                    icon: '🚀',
+                    levels: [
+                        { level: 'bronze', requirement: '<60% to >85%', current: scoreValues.length >= 10 ? (scoreValues.slice(-10, -5).reduce((a, b) => a + b, 0) / 5 < 60 && recentAvg >= 85 ? 'Achieved!' : 'In progress') : 'Need 10 sessions' },
+                        { level: 'silver', requirement: '<60% to >90%', current: scoreValues.length >= 10 ? (scoreValues.slice(-10, -5).reduce((a, b) => a + b, 0) / 5 < 60 && recentAvg >= 90 ? 'Achieved!' : 'In progress') : 'Need 10 sessions' },
+                        { level: 'gold', requirement: '<60% to >95%', current: scoreValues.length >= 10 ? (scoreValues.slice(-10, -5).reduce((a, b) => a + b, 0) / 5 < 60 && recentAvg >= 95 ? 'Achieved!' : 'In progress') : 'Need 10 sessions' }
+                    ]
+                }
+            ];
+            
+            // Player icon mapping
+            const playerIcons = {
+                'curry': 'stephrootsicon.jpeg',
+                'lebron': 'lebron_icon.jpeg',
+                'jordan': 'jordan_icon.jpeg',
+                'durant': 'kd_icon.webp',
+                'clark': 'caitlin_icon.webp'
+            };
+            
+            // Add player-specific badges
+            ['curry', 'lebron', 'jordan', 'durant', 'clark'].forEach(player => {
+                const playerName = player.charAt(0).toUpperCase() + player.slice(1);
+                const stats = playerStats[player];
+                if (stats) {
+                    badgeDefinitions.push({
+                        id: player + 'Specialist',
+                        name: playerName + ' Specialist',
+                        description: `Master ${playerName}'s form`,
+                        icon: '🏀',
+                        playerIcon: playerIcons[player], // Store player icon path
+                        levels: [
+                            { level: 'bronze', requirement: '5 sessions at 85%+', current: stats.sessions + ' sessions, ' + stats.maxScore.toFixed(1) + '% max' },
+                            { level: 'silver', requirement: '10 sessions at 90%+', current: stats.sessions + ' sessions, ' + stats.maxScore.toFixed(1) + '% max' },
+                            { level: 'gold', requirement: '15 sessions at 95%+', current: stats.sessions + ' sessions, ' + stats.maxScore.toFixed(1) + '% max' }
+                        ]
+                    });
+                } else {
+                    badgeDefinitions.push({
+                        id: player + 'Specialist',
+                        name: playerName + ' Specialist',
+                        description: `Master ${playerName}'s form`,
+                        icon: '🏀',
+                        playerIcon: playerIcons[player], // Store player icon path
+                        levels: [
+                            { level: 'bronze', requirement: '5 sessions at 85%+', current: 'Not started' },
+                            { level: 'silver', requirement: '10 sessions at 90%+', current: 'Not started' },
+                            { level: 'gold', requirement: '15 sessions at 95%+', current: 'Not started' }
+                        ]
+                    });
+                }
+            });
+            
+            let badgesHTML = '';
+            badgeDefinitions.forEach(badge => {
+                const currentLevel = badges[badge.id] || 'none';
+                const isUnlocked = currentLevel !== 'none';
+                
+                // Use player icon for specialist badges, otherwise use emoji icon
+                const iconHTML = badge.playerIcon 
+                    ? `<img src="${badge.playerIcon}" alt="${badge.name}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto;">`
+                    : `<div class="badge-icon">${badge.icon}</div>`;
+                
+                badgesHTML += `
+                    <div class="badge-card ${!isUnlocked ? 'locked' : ''}">
+                        ${iconHTML}
+                        <div class="badge-name">${badge.name}</div>
+                        <div style="color: #666; margin-bottom: 15px; font-size: 14px;">${badge.description}</div>
+                        ${badge.levels.map(levelInfo => {
+                            const isAchieved = currentLevel === levelInfo.level || 
+                                (levelInfo.level === 'bronze' && currentLevel !== 'none') ||
+                                (levelInfo.level === 'silver' && (currentLevel === 'silver' || currentLevel === 'gold')) ||
+                                (levelInfo.level === 'gold' && currentLevel === 'gold');
+                            
+                            return `
+                                <div style="margin: 10px 0; padding: 10px; background: ${isAchieved ? '#f0f9ff' : '#f5f5f5'}; border-radius: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-weight: 600;">${levelInfo.level.charAt(0).toUpperCase() + levelInfo.level.slice(1)}</span>
+                                        <span class="badge-level ${isAchieved ? levelInfo.level : 'none'}">
+                                            ${isAchieved ? '✓' : '○'} ${levelInfo.requirement}
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                                        Current: ${levelInfo.current}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            });
+            
+            document.getElementById('badgesContainer').innerHTML = badgesHTML;
+        }
+        
+        // Add event listener for player filter
+        // Restore active tab from localStorage on page load
+        function restoreActiveTab() {
+            // Only restore tab if we're on the tool page (not the landing page)
+            const pathname = window.location.pathname;
+            if (!pathname.includes('/tool/') && !pathname.endsWith('/tool/index.html')) {
+                return; // Don't restore tab if we're not on the tool page
+            }
+            
+            const activeTab = localStorage.getItem('activeTab');
+            if (activeTab) {
+                switch(activeTab) {
+                    case 'shotSync':
+                        showShotSync();
+                        break;
+                    case 'trainingDatabase':
+                        showTrainingDatabase();
+                        break;
+                    case 'badges':
+                        showBadges();
+                        break;
+                    case 'nutrition':
+                        showNutrition();
+                        break;
+                    case 'workouts':
+                        showWorkouts();
+                        break;
+                    default:
+                        showShotSync();
+                }
+            } else {
+                // Default to shot sync if no saved tab
+                showShotSync();
+            }
+            
+            // Re-attach sign-in button handlers after tab restoration
+            // This ensures handlers work even if buttons were hidden/shown during tab switch
+            setTimeout(() => {
+                // Check if handlers are available (from app.js)
+                if (typeof handleGoogleSignIn !== 'undefined' && window.signInWithGoogle) {
+                    const googleSignInBtn = document.getElementById('googleSignInBtn');
+                    if (googleSignInBtn) {
+                        // Clone to remove old listeners and re-add
+                        const newBtn = googleSignInBtn.cloneNode(true);
+                        googleSignInBtn.parentNode.replaceChild(newBtn, googleSignInBtn);
+                        newBtn.addEventListener('click', handleGoogleSignIn);
+                    }
+                }
+                
+                if (typeof handlePlayerPageSignIn !== 'undefined' && window.signInWithGoogle) {
+                    const playerGoogleSignInBtn = document.getElementById('playerGoogleSignInBtn');
+                    if (playerGoogleSignInBtn) {
+                        // Clone to remove old listeners and re-add
+                        const newBtn = playerGoogleSignInBtn.cloneNode(true);
+                        playerGoogleSignInBtn.parentNode.replaceChild(newBtn, playerGoogleSignInBtn);
+                        newBtn.addEventListener('click', handlePlayerPageSignIn);
+                    }
+                }
+            }, 500);
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const playerFilter = document.getElementById('playerFilter');
+            if (playerFilter) {
+                playerFilter.addEventListener('change', loadTrainingDatabase);
+            }
+            
+            // Add click handler for Home button
+            const homeButton = document.getElementById('backToHomeTab');
+            if (homeButton) {
+                homeButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToHome();
+                });
+            }
+            
+            // Restore active tab after a delay to ensure all scripts (including app.js) are loaded
+            // Wait for app.js to attach handlers first, then restore tab
+            setTimeout(() => {
+                restoreActiveTab();
+            }, 300);
+        });
+        
+        function goToHome() {
+            console.log('goToHome called');
+            // Clear the activeTab from localStorage so it doesn't restore a tab when returning
+            localStorage.removeItem('activeTab');
+            
+            // Navigate to the root index.html (landing page) - go up one directory from /tool/
+            // Use replace instead of href to prevent back button from going back to tool page
+            const baseUrl = window.location.origin;
+            const pathParts = window.location.pathname.split('/').filter(p => p); // Remove empty strings
+            const toolIndex = pathParts.indexOf('tool');
+            console.log('pathParts:', pathParts, 'toolIndex:', toolIndex);
+            
+            if (toolIndex > 0) {
+                const basePath = '/' + pathParts.slice(0, toolIndex).join('/');
+                const targetUrl = baseUrl + basePath + '/index.html';
+                console.log('Navigating to:', targetUrl);
+                window.location.replace(targetUrl);
+            } else {
+                console.log('Using relative path: ../index.html');
+                window.location.replace('../index.html');
+            }
+        }
+        
+        function showWorkouts() {
+            // Hide all views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'none';
+            
+            // Hide ShotSync header/tagline on workouts page (but keep logo)
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'none';
+            
+            // Show workouts
+            document.getElementById('workoutsView').style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('workoutsTab').classList.add('active');
+            
+            // Save active tab to localStorage
+            localStorage.setItem('activeTab', 'workouts');
+            
+            // Load workouts data
+            loadWorkouts();
+        }
+        
+        function showNutrition() {
+            // Hide all views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'none';
+            
+            // Hide ShotSync header/tagline on nutrition page (but keep logo)
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'none';
+            
+            // Show nutrition
+            document.getElementById('nutritionView').style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('nutritionTab').classList.add('active');
+            
+            // Save active tab to localStorage
+            localStorage.setItem('activeTab', 'nutrition');
+            
+            // Load nutrition data
+            loadNutrition();
+        }
+        
+        // Wait for Firebase to be ready
+        async function waitForFirebase(maxWait = 5000) {
+            const startTime = Date.now();
+            while (!window.signInWithGoogle && (Date.now() - startTime) < maxWait) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return !!window.signInWithGoogle;
+        }
+        
+        // Wrapper functions for sign-in buttons (call handlers from app.js)
+        async function handleGoogleSignInClick() {
+            // Wait for Firebase to be ready
+            const firebaseReady = await waitForFirebase();
+            if (!firebaseReady) {
+                alert('Sign-in is not ready yet. Please wait a moment and try again, or refresh the page.');
+                return;
+            }
+            
+            if (typeof handleGoogleSignIn !== 'undefined') {
+                try {
+                    await handleGoogleSignIn();
+                } catch (error) {
+                    console.error('Sign-in error:', error);
+                    // The handler should show its own error, but if it doesn't, show a generic one
+                }
+            } else {
+                // Fallback: try to sign in directly
+                if (window.signInWithGoogle) {
+                    try {
+                        const userData = await window.signInWithGoogle();
+                        // Sign in successful - reload to update UI
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('Error signing in:', error);
+                        let errorMessage = 'Failed to sign in with Google. ';
+                        if (error.code) {
+                            errorMessage += `Error code: ${error.code}. `;
+                        }
+                        if (error.message) {
+                            errorMessage += error.message;
+                        } else {
+                            errorMessage += 'Please check the browser console for details.';
+                        }
+                        alert(errorMessage);
+                    }
+                } else {
+                    alert('Sign-in functionality is not available. Please refresh the page.');
+                }
+            }
+        }
+        
+        async function handlePlayerPageSignInClick() {
+            // Wait for Firebase to be ready
+            const firebaseReady = await waitForFirebase();
+            if (!firebaseReady) {
+                alert('Sign-in is not ready yet. Please wait a moment and try again, or refresh the page.');
+                return;
+            }
+            
+            if (typeof handlePlayerPageSignIn !== 'undefined') {
+                try {
+                    await handlePlayerPageSignIn();
+                } catch (error) {
+                    console.error('Sign-in error:', error);
+                    // The handler should show its own error, but if it doesn't, show a generic one
+                }
+            } else {
+                // Fallback: try to sign in directly
+                if (window.signInWithGoogle) {
+                    try {
+                        const userData = await window.signInWithGoogle();
+                        // Sign in successful - reload to update UI
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('Error signing in:', error);
+                        let errorMessage = 'Failed to sign in with Google. ';
+                        if (error.code) {
+                            errorMessage += `Error code: ${error.code}. `;
+                        }
+                        if (error.message) {
+                            errorMessage += error.message;
+                        } else {
+                            errorMessage += 'Please check the browser console for details.';
+                        }
+                        alert(errorMessage);
+                    }
+                } else {
+                    alert('Sign-in functionality is not available. Please refresh the page.');
+                }
+            }
+        }
+        
+        // Make functions globally available
+        window.showShotSync = showShotSync;
+        window.showTrainingDatabase = showTrainingDatabase;
+        window.showBadges = showBadges;
+        window.showNutrition = showNutrition;
+        window.goToHome = goToHome;
+        window.handleGoogleSignInClick = handleGoogleSignInClick;
+        window.handlePlayerPageSignInClick = handlePlayerPageSignInClick;
+        
+        // Nutrition page variables
+        let nutritionChart = null;
+        let currentChartType = 'calories';
+        
+        // Load nutrition data
+        async function loadNutrition() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                alert('Please sign in to use the nutrition tracker');
+                return;
+            }
+            
+            const userId = user.uid;
+            
+            // Load goals
+            const goals = await window.getNutritionGoals(userId);
+            document.getElementById('calorieGoal').value = goals.calorieGoal || 2000;
+            document.getElementById('idealWeight').value = goals.idealWeight || 150;
+            document.getElementById('proteinGoal').value = goals.proteinGoal || 150;
+            
+            // Load favorites
+            await loadFavorites(userId);
+            
+            // Load daily log
+            await loadDailyLog(userId);
+            
+            // Load and render chart
+            await renderNutritionChart(userId);
+        }
+        
+        // Save nutrition goals (local function for button click)
+        async function saveNutritionGoalsLocal() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                alert('Please sign in to save goals');
+                return;
+            }
+            
+            const calorieGoal = parseFloat(document.getElementById('calorieGoal').value);
+            const idealWeight = parseFloat(document.getElementById('idealWeight').value);
+            const proteinGoal = parseFloat(document.getElementById('proteinGoal').value);
+            
+            if (!calorieGoal || !idealWeight || !proteinGoal) {
+                alert('Please enter calorie goal, ideal weight, and protein goal');
+                return;
+            }
+            
+            const success = await window.saveNutritionGoals(user.uid, calorieGoal, idealWeight, proteinGoal);
+            if (success) {
+                alert('Goals saved successfully!');
+                await renderNutritionChart(user.uid);
+            } else {
+                alert('Error saving goals');
+            }
+        }
+        
+        window.saveNutritionGoalsLocal = saveNutritionGoalsLocal;
+        
+        // Switch nutrition chart
+        async function switchNutritionChart(type) {
+            currentChartType = type;
+            
+            // Update tab styles
+            document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+            if (type === 'calories') {
+                document.getElementById('calorieChartTab').classList.add('active');
+                document.getElementById('weightEntryForm').style.display = 'none';
+            } else {
+                document.getElementById('weightChartTab').classList.add('active');
+                document.getElementById('weightEntryForm').style.display = 'block';
+            }
+            
+            const user = window.firebaseAuth?.currentUser;
+            if (user) {
+                await renderNutritionChart(user.uid);
+            }
+        }
+        
+        // Add weight entry
+        async function addWeightEntry() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                alert('Please sign in to add weight entry');
+                return;
+            }
+            
+            const weight = parseFloat(document.getElementById('weightInput').value);
+            if (!weight || weight <= 0) {
+                alert('Please enter a valid weight');
+                return;
+            }
+            
+            const success = await window.saveWeightEntry(user.uid, weight);
+            if (success) {
+                document.getElementById('weightInput').value = '';
+                await renderNutritionChart(user.uid);
+            } else {
+                alert('Error adding weight entry');
+            }
+        }
+        
+        window.addWeightEntry = addWeightEntry;
+        
+        // Render nutrition chart
+        async function renderNutritionChart(userId) {
+            const ctx = document.getElementById('nutritionChart').getContext('2d');
+            
+            if (nutritionChart) {
+                nutritionChart.destroy();
+            }
+            
+            if (currentChartType === 'calories') {
+                // Load calorie data
+                const entries = await window.getAllNutritionEntries(userId);
+                const goals = await window.getNutritionGoals(userId);
+                const calorieGoal = goals.calorieGoal || 2000;
+                
+                // Group by date and sum calories
+                // Calculate total calories: servings × calories per serving
+                const dailyCalories = {};
+                entries.forEach(entry => {
+                    const date = entry.createdAt?.toDate ? entry.createdAt.toDate().toDateString() : new Date().toDateString();
+                    if (!dailyCalories[date]) {
+                        dailyCalories[date] = 0;
+                    }
+                    // Calculate total: multiply servings × calories per serving
+                    const caloriesPerServing = entry.caloriesPerServing !== undefined 
+                        ? entry.caloriesPerServing 
+                        : (entry.servings > 0 ? entry.calories / entry.servings : entry.calories);
+                    const totalCalories = caloriesPerServing * (entry.servings || 1);
+                    dailyCalories[date] += totalCalories;
+                });
+                
+                const dates = Object.keys(dailyCalories).sort();
+                const calories = dates.map(date => dailyCalories[date]);
+                
+                nutritionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                        datasets: [{
+                            label: 'Daily Calories',
+                            data: calories,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Calorie Goal',
+                            data: dates.map(() => calorieGoal),
+                            borderColor: '#ef4444',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Daily Calorie Intake',
+                                font: {
+                                    family: "'Courier Prime', monospace",
+                                    size: 18
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Calories'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Load weight data
+                const entries = await window.getWeightEntries(userId);
+                const goals = await window.getNutritionGoals(userId);
+                const idealWeight = goals.idealWeight || 150;
+                
+                const dates = entries.map(e => {
+                    const date = e.createdAt?.toDate ? e.createdAt.toDate() : new Date();
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                });
+                const weights = entries.map(e => e.weight);
+                
+                nutritionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Weight (lbs)',
+                            data: weights,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Ideal Weight',
+                            data: dates.map(() => idealWeight),
+                            borderColor: '#ef4444',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Weight Tracking',
+                                font: {
+                                    family: "'Courier Prime', monospace",
+                                    size: 18
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Weight (lbs)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Add food entry
+        async function addFood() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                alert('Please sign in to add food');
+                return;
+            }
+            
+            const name = document.getElementById('foodName').value.trim();
+            const servings = parseFloat(document.getElementById('foodServings').value);
+            const calories = parseFloat(document.getElementById('foodCalories').value);
+            const protein = parseFloat(document.getElementById('foodProtein').value);
+            
+            if (!name || !servings || !calories || protein === undefined) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Store per-serving values in database
+            // We'll multiply by servings when calculating daily totals
+            const foodData = {
+                foodName: name,
+                servings: servings,
+                caloriesPerServing: calories,  // Calories per serving (not multiplied)
+                proteinPerServing: protein,     // Protein per serving (not multiplied)
+                // Also store totals for chart calculations
+                calories: calories * servings,  // Total calories (for chart)
+                protein: protein * servings     // Total protein (for chart)
+            };
+            
+            const success = await window.saveFoodEntry(user.uid, foodData);
+            if (success) {
+                // Clear form
+                document.getElementById('foodName').value = '';
+                document.getElementById('foodServings').value = '';
+                document.getElementById('foodCalories').value = '';
+                document.getElementById('foodProtein').value = '';
+                
+                // Reload log and chart
+                await loadDailyLog(user.uid);
+                await renderNutritionChart(user.uid);
+            } else {
+                alert('Error adding food');
+            }
+        }
+        
+        // Add favorite food
+        async function addFavorite() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                alert('Please sign in to add favorites');
+                return;
+            }
+            
+            const name = document.getElementById('favoriteFoodName').value.trim();
+            const calories = parseFloat(document.getElementById('favoriteCalories').value);
+            const protein = parseFloat(document.getElementById('favoriteProtein').value);
+            
+            if (!name || !calories || protein === undefined) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const favoriteData = {
+                name: name,
+                caloriesPerServing: calories,
+                proteinPerServing: protein
+            };
+            
+            const success = await window.saveFavoriteFood(user.uid, favoriteData);
+            if (success) {
+                // Clear form
+                document.getElementById('favoriteFoodName').value = '';
+                document.getElementById('favoriteCalories').value = '';
+                document.getElementById('favoriteProtein').value = '';
+                
+                // Reload favorites
+                await loadFavorites(user.uid);
+            } else {
+                alert('Error saving favorite');
+            }
+        }
+        
+        // Load favorites
+        async function loadFavorites(userId) {
+            const favorites = await window.getFavoriteFoods(userId);
+            const container = document.getElementById('favoritesList');
+            container.innerHTML = '';
+            
+            if (favorites.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No favorites yet. Add some above!</p>';
+                return;
+            }
+            
+            favorites.forEach((favorite, index) => {
+                // Use index to create unique ID to avoid issues with special characters in food names
+                const favoriteId = `fav-${index}`;
+                const favoriteEntry = document.createElement('div');
+                favoriteEntry.className = 'food-log-entry';
+                favoriteEntry.style.background = '#f8f9fa';
+                favoriteEntry.innerHTML = `
+                    <div><strong>${favorite.name}</strong></div>
+                    <div>
+                        Servings: <input type="number" id="${favoriteId}" value="1" step="0.25" min="0" style="width: 80px; padding: 5px; border: 2px solid #ddd; border-radius: 4px; font-family: 'Courier Prime', monospace;">
+                    </div>
+                    <div>Calories per serving: ${favorite.caloriesPerServing}</div>
+                    <div>Protein per serving: ${favorite.proteinPerServing}g</div>
+                    <div>
+                        <button onclick="addFavoriteFoodById('${favoriteId}', '${favorite.name.replace(/'/g, "\\'")}', ${favorite.caloriesPerServing}, ${favorite.proteinPerServing})" class="btn" style="padding: 5px 15px; margin-right: 5px; background: #6b7280; color: white;">Add</button>
+                        <button onclick="deleteFavoriteFoodById('${favorite.name.replace(/'/g, "\\'")}')" class="btn" style="padding: 5px 15px; background: #ef4444; color: white;">Delete</button>
+                    </div>
+                `;
+                container.appendChild(favoriteEntry);
+            });
+        }
+        
+        // Delete favorite food (local function for button click)
+        async function deleteFavoriteFoodById(favoriteName) {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                alert('Please sign in to delete favorites');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete "${favoriteName}" from favorites?`)) {
+                return;
+            }
+            
+            const success = await window.deleteFavoriteFood(user.uid, favoriteName);
+            if (success) {
+                await loadFavorites(user.uid);
+            } else {
+                alert('Error deleting favorite');
+            }
+        }
+        
+        window.deleteFavoriteFoodById = deleteFavoriteFoodById;
+        
+        // Add favorite food with servings (by ID)
+        async function addFavoriteFoodById(favoriteId, name, caloriesPerServing, proteinPerServing) {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const servingsInput = document.getElementById(favoriteId);
+            const servings = parseFloat(servingsInput.value) || 1;
+            
+            // Store per-serving values, and also calculate totals for chart
+            const totalCalories = caloriesPerServing * servings;
+            const totalProtein = proteinPerServing * servings;
+            
+            const foodData = {
+                foodName: name,
+                servings: servings,
+                caloriesPerServing: caloriesPerServing,  // Store per-serving values
+                proteinPerServing: proteinPerServing,    // Store per-serving values
+                calories: totalCalories,  // Total calories (for chart calculations)
+                protein: totalProtein      // Total protein (for chart calculations)
+            };
+            
+            const success = await window.saveFoodEntry(user.uid, foodData);
+            if (success) {
+                servingsInput.value = '1';  // Reset to 1 instead of empty
+                await loadDailyLog(user.uid);
+                await renderNutritionChart(user.uid);
+            }
+        }
+        
+        // Legacy function for backwards compatibility
+        async function addFavoriteFood(name, caloriesPerServing, proteinPerServing) {
+            // Try to find the input by searching for it
+            const inputs = document.querySelectorAll('input[type="number"]');
+            for (const input of inputs) {
+                if (input.id && input.id.startsWith('fav-')) {
+                    const entry = input.closest('.food-log-entry');
+                    if (entry && entry.querySelector('strong').textContent === name) {
+                        await addFavoriteFoodById(input.id, name, caloriesPerServing, proteinPerServing);
+                        return;
+                    }
+                }
+            }
+        }
+        
+        // Load daily food log
+        async function loadDailyLog(userId) {
+            const entries = await window.getNutritionEntries(userId);
+            const container = document.getElementById('dailyFoodLog');
+            container.innerHTML = '';
+            
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No food entries for today</p>';
+            } else {
+                entries.forEach(entry => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'food-log-entry';
+                    entryDiv.id = `entry-${entry.id}`;
+                    
+                    // Display per-serving values in the log (not multiplied)
+                    // Calculate per-serving from stored data
+                    const caloriesPerServing = entry.caloriesPerServing !== undefined 
+                        ? entry.caloriesPerServing 
+                        : (entry.servings > 0 ? entry.calories / entry.servings : entry.calories);
+                    const proteinPerServing = entry.proteinPerServing !== undefined 
+                        ? entry.proteinPerServing 
+                        : (entry.servings > 0 ? entry.protein / entry.servings : entry.protein);
+                    
+                    entryDiv.innerHTML = `
+                        <div><strong>${entry.foodName}</strong></div>
+                        <div>Servings: <span id="servings-${entry.id}">${entry.servings}</span></div>
+                        <div>Calories: <span id="calories-${entry.id}">${caloriesPerServing.toFixed(0)}</span></div>
+                        <div>Protein: <span id="protein-${entry.id}">${proteinPerServing.toFixed(1)}g</span></div>
+                        <div>
+                            <button onclick="editFoodEntry('${entry.id}')" class="btn btn-secondary" style="padding: 5px 15px; margin-right: 5px;">Edit</button>
+                            <button onclick="deleteFoodEntry('${entry.id}')" class="btn" style="padding: 5px 15px; background: #ef4444; color: white;">Delete</button>
+                        </div>
+                    `;
+                    container.appendChild(entryDiv);
+                });
+            }
+            
+            // Calculate and display totals
+            // Multiply servings × calories per serving and servings × protein per serving for daily totals
+            const totalCalories = entries.reduce((sum, e) => {
+                const caloriesPerServing = e.caloriesPerServing !== undefined 
+                    ? e.caloriesPerServing 
+                    : (e.servings > 0 ? e.calories / e.servings : e.calories);
+                return sum + (caloriesPerServing * (e.servings || 1));
+            }, 0);
+            
+            const totalProtein = entries.reduce((sum, e) => {
+                const proteinPerServing = e.proteinPerServing !== undefined 
+                    ? e.proteinPerServing 
+                    : (e.servings > 0 ? e.protein / e.servings : e.protein);
+                return sum + (proteinPerServing * (e.servings || 1));
+            }, 0);
+            
+            const goals = await window.getNutritionGoals(userId);
+            const calorieGoal = goals.calorieGoal || 2000;
+            const proteinGoal = goals.proteinGoal || 150;
+            
+            const totalsContainer = document.getElementById('dailyTotals');
+            totalsContainer.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #333; font-family: 'Courier Prime', monospace;">${totalCalories.toFixed(0)}</div>
+                    <div style="color: #666; font-size: 14px;">Calories</div>
+                    <div style="color: ${totalCalories > calorieGoal ? '#ef4444' : '#10b981'}; font-size: 12px; margin-top: 5px;">
+                        ${totalCalories > calorieGoal ? `+${(totalCalories - calorieGoal).toFixed(0)} over goal` : `${(calorieGoal - totalCalories).toFixed(0)} remaining`}
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #333; font-family: 'Courier Prime', monospace;">${totalProtein.toFixed(1)}g</div>
+                    <div style="color: #666; font-size: 14px;">Protein</div>
+                    <div style="color: ${totalProtein > proteinGoal ? '#ef4444' : '#10b981'}; font-size: 12px; margin-top: 5px;">
+                        ${totalProtein > proteinGoal ? `+${(totalProtein - proteinGoal).toFixed(1)}g over goal` : `${(proteinGoal - totalProtein).toFixed(1)}g remaining`}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Edit food entry
+        function editFoodEntry(entryId) {
+            const entryDiv = document.getElementById(`entry-${entryId}`);
+            entryDiv.classList.add('editing');
+            
+            const servings = parseFloat(document.getElementById(`servings-${entryId}`).textContent);
+            // These are already per-serving values in the display
+            const caloriesPerServing = parseFloat(document.getElementById(`calories-${entryId}`).textContent);
+            const proteinPerServing = parseFloat(document.getElementById(`protein-${entryId}`).textContent.replace('g', ''));
+            const foodName = entryDiv.querySelector('strong').textContent;
+            
+            entryDiv.innerHTML = `
+                <div><strong>${foodName}</strong></div>
+                <div>
+                    Servings: <input type="number" id="edit-servings-${entryId}" value="${servings}" step="0.25" min="0" style="width: 80px; padding: 5px; border: 2px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    Calories per serving: <input type="number" id="edit-calories-${entryId}" value="${caloriesPerServing.toFixed(0)}" min="0" style="width: 80px; padding: 5px; border: 2px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    Protein per serving (g): <input type="number" id="edit-protein-${entryId}" value="${proteinPerServing.toFixed(1)}" min="0" step="0.1" style="width: 80px; padding: 5px; border: 2px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <button onclick="saveFoodEdit('${entryId}')" class="btn btn-primary" style="padding: 5px 15px; margin-right: 5px;">Save</button>
+                    <button onclick="cancelFoodEdit('${entryId}')" class="btn btn-secondary" style="padding: 5px 15px;">Cancel</button>
+                </div>
+            `;
+        }
+        
+        // Save food edit
+        async function saveFoodEdit(entryId) {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const servings = parseFloat(document.getElementById(`edit-servings-${entryId}`).value);
+            const caloriesPerServing = parseFloat(document.getElementById(`edit-calories-${entryId}`).value);
+            const proteinPerServing = parseFloat(document.getElementById(`edit-protein-${entryId}`).value);
+            
+            if (!servings || !caloriesPerServing || proteinPerServing === undefined) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Store per-serving values, and also calculate totals for chart
+            const totalCalories = caloriesPerServing * servings;
+            const totalProtein = proteinPerServing * servings;
+            
+            const foodData = {
+                servings: servings,
+                caloriesPerServing: caloriesPerServing,  // Store per-serving values
+                proteinPerServing: proteinPerServing,    // Store per-serving values
+                calories: totalCalories,  // Total calories (for chart calculations)
+                protein: totalProtein      // Total protein (for chart calculations)
+            };
+            
+            const success = await window.updateFoodEntry(entryId, foodData);
+            if (success) {
+                await loadDailyLog(user.uid);
+                await renderNutritionChart(user.uid);
+            } else {
+                alert('Error updating food entry');
+            }
+        }
+        
+        // Cancel food edit
+        async function cancelFoodEdit(entryId) {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            await loadDailyLog(user.uid);
+        }
+        
+        // Delete food entry
+        async function deleteFoodEntry(entryId) {
+            if (!confirm('Are you sure you want to delete this food entry?')) {
+                return;
+            }
+            
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const success = await window.deleteFoodEntryFromDB(entryId);
+            if (success) {
+                await loadDailyLog(user.uid);
+                await renderNutritionChart(user.uid);
+            } else {
+                alert('Error deleting food entry');
+            }
+        }
+        
+        // Make functions globally available
+        window.addFood = addFood;
+        window.addFavorite = addFavorite;
+        window.addFavoriteFood = addFavoriteFood;
+        window.addFavoriteFoodById = addFavoriteFoodById;
+        window.switchNutritionChart = switchNutritionChart;
+        window.editFoodEntry = editFoodEntry;
+        window.saveFoodEdit = saveFoodEdit;
+        window.cancelFoodEdit = cancelFoodEdit;
+        window.deleteFoodEntry = deleteFoodEntry;
+        
+        // Workouts functions
+        let currentWorkoutTab = 'schedule';
+        let editingGymWorkoutId = null;
+        let editingSportsWorkoutId = null;
+        let selectedDayForSchedule = null;
+        
+        async function loadWorkouts() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                alert('Please sign in to use the workout tracker');
+                return;
+            }
+            
+            const userId = user.uid;
+            switchWorkoutTab(currentWorkoutTab);
+        }
+        
+        async function switchWorkoutTab(tab) {
+            currentWorkoutTab = tab;
+            
+            // Hide all sections
+            document.getElementById('weeklyScheduleSection').style.display = 'none';
+            document.getElementById('customGymSection').style.display = 'none';
+            document.getElementById('customSportsSection').style.display = 'none';
+            
+            // Reset all tab styles
+            const scheduleTab = document.getElementById('weeklyScheduleTab');
+            const gymTab = document.getElementById('customGymTab');
+            const sportsTab = document.getElementById('customSportsTab');
+            
+            scheduleTab.style.borderBottom = '3px solid transparent';
+            scheduleTab.style.color = '#666';
+            scheduleTab.style.fontWeight = '400';
+            
+            gymTab.style.borderBottom = '3px solid transparent';
+            gymTab.style.color = '#666';
+            gymTab.style.fontWeight = '400';
+            
+            sportsTab.style.borderBottom = '3px solid transparent';
+            sportsTab.style.color = '#666';
+            sportsTab.style.fontWeight = '400';
+            
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            if (tab === 'schedule') {
+                document.getElementById('weeklyScheduleSection').style.display = 'block';
+                scheduleTab.style.borderBottom = '3px solid var(--primary-color)';
+                scheduleTab.style.color = 'var(--primary-color)';
+                scheduleTab.style.fontWeight = '600';
+                await loadWeeklySchedule(user.uid);
+            } else if (tab === 'gym') {
+                document.getElementById('customGymSection').style.display = 'block';
+                gymTab.style.borderBottom = '3px solid var(--primary-color)';
+                gymTab.style.color = 'var(--primary-color)';
+                gymTab.style.fontWeight = '600';
+                await loadCustomGymWorkouts(user.uid);
+            } else if (tab === 'sports') {
+                document.getElementById('customSportsSection').style.display = 'block';
+                sportsTab.style.borderBottom = '3px solid var(--primary-color)';
+                sportsTab.style.color = 'var(--primary-color)';
+                sportsTab.style.fontWeight = '600';
+                await loadCustomSportsWorkouts(user.uid);
+            }
+        }
+        
+        // Weekly Schedule Functions
+        let scheduleEditMode = false;
+        
+        async function loadWeeklySchedule(userId) {
+            const schedule = await window.getWeeklySchedule(userId);
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const container = document.getElementById('weeklyScheduleContainer');
+            container.innerHTML = '';
+            
+            days.forEach(day => {
+                const dayKey = day.toLowerCase();
+                const workouts = schedule[dayKey] || [];
+                const dayColumn = document.createElement('div');
+                dayColumn.style.cssText = 'display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8f9fa; min-height: 200px;';
+                
+                // Day header
+                const dayHeader = document.createElement('div');
+                dayHeader.style.cssText = 'font-weight: 600; font-size: 16px; margin-bottom: 15px; text-align: center; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;';
+                dayHeader.textContent = day;
+                dayColumn.appendChild(dayHeader);
+                
+                // Workouts container
+                const workoutsContainer = document.createElement('div');
+                workoutsContainer.style.cssText = 'flex: 1; margin-bottom: 10px;';
+                
+                if (workouts.length === 0) {
+                    workoutsContainer.innerHTML = '<div style="color: #999; font-style: italic; text-align: center; font-size: 12px; padding: 10px;">No workouts</div>';
+                } else {
+                    workouts.forEach((workout, index) => {
+                        const workoutDiv = document.createElement('div');
+                        workoutDiv.style.cssText = 'background: #f0f9ff; padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 13px;';
+                        
+                        // Show delete button only in edit mode
+                        const deleteButtonHTML = scheduleEditMode 
+                            ? `<button onclick="removeWorkoutFromDay('${dayKey}', ${index})" style="background: #ef4444; color: white; border: none; border-radius: 3px; padding: 2px 8px; cursor: pointer; font-size: 14px; margin-left: 8px; font-weight: bold;">-</button>`
+                            : '';
+                        
+                        workoutDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="font-weight: 600;">${workout.name}</div>
+                                ${deleteButtonHTML}
+                            </div>
+                        `;
+                        workoutsContainer.appendChild(workoutDiv);
+                    });
+                }
+                dayColumn.appendChild(workoutsContainer);
+                
+                // Add button (only show when not in edit mode)
+                if (!scheduleEditMode) {
+                    const addButton = document.createElement('button');
+                    addButton.className = 'btn btn-secondary';
+                    addButton.style.cssText = 'padding: 8px 12px; width: 100%; margin-top: auto;';
+                    addButton.textContent = 'Add';
+                    addButton.onclick = () => showAddWorkoutToDay(dayKey, day);
+                    dayColumn.appendChild(addButton);
+                }
+                
+                container.appendChild(dayColumn);
+            });
+        }
+        
+        async function toggleScheduleEditMode() {
+            scheduleEditMode = !scheduleEditMode;
+            const editBtn = document.getElementById('editScheduleBtn');
+            
+            if (scheduleEditMode) {
+                editBtn.textContent = 'Cancel';
+                editBtn.style.background = '#ef4444';
+                editBtn.style.color = 'white';
+            } else {
+                editBtn.textContent = 'Edit';
+                editBtn.style.background = '';
+                editBtn.style.color = '';
+            }
+            
+            // Reload schedule to show/hide delete buttons
+            const user = window.firebaseAuth?.currentUser;
+            if (user) {
+                await loadWeeklySchedule(user.uid);
+            }
+        }
+        
+        async function showAddWorkoutToDay(dayKey, dayName) {
+            selectedDayForSchedule = dayKey;
+            document.getElementById('selectedDayName').textContent = dayName;
+            document.getElementById('addWorkoutToDayForm').style.display = 'block';
+            
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            // Load all custom workouts
+            const gymWorkouts = await window.getCustomGymWorkouts(user.uid);
+            const sportsWorkouts = await window.getCustomSportsWorkouts(user.uid);
+            
+            const select = document.getElementById('workoutSelect');
+            select.innerHTML = '<option value="">-- Select a workout --</option>';
+            
+            gymWorkouts.forEach(workout => {
+                const option = document.createElement('option');
+                option.value = `gym-${workout.id}`;
+                option.textContent = workout.name + ' (Gym)';
+                select.appendChild(option);
+            });
+            
+            sportsWorkouts.forEach(workout => {
+                const option = document.createElement('option');
+                option.value = `sports-${workout.id}`;
+                option.textContent = workout.name + ' (Sports)';
+                select.appendChild(option);
+            });
+        }
+        
+        async function addWorkoutToDay() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const workoutSelect = document.getElementById('workoutSelect').value;
+            if (!workoutSelect || !selectedDayForSchedule) return;
+            
+            const [type, id] = workoutSelect.split('-');
+            const schedule = await window.getWeeklySchedule(user.uid);
+            const dayKey = selectedDayForSchedule;
+            
+            let workoutName = '';
+            if (type === 'gym') {
+                const gymWorkouts = await window.getCustomGymWorkouts(user.uid);
+                const workout = gymWorkouts.find(w => w.id === id);
+                if (workout) workoutName = workout.name;
+            } else if (type === 'sports') {
+                const sportsWorkouts = await window.getCustomSportsWorkouts(user.uid);
+                const workout = sportsWorkouts.find(w => w.id === id);
+                if (workout) workoutName = workout.name;
+            }
+            
+            if (!schedule[dayKey]) schedule[dayKey] = [];
+            schedule[dayKey].push({ type, id, name: workoutName });
+            
+            const success = await window.saveWeeklySchedule(user.uid, schedule);
+            if (success) {
+                document.getElementById('addWorkoutToDayForm').style.display = 'none';
+                await loadWeeklySchedule(user.uid);
+            }
+        }
+        
+        function cancelAddWorkoutToDay() {
+            document.getElementById('addWorkoutToDayForm').style.display = 'none';
+            selectedDayForSchedule = null;
+        }
+        
+        async function removeWorkoutFromDay(dayKey, index) {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const schedule = await window.getWeeklySchedule(user.uid);
+            if (schedule[dayKey]) {
+                schedule[dayKey].splice(index, 1);
+                await window.saveWeeklySchedule(user.uid, schedule);
+                await loadWeeklySchedule(user.uid);
+            }
+        }
+        
+        // Custom Gym Workout Functions
+        async function loadCustomGymWorkouts(userId) {
+            const workouts = await window.getCustomGymWorkouts(userId);
+            const container = document.getElementById('customGymWorkoutsList');
+            container.innerHTML = '';
+            
+            if (workouts.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No custom gym workouts yet. Create one to get started!</p>';
+                return;
+            }
+            
+            workouts.forEach(workout => {
+                const workoutDiv = document.createElement('div');
+                workoutDiv.style.cssText = 'background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px;';
+                workoutDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <h4 style="font-family: \'Courier Prime\', monospace; margin: 0;">${workout.name}</h4>
+                        <div>
+                            <button onclick="editGymWorkout('${workout.id}')" class="btn btn-secondary" style="padding: 5px 15px; margin-right: 5px;">Edit</button>
+                            <button onclick="deleteGymWorkout('${workout.id}')" class="btn" style="padding: 5px 15px; background: #ef4444; color: white;">Delete</button>
+                        </div>
+                    </div>
+                    <div>
+                        ${workout.exercises.map(ex => {
+                            let details = [];
+                            if (ex.sets && ex.reps && ex.weight) {
+                                details.push(`${ex.sets} sets × ${ex.reps} reps @ ${ex.weight} lbs`);
+                            } else if (ex.sets && ex.reps) {
+                                details.push(`${ex.sets} sets × ${ex.reps} reps`);
+                            } else if (ex.sets) {
+                                details.push(`${ex.sets} sets`);
+                            }
+                            if (ex.notes) {
+                                details.push(ex.notes);
+                            }
+                            const detailsText = details.length > 0 ? ' - ' + details.join(', ') : '';
+                            return `
+                                <div style="padding: 8px; background: white; border-radius: 4px; margin-bottom: 8px; font-family: \'Courier Prime\', monospace;">
+                                    <strong>${ex.name}</strong>${detailsText}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(workoutDiv);
+            });
+        }
+        
+        function showCreateGymWorkoutForm() {
+            editingGymWorkoutId = null;
+            document.getElementById('gymWorkoutFormTitle').textContent = 'Create Custom Gym Workout';
+            document.getElementById('gymWorkoutName').value = '';
+            document.getElementById('gymWorkoutExercisesList').innerHTML = '';
+            document.getElementById('createGymWorkoutForm').style.display = 'block';
+        }
+        
+        function addExerciseToGymWorkout() {
+            const container = document.getElementById('gymWorkoutExercisesList');
+            const exerciseId = 'exercise-' + Date.now();
+            const exerciseDiv = document.createElement('div');
+            exerciseDiv.style.cssText = 'padding: 15px; background: #f8f9fa; border-radius: 4px; margin-bottom: 15px;';
+            exerciseDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px;">
+                    <input type="text" id="${exerciseId}-name" placeholder="Exercise name" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                    <input type="number" id="${exerciseId}-sets" placeholder="Sets (optional)" min="0" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                    <input type="number" id="${exerciseId}-reps" placeholder="Reps (optional)" min="0" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                    <input type="number" id="${exerciseId}-weight" placeholder="Weight (optional)" min="0" step="0.5" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                    <button onclick="this.parentElement.parentElement.remove()" class="btn" style="padding: 8px 12px; background: #ef4444; color: white;">Remove</button>
+                </div>
+                <input type="text" id="${exerciseId}-notes" placeholder="Custom notes (e.g., 10 minutes at 6 mph)" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+            `;
+            container.appendChild(exerciseDiv);
+        }
+        
+        async function saveGymWorkout() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const name = document.getElementById('gymWorkoutName').value.trim();
+            if (!name) {
+                alert('Please enter a workout name');
+                return;
+            }
+            
+            const exercises = [];
+            const exerciseDivs = document.querySelectorAll('#gymWorkoutExercisesList > div');
+            exerciseDivs.forEach(div => {
+                const inputs = div.querySelectorAll('input');
+                const name = inputs[0].value.trim();
+                const setsValue = inputs[1].value.trim();
+                const repsValue = inputs[2].value.trim();
+                const weightValue = inputs[3].value.trim();
+                const notes = inputs[4].value.trim();
+                
+                if (name) {
+                    const exerciseData = { name };
+                    
+                    // Only add sets/reps/weight if they have values
+                    if (setsValue) {
+                        const sets = parseInt(setsValue);
+                        if (!isNaN(sets)) exerciseData.sets = sets;
+                    }
+                    if (repsValue) {
+                        const reps = parseInt(repsValue);
+                        if (!isNaN(reps)) exerciseData.reps = reps;
+                    }
+                    if (weightValue) {
+                        const weight = parseFloat(weightValue);
+                        if (!isNaN(weight)) exerciseData.weight = weight;
+                    }
+                    if (notes) {
+                        exerciseData.notes = notes;
+                    }
+                    
+                    exercises.push(exerciseData);
+                }
+            });
+            
+            if (exercises.length === 0) {
+                alert('Please add at least one exercise');
+                return;
+            }
+            
+            const workoutData = { name, exercises };
+            
+            try {
+                let success = false;
+                if (editingGymWorkoutId) {
+                    success = await window.updateCustomGymWorkout(editingGymWorkoutId, workoutData);
+                } else {
+                    success = await window.saveCustomGymWorkout(user.uid, workoutData);
+                }
+                
+                if (success) {
+                    document.getElementById('createGymWorkoutForm').style.display = 'none';
+                    await loadCustomGymWorkouts(user.uid);
+                } else {
+                    alert('Error saving workout. Please check the console for details.');
+                }
+            } catch (error) {
+                console.error('Error saving workout:', error);
+                alert('Error saving workout: ' + (error.message || 'Unknown error'));
+            }
+        }
+        
+        async function editGymWorkout(workoutId) {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const workouts = await window.getCustomGymWorkouts(user.uid);
+            const workout = workouts.find(w => w.id === workoutId);
+            if (!workout) return;
+            
+            editingGymWorkoutId = workoutId;
+            document.getElementById('gymWorkoutFormTitle').textContent = 'Edit Custom Gym Workout';
+            document.getElementById('gymWorkoutName').value = workout.name;
+            document.getElementById('gymWorkoutExercisesList').innerHTML = '';
+            
+            workout.exercises.forEach(ex => {
+                const exerciseId = 'exercise-' + Date.now() + '-' + Math.random();
+                const exerciseDiv = document.createElement('div');
+                exerciseDiv.style.cssText = 'padding: 15px; background: #f8f9fa; border-radius: 4px; margin-bottom: 15px;';
+                exerciseDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px;">
+                        <input type="text" id="${exerciseId}-name" value="${ex.name || ''}" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                        <input type="number" id="${exerciseId}-sets" value="${ex.sets || ''}" placeholder="Sets (optional)" min="0" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                        <input type="number" id="${exerciseId}-reps" value="${ex.reps || ''}" placeholder="Reps (optional)" min="0" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                        <input type="number" id="${exerciseId}-weight" value="${ex.weight || ''}" placeholder="Weight (optional)" min="0" step="0.5" style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                        <button onclick="this.parentElement.parentElement.remove()" class="btn" style="padding: 8px 12px; background: #ef4444; color: white;">Remove</button>
+                    </div>
+                    <input type="text" id="${exerciseId}-notes" value="${ex.notes || ''}" placeholder="Custom notes (e.g., 10 minutes at 6 mph)" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-family: \'Courier Prime\', monospace;">
+                `;
+                document.getElementById('gymWorkoutExercisesList').appendChild(exerciseDiv);
+            });
+            
+            document.getElementById('createGymWorkoutForm').style.display = 'block';
+        }
+        
+        async function deleteGymWorkout(workoutId) {
+            if (!confirm('Are you sure you want to delete this workout?')) return;
+            
+            const success = await window.deleteCustomGymWorkout(workoutId);
+            if (success) {
+                const user = window.firebaseAuth?.currentUser;
+                if (user) await loadCustomGymWorkouts(user.uid);
+            } else {
+                alert('Error deleting workout');
+            }
+        }
+        
+        function cancelGymWorkoutForm() {
+            document.getElementById('createGymWorkoutForm').style.display = 'none';
+            editingGymWorkoutId = null;
+        }
+        
+        // Custom Sports Workout Functions
+        async function loadCustomSportsWorkouts(userId) {
+            const workouts = await window.getCustomSportsWorkouts(userId);
+            const container = document.getElementById('customSportsWorkoutsList');
+            container.innerHTML = '';
+            
+            if (workouts.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No custom sports workouts yet. Create one to get started!</p>';
+                return;
+            }
+            
+            workouts.forEach(workout => {
+                const workoutDiv = document.createElement('div');
+                workoutDiv.style.cssText = 'background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px;';
+                workoutDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <h4 style="font-family: \'Courier Prime\', monospace; margin: 0;">${workout.name}</h4>
+                        <div>
+                            <button onclick="editSportsWorkout('${workout.id}')" class="btn btn-secondary" style="padding: 5px 15px; margin-right: 5px;">Edit</button>
+                            <button onclick="deleteSportsWorkout('${workout.id}')" class="btn" style="padding: 5px 15px; background: #ef4444; color: white;">Delete</button>
+                        </div>
+                    </div>
+                    <div style="font-family: \'Courier Prime\', monospace; color: #666; white-space: pre-wrap;">${workout.details}</div>
+                `;
+                container.appendChild(workoutDiv);
+            });
+        }
+        
+        function showCreateSportsWorkoutForm() {
+            editingSportsWorkoutId = null;
+            document.getElementById('sportsWorkoutFormTitle').textContent = 'Create Custom Sports Workout';
+            document.getElementById('sportsWorkoutName').value = '';
+            document.getElementById('sportsWorkoutDetails').value = '';
+            document.getElementById('createSportsWorkoutForm').style.display = 'block';
+        }
+        
+        async function saveSportsWorkout() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const name = document.getElementById('sportsWorkoutName').value.trim();
+            const details = document.getElementById('sportsWorkoutDetails').value.trim();
+            
+            if (!name || !details) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const workoutData = { name, details };
+            
+            let success = false;
+            if (editingSportsWorkoutId) {
+                success = await window.updateCustomSportsWorkout(editingSportsWorkoutId, workoutData);
+            } else {
+                success = await window.saveCustomSportsWorkout(user.uid, workoutData);
+            }
+            
+            if (success) {
+                document.getElementById('createSportsWorkoutForm').style.display = 'none';
+                await loadCustomSportsWorkouts(user.uid);
+            } else {
+                alert('Error saving workout');
+            }
+        }
+        
+        async function editSportsWorkout(workoutId) {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) return;
+            
+            const workouts = await window.getCustomSportsWorkouts(user.uid);
+            const workout = workouts.find(w => w.id === workoutId);
+            if (!workout) return;
+            
+            editingSportsWorkoutId = workoutId;
+            document.getElementById('sportsWorkoutFormTitle').textContent = 'Edit Custom Sports Workout';
+            document.getElementById('sportsWorkoutName').value = workout.name;
+            document.getElementById('sportsWorkoutDetails').value = workout.details;
+            document.getElementById('createSportsWorkoutForm').style.display = 'block';
+        }
+        
+        async function deleteSportsWorkout(workoutId) {
+            if (!confirm('Are you sure you want to delete this workout?')) return;
+            
+            const success = await window.deleteCustomSportsWorkout(workoutId);
+            if (success) {
+                const user = window.firebaseAuth?.currentUser;
+                if (user) await loadCustomSportsWorkouts(user.uid);
+            } else {
+                alert('Error deleting workout');
+            }
+        }
+        
+        function cancelSportsWorkoutForm() {
+            document.getElementById('createSportsWorkoutForm').style.display = 'none';
+            editingSportsWorkoutId = null;
+        }
+        
+        // Make workout functions globally available
+        window.switchWorkoutTab = switchWorkoutTab;
+        window.showAddWorkoutToDay = showAddWorkoutToDay;
+        window.addWorkoutToDay = addWorkoutToDay;
+        window.cancelAddWorkoutToDay = cancelAddWorkoutToDay;
+        window.removeWorkoutFromDay = removeWorkoutFromDay;
+        window.toggleScheduleEditMode = toggleScheduleEditMode;
+        window.showCreateGymWorkoutForm = showCreateGymWorkoutForm;
+        window.addExerciseToGymWorkout = addExerciseToGymWorkout;
+        window.saveGymWorkout = saveGymWorkout;
+        window.editGymWorkout = editGymWorkout;
+        window.deleteGymWorkout = deleteGymWorkout;
+        window.cancelGymWorkoutForm = cancelGymWorkoutForm;
+        window.showCreateSportsWorkoutForm = showCreateSportsWorkoutForm;
+        window.saveSportsWorkout = saveSportsWorkout;
+        window.editSportsWorkout = editSportsWorkout;
+        window.deleteSportsWorkout = deleteSportsWorkout;
+        window.cancelSportsWorkoutForm = cancelSportsWorkoutForm;
+        window.loadWorkouts = loadWorkouts;
+    </script>
 </body>
 </html>
 
