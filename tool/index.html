@@ -36,14 +36,21 @@
         /* Upload Mode Toggle Styles */
         .mode-toggle-btn {
             flex: 1;
-            min-width: 150px;
-            padding: 12px 20px;
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            min-width: 140px;
+            height: 44px;
+            padding: 12px 24px;
+            background: #f3f4f6;
+            border: 2px solid #d1d5db;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
             font-size: 15px;
+            font-weight: 600;
+            color: #374151;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
         }
 
         .mode-toggle-btn.active {
@@ -54,7 +61,8 @@
 
         .mode-toggle-btn:hover:not(.active) {
             border-color: var(--primary-color);
-            background: rgba(255, 107, 122, 0.05);
+            background: #e5e7eb;
+            color: #1f2937;
         }
 
         #uploadedFileName {
@@ -183,6 +191,30 @@
         .chart-tab.active {
             color: var(--primary-color);
             border-bottom-color: var(--primary-color);
+        }
+        
+        .period-tab {
+            background: #f3f4f6;
+            border: none;
+            padding: 8px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .period-tab:hover {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+        
+        .period-tab.active {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
         }
         
         /* Food Log Entry Styles */
@@ -512,6 +544,106 @@
             } catch (error) {
                 console.error('Error saving food entry:', error);
                 return false;
+            }
+        };
+        
+        // Save global benchmark (for all users)
+        window.saveGlobalBenchmark = async (benchmarkData) => {
+            try {
+                console.log('💾 Attempting to save global benchmark to Firebase...');
+                console.log('Benchmark data length:', benchmarkData?.length || 0);
+                
+                if (!benchmarkData || benchmarkData.length === 0) {
+                    console.error('❌ Cannot save: benchmark data is empty');
+                    return false;
+                }
+                
+                // Convert nested arrays to Firebase-compatible format
+                // Firebase doesn't support nested arrays, so we need to convert landmarks arrays
+                const firebaseCompatibleData = benchmarkData.map(frame => {
+                    // Convert landmarks array of arrays to array of objects
+                    const landmarks = frame.landmarks.map((landmark, index) => {
+                        if (Array.isArray(landmark) && landmark.length >= 3) {
+                            return {
+                                x: landmark[0],
+                                y: landmark[1],
+                                z: landmark[2],
+                                index: index
+                            };
+                        }
+                        return {
+                            x: landmark?.x || 0,
+                            y: landmark?.y || 0,
+                            z: landmark?.z || 0,
+                            index: index
+                        };
+                    });
+                    
+                    return {
+                        state: frame.state,
+                        time: frame.time,
+                        elbow_angle: frame.elbow_angle,
+                        wrist_angle: frame.wrist_angle,
+                        arm_angle: frame.arm_angle,
+                        landmarks: landmarks
+                    };
+                });
+                
+                const benchmarkRef = doc(db, 'globalBenchmark', 'custom');
+                await setDoc(benchmarkRef, {
+                    data: firebaseCompatibleData,
+                    updatedAt: serverTimestamp(),
+                    frameCount: firebaseCompatibleData.length
+                }, { merge: true });
+                
+                console.log('✅ Global benchmark saved successfully to Firebase');
+                console.log('Saved to path: globalBenchmark/custom');
+                console.log('Frame count:', firebaseCompatibleData.length);
+                return true;
+            } catch (error) {
+                console.error('❌ Error saving global benchmark:', error);
+                console.error('Error details:', error.message, error.code);
+                return false;
+            }
+        };
+        
+        // Get global benchmark (for all users)
+        window.getGlobalBenchmark = async () => {
+            try {
+                const benchmarkRef = doc(db, 'globalBenchmark', 'custom');
+                const benchmarkDoc = await getDoc(benchmarkRef);
+                if (benchmarkDoc.exists()) {
+                    const data = benchmarkDoc.data();
+                    const firebaseData = data.data || [];
+                    console.log('✅ Global benchmark loaded:', firebaseData.length, 'frames');
+                    
+                    // Convert Firebase format back to original format (landmarks as arrays)
+                    const convertedData = firebaseData.map(frame => {
+                        // Convert landmarks from objects back to arrays
+                        const landmarks = frame.landmarks.map(landmark => {
+                            if (landmark && typeof landmark === 'object' && 'x' in landmark) {
+                                return [landmark.x, landmark.y, landmark.z];
+                            }
+                            return landmark; // Already in array format
+                        });
+                        
+                        return {
+                            state: frame.state,
+                            time: frame.time,
+                            elbow_angle: frame.elbow_angle,
+                            wrist_angle: frame.wrist_angle,
+                            arm_angle: frame.arm_angle,
+                            landmarks: landmarks
+                        };
+                    });
+                    
+                    return convertedData;
+                }
+                console.log('No global benchmark found');
+                return null;
+            } catch (error) {
+                console.error('Error getting global benchmark:', error);
+                return null;
             }
         };
         
@@ -1192,8 +1324,7 @@
             <div class="nav-content">
                 <div class="logo">
                     <a href="../index.html" style="display: flex; align-items: center; text-decoration: none;">
-                        <img src="../RootsLogo.png" alt="Roots Logo" style="height: 40px; width: auto; margin-right: 12px; cursor: pointer; object-fit: contain;">
-                        <h2 style="font-size: 24px; font-weight: 700; color: var(--text-dark); font-family: 'Courier Prime', monospace;">Roots</h2>
+                        <img src="../RootsLogo.png" alt="Roots Logo" style="height: 50px; width: auto; cursor: pointer; object-fit: contain;">
                     </a>
                 </div>
                 <div class="nav-tabs" style="display: flex; gap: 20px; align-items: center;">
@@ -1280,6 +1411,24 @@
 
                     <h2 style="text-align: center; margin-bottom: 12px; font-size: 32px; color: #333; font-weight: 700; font-family: 'Forum', serif;">Choose Your Benchmark</h2>
                     <p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 16px;">Compare your shot to a professional player or create your own custom benchmark</p>
+                    
+                    <!-- Global Benchmark Recording Section -->
+                    <div id="globalBenchmarkSection" style="background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                        <h3 style="text-align: center; margin-bottom: 12px; font-size: 20px; color: #333; font-weight: 600; font-family: 'Forum', serif;">Record Global Benchmark</h3>
+                        <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 14px;">Record your shot once to use as the benchmark for all comparisons</p>
+                        <div class="video-container" style="position: relative; margin-bottom: 20px;">
+                            <video id="globalBenchmarkVideo" autoplay playsinline muted style="width: 100%; max-width: 640px; height: auto; display: block; border-radius: 12px; z-index: 1;"></video>
+                            <canvas id="globalBenchmarkCanvas" style="position: absolute; top: 0; left: 0; width: 100%; max-width: 640px; height: auto; border-radius: 12px; z-index: 2; pointer-events: none;"></canvas>
+                        </div>
+                        <div class="controls" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;">
+                            <button id="startGlobalBenchmark" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px;">Start Recording</button>
+                            <button id="stopGlobalBenchmark" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px; display: none;">Stop Recording</button>
+                            <label for="globalBenchmarkVideoUpload" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px; background: #f3f4f6; color: #374151; cursor: pointer; display: inline-block; text-align: center;">Upload Video</label>
+                            <input type="file" id="globalBenchmarkVideoUpload" accept="video/*" style="display: none;">
+                            <button id="processGlobalBenchmarkVideo" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px; display: none;">Process Video</button>
+                        </div>
+                        <div id="globalBenchmarkStatus" class="status" style="display: none; margin-top: 15px; text-align: center; padding: 12px; border-radius: 8px; font-size: 14px;"></div>
+                    </div>
 
                     <div class="player-selection" style="margin-bottom: 30px; opacity: 0.5; pointer-events: none;" id="playerSelectionContainer">
                         <div class="player-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto;">
@@ -1320,7 +1469,7 @@
                             </button>
                         </div>
                         <div class="custom-explanation" id="customExplanation" style="display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid var(--primary-color);">
-                            <p style="margin: 0; color: #666; line-height: 1.6;"><strong style="color: #333;">Custom Benchmark:</strong> First, record your ideal shooting form (the benchmark). Then record your shot to compare against it. This helps you establish your personal baseline and track improvement over time.</p>
+                            <p style="margin: 0; color: #666; line-height: 1.6;"><strong style="color: #333;">Custom Benchmark:</strong> Uses a global benchmark recorded by the administrator. Record your shot to compare against it.</p>
                         </div>
                     </div>
                 </div>
@@ -1342,13 +1491,29 @@
                         </div>
                     </div>
                 </div>
-                <div class="controls">
-                    <button class="backToPlayers btn btn-warning">← Back to Players</button>
-                    <button id="startBenchmark" class="btn btn-primary">Start Recording</button>
-                    <button id="stopBenchmark" class="btn btn-secondary" disabled>Stop Recording</button>
-                    <button id="retakeBenchmark" class="btn btn-warning" style="display: none;">Retake</button>
+                <div class="controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                    <!-- All buttons in one horizontal line -->
+                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;">
+                        <button class="backToPlayers btn btn-warning" style="min-width: 160px;">← Back to Players</button>
+                        
+                        <!-- Upload Video Toggle -->
+                        <button id="benchmarkUploadModeBtn" class="btn btn-secondary mode-toggle-btn" style="min-width: 140px;">📤 Upload Video</button>
+                        
+                        <!-- Recording Controls -->
+                        <button id="startBenchmark" class="btn btn-primary" style="min-width: 140px;">Start Recording</button>
+                        <button id="stopBenchmark" class="btn btn-secondary" disabled style="min-width: 140px;">Stop Recording</button>
+                        <button id="retakeBenchmark" class="btn btn-warning" style="display: none; min-width: 140px;">Retake</button>
+                        
+                        <!-- Upload Controls (hidden by default) -->
+                        <input type="file" id="benchmarkVideoUpload" accept="video/mp4,video/mov,video/webm,video/quicktime" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1;">
+                        <label for="benchmarkVideoUpload" id="selectBenchmarkVideo" class="btn btn-primary" style="display: none; min-width: 140px; cursor: pointer;">Choose Video File</label>
+                        <button id="processBenchmarkVideo" class="btn btn-success" style="display: none; min-width: 140px;">Analyze Video</button>
+                    </div>
+                    
+                    <!-- File name display for upload -->
+                    <div id="benchmarkUploadedFileName" style="width: 100%; text-align: center; color: #666; font-size: 14px;"></div>
                 </div>
-                <div id="benchmarkStatus" class="status"></div>
+                <div id="benchmarkStatus" class="status" style="display: none;"></div>
             </section>
 
             <!-- Step 2: Record User Shot -->
@@ -1367,31 +1532,29 @@
                         </div>
                     </div>
                 </div>
-                <div class="controls">
-                    <button class="backToPlayers btn btn-warning">← Back to Players</button>
-
-                    <!-- Toggle between Record and Upload -->
-                    <div class="input-method-toggle" style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
-                        <button id="userRecordModeBtn" class="btn btn-secondary mode-toggle-btn active">📹 Record Live</button>
-                        <button id="userUploadModeBtn" class="btn btn-secondary mode-toggle-btn">📤 Upload Video</button>
-                    </div>
-
-                    <!-- Recording Controls -->
-                    <div id="userRecordControls" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                        <button id="startUser" class="btn btn-primary">Start Recording</button>
-                        <button id="stopUser" class="btn btn-secondary" disabled>Stop Recording</button>
-                        <button id="retakeUser" class="btn btn-warning" style="display: none;">Retake</button>
-                    </div>
-
-                    <!-- Upload Controls -->
-                    <div id="userUploadControls" style="display: none; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <div class="controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                    <!-- All buttons in one horizontal line -->
+                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;">
+                        <button class="backToPlayers btn btn-warning" style="min-width: 160px;">← Back to Players</button>
+                        
+                        <!-- Upload Video Toggle -->
+                        <button id="userUploadModeBtn" class="btn btn-secondary mode-toggle-btn" style="min-width: 140px;">📤 Upload Video</button>
+                        
+                        <!-- Recording Controls -->
+                        <button id="startUser" class="btn btn-primary" style="min-width: 140px;">Start Recording</button>
+                        <button id="stopUser" class="btn btn-secondary" disabled style="min-width: 140px;">Stop Recording</button>
+                        <button id="retakeUser" class="btn btn-warning" style="display: none; min-width: 140px;">Retake</button>
+                        
+                        <!-- Upload Controls (hidden by default) -->
                         <input type="file" id="userVideoUpload" accept="video/mp4,video/mov,video/webm,video/quicktime" style="display: none;">
-                        <button id="selectUserVideo" class="btn btn-primary">Choose Video File</button>
-                        <button id="processUserVideo" class="btn btn-success" style="display: none;">Analyze Video</button>
-                        <div id="uploadedFileName" style="width: 100%; text-align: center; margin-top: 10px; color: #666; font-size: 14px;"></div>
+                        <button id="selectUserVideo" class="btn btn-primary" style="display: none; min-width: 140px;">Choose Video File</button>
+                        <button id="processUserVideo" class="btn btn-success" style="display: none; min-width: 140px;">Analyze Video</button>
                     </div>
+                    
+                    <!-- File name display for upload -->
+                    <div id="uploadedFileName" style="width: 100%; text-align: center; color: #666; font-size: 14px;"></div>
                 </div>
-                <div id="userStatus" class="status"></div>
+                <div id="userStatus" class="status" style="display: none;"></div>
             </section>
 
             <!-- Step 3: Analysis Results -->
@@ -1408,8 +1571,8 @@
                     <div class="chart-container">
                         <canvas id="comparisonChart"></canvas>
                     </div>
-                    <!-- Coordinate Table -->
-                    <div id="coordinateTableContainer" style="margin-top: 30px; overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                    <!-- Coordinate Table (Hidden) -->
+                    <div id="coordinateTableContainer" style="display: none; margin-top: 30px; overflow-x: auto; max-height: 400px; overflow-y: auto;">
                         <table id="coordinateTable" style="width: 100%; border-collapse: collapse; font-size: 12px; background: white; border-radius: 8px; overflow: hidden;">
                             <thead>
                                 <tr style="background: #f3f4f6; position: sticky; top: 0; z-index: 10;">
@@ -1430,6 +1593,12 @@
                     <!-- Detailed Feedback Section -->
                     <div id="detailedFeedback" class="detailed-feedback-section" style="display: none;">
                         <h3 id="playerComparisonTitle">Shot Analysis</h3>
+                        
+                        <!-- Player Summary -->
+                        <div id="playerSummarySection" class="player-summary-section" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid var(--primary-color);">
+                            <h4 style="margin-top: 0; color: #333; font-family: 'Courier Prime', monospace;">What Makes This Player's Shot Unique</h4>
+                            <div id="playerSummaryText" style="color: #555; line-height: 1.8; white-space: pre-line; font-size: 15px;"></div>
+                        </div>
                         
                         <!-- Summary -->
                         <div class="summary-section">
@@ -1667,9 +1836,16 @@
 
             <!-- Chart Tabs -->
             <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
-                <div style="display: flex; gap: 10px; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px; border-bottom: 2px solid #e2e8f0; margin-bottom: 15px;">
                     <button id="calorieChartTab" class="chart-tab active" onclick="switchNutritionChart('calories')">Daily Calories</button>
                     <button id="weightChartTab" class="chart-tab" onclick="switchNutritionChart('weight')">Weight</button>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button class="period-tab" data-days="3" onclick="switchTimePeriod(3, this)">Past 3 days</button>
+                    <button class="period-tab active" data-days="7" onclick="switchTimePeriod(7, this)">Past 7 days</button>
+                    <button class="period-tab" data-days="15" onclick="switchTimePeriod(15, this)">Past 15 days</button>
+                    <button class="period-tab" data-days="30" onclick="switchTimePeriod(30, this)">Past 30 days</button>
+                    <button class="period-tab" data-days="60" onclick="switchTimePeriod(60, this)">Past 60 days</button>
                 </div>
                 <canvas id="nutritionChart" style="max-height: 400px;"></canvas>
                 <!-- Weight Entry Form (shown only on weight tab) -->
@@ -1688,8 +1864,8 @@
             </div>
 
             <!-- Daily Food Log -->
-            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
-                <h3 style="font-family: 'Courier Prime', monospace; margin-bottom: 20px;">Today's Food Log</h3>
+            <div id="foodLogSection" style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                <h3 id="foodLogTitle" style="font-family: 'Courier Prime', monospace; margin-bottom: 20px;">Today's Food Log</h3>
                 <div id="dailyFoodLog" style="display: flex; flex-direction: column; gap: 10px;">
                     <!-- Food log entries will be populated here -->
                 </div>
@@ -2611,6 +2787,8 @@
         // Nutrition page variables
         let nutritionChart = null;
         let currentChartType = 'calories';
+        let currentTimePeriod = 7; // Default to 7 days
+        let selectedDate = null; // Currently selected date from chart click
         
         // Load nutrition data
         async function loadNutrition() {
@@ -2711,6 +2889,26 @@
         
         window.addWeightEntry = addWeightEntry;
         
+        // Switch time period
+        async function switchTimePeriod(days, buttonElement) {
+            currentTimePeriod = days;
+            
+            // Update tab styles
+            document.querySelectorAll('.period-tab').forEach(tab => tab.classList.remove('active'));
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+            } else {
+                // Fallback: find button by data-days attribute
+                const button = document.querySelector(`.period-tab[data-days="${days}"]`);
+                if (button) button.classList.add('active');
+            }
+            
+            const user = window.firebaseAuth?.currentUser;
+            if (user) {
+                await renderNutritionChart(user.uid);
+            }
+        }
+        
         // Render nutrition chart
         async function renderNutritionChart(userId) {
             const ctx = document.getElementById('nutritionChart').getContext('2d');
@@ -2719,75 +2917,206 @@
                 nutritionChart.destroy();
             }
             
+            // Calculate date range based on current time period
+            const endDate = new Date();
+            endDate.setHours(23, 59, 59, 999); // End of today
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - currentTimePeriod);
+            startDate.setHours(0, 0, 0, 0); // Start of day
+            
             if (currentChartType === 'calories') {
                 // Load calorie data
                 const entries = await window.getAllNutritionEntries(userId);
                 const goals = await window.getNutritionGoals(userId);
                 const calorieGoal = goals.calorieGoal || 2000;
                 
-                // Group by date and sum calories
+                // Group by date and sum calories, filtering by time period
                 // Calculate total calories: servings × calories per serving
                 const dailyCalories = {};
                 entries.forEach(entry => {
-                    const date = entry.createdAt?.toDate ? entry.createdAt.toDate().toDateString() : new Date().toDateString();
-                    if (!dailyCalories[date]) {
-                        dailyCalories[date] = 0;
+                    const entryDate = entry.createdAt?.toDate ? entry.createdAt.toDate() : new Date();
+                    // Filter by time period
+                    if (entryDate >= startDate && entryDate <= endDate) {
+                        const date = entryDate.toDateString();
+                        if (!dailyCalories[date]) {
+                            dailyCalories[date] = 0;
+                        }
+                        // Calculate total: multiply servings × calories per serving
+                        const caloriesPerServing = entry.caloriesPerServing !== undefined 
+                            ? entry.caloriesPerServing 
+                            : (entry.servings > 0 ? entry.calories / entry.servings : entry.calories);
+                        const totalCalories = caloriesPerServing * (entry.servings || 1);
+                        dailyCalories[date] += totalCalories;
                     }
-                    // Calculate total: multiply servings × calories per serving
-                    const caloriesPerServing = entry.caloriesPerServing !== undefined 
-                        ? entry.caloriesPerServing 
-                        : (entry.servings > 0 ? entry.calories / entry.servings : entry.calories);
-                    const totalCalories = caloriesPerServing * (entry.servings || 1);
-                    dailyCalories[date] += totalCalories;
                 });
                 
-                const dates = Object.keys(dailyCalories).sort();
+                // Sort dates chronologically (oldest to newest)
+                const dates = Object.keys(dailyCalories).sort((a, b) => {
+                    return new Date(a) - new Date(b);
+                });
                 const calories = dates.map(date => dailyCalories[date]);
                 
+                // Store date mapping for onClick handler
+                const dateLabels = dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
                 nutritionChart = new Chart(ctx, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
-                        labels: dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                        labels: dateLabels,
                         datasets: [{
                             label: 'Daily Calories',
                             data: calories,
                             borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            tension: 0.4,
-                            fill: true
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderWidth: 0,
+                            borderRadius: 4,
+                            borderSkipped: false,
+                            categoryPercentage: 0.6,
+                            barPercentage: 0.8
                         }, {
                             label: 'Calorie Goal',
                             data: dates.map(() => calorieGoal),
                             borderColor: '#ef4444',
-                            borderDash: [5, 5],
-                            borderWidth: 2,
+                            backgroundColor: 'transparent',
+                            borderDash: [8, 4],
+                            borderWidth: 2.5,
+                            type: 'line',
+                            spanGaps: true,
                             pointRadius: 0,
-                            fill: false
+                            pointHoverRadius: 0,
+                            pointBorderWidth: 0,
+                            fill: false,
+                            tension: 0,
+                            order: 0
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: true,
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10,
+                                left: 10,
+                                right: 10
+                            }
+                        },
                         plugins: {
                             legend: {
                                 display: true,
-                                position: 'top'
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15,
+                                    font: {
+                                        size: 12,
+                                        family: "'Inter', sans-serif"
+                                    }
+                                }
                             },
                             title: {
                                 display: true,
                                 text: 'Daily Calorie Intake',
                                 font: {
-                                    family: "'Courier Prime', monospace",
-                                    size: 18
-                                }
+                                    family: "'Inter', sans-serif",
+                                    size: 18,
+                                    weight: '600'
+                                },
+                                padding: {
+                                    bottom: 20
+                                },
+                                color: '#1f2937'
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 13,
+                                    weight: '600'
+                                },
+                                bodyFont: {
+                                    size: 12
+                                },
+                                displayColors: true
                             }
                         },
                         scales: {
                             y: {
                                 beginAtZero: true,
+                                max: Math.max(calorieGoal * 1.3, Math.max(...calories, calorieGoal) * 1.2),
                                 title: {
                                     display: true,
-                                    text: 'Calories'
+                                    text: 'Calories',
+                                    font: {
+                                        size: 12,
+                                        weight: '600',
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#4b5563',
+                                    padding: {
+                                        top: 10,
+                                        bottom: 0
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 11,
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#6b7280',
+                                    padding: 8
+                                }
+                            },
+                            x: {
+                                offset: false,
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 11,
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#6b7280',
+                                    padding: 10
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        onClick: (event, elements) => {
+                            if (elements.length > 0) {
+                                const element = elements[0];
+                                const datasetIndex = element.datasetIndex;
+                                const index = element.index;
+                                
+                                // Only handle clicks on the bar dataset (not the goal line)
+                                if (datasetIndex === 0 && dates[index]) {
+                                    const clickedDateString = dates[index];
+                                    selectedDate = clickedDateString;
+                                    const user = window.firebaseAuth?.currentUser;
+                                    if (user) {
+                                        loadDailyLog(user.uid, clickedDateString);
+                                        // Scroll to food log section
+                                        const foodLogSection = document.querySelector('#dailyFoodLog').closest('div');
+                                        if (foodLogSection) {
+                                            foodLogSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            // Highlight briefly
+                                            foodLogSection.style.transition = 'box-shadow 0.3s ease';
+                                            foodLogSection.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.3)';
+                                            setTimeout(() => {
+                                                foodLogSection.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                                            }, 2000);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -2799,58 +3128,156 @@
                 const goals = await window.getNutritionGoals(userId);
                 const idealWeight = goals.idealWeight || 150;
                 
-                const dates = entries.map(e => {
+                // Filter entries by time period and sort by date (oldest to newest)
+                const filteredEntries = entries.filter(entry => {
+                    const entryDate = entry.createdAt?.toDate ? entry.createdAt.toDate() : new Date();
+                    return entryDate >= startDate && entryDate <= endDate;
+                });
+                
+                const sortedEntries = filteredEntries.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date();
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date();
+                    return dateA - dateB;
+                });
+                
+                const dates = sortedEntries.map(e => {
                     const date = e.createdAt?.toDate ? e.createdAt.toDate() : new Date();
                     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 });
-                const weights = entries.map(e => e.weight);
+                const weights = sortedEntries.map(e => e.weight);
                 
                 nutritionChart = new Chart(ctx, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
                         labels: dates,
                         datasets: [{
                             label: 'Weight (lbs)',
                             data: weights,
                             borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4,
-                            fill: true
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderWidth: 0,
+                            borderRadius: 4,
+                            borderSkipped: false,
+                            categoryPercentage: 0.6,
+                            barPercentage: 0.8
                         }, {
                             label: 'Ideal Weight',
                             data: dates.map(() => idealWeight),
                             borderColor: '#ef4444',
-                            borderDash: [5, 5],
-                            borderWidth: 2,
+                            backgroundColor: 'transparent',
+                            borderDash: [8, 4],
+                            borderWidth: 2.5,
+                            type: 'line',
+                            spanGaps: true,
                             pointRadius: 0,
-                            fill: false
+                            pointHoverRadius: 0,
+                            pointBorderWidth: 0,
+                            fill: false,
+                            tension: 0,
+                            order: 0
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: true,
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10,
+                                left: 10,
+                                right: 10
+                            }
+                        },
                         plugins: {
                             legend: {
                                 display: true,
-                                position: 'top'
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15,
+                                    font: {
+                                        size: 12,
+                                        family: "'Inter', sans-serif"
+                                    }
+                                }
                             },
                             title: {
                                 display: true,
                                 text: 'Weight Tracking',
                                 font: {
-                                    family: "'Courier Prime', monospace",
-                                    size: 18
-                                }
+                                    family: "'Inter', sans-serif",
+                                    size: 18,
+                                    weight: '600'
+                                },
+                                padding: {
+                                    bottom: 20
+                                },
+                                color: '#1f2937'
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 13,
+                                    weight: '600'
+                                },
+                                bodyFont: {
+                                    size: 12
+                                },
+                                displayColors: true
                             }
                         },
                         scales: {
                             y: {
-                                beginAtZero: false,
+                                beginAtZero: true,
+                                max: Math.max(idealWeight * 1.3, Math.max(...weights, idealWeight) * 1.2),
                                 title: {
                                     display: true,
-                                    text: 'Weight (lbs)'
+                                    text: 'Weight (lbs)',
+                                    font: {
+                                        size: 12,
+                                        weight: '600',
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#4b5563',
+                                    padding: {
+                                        top: 10,
+                                        bottom: 0
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 11,
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#6b7280',
+                                    padding: 8
+                                }
+                            },
+                            x: {
+                                offset: false,
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 11,
+                                        family: "'Inter', sans-serif"
+                                    },
+                                    color: '#6b7280',
+                                    padding: 10
                                 }
                             }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
                         }
                     }
                 });
@@ -3040,13 +3467,41 @@
         }
         
         // Load daily food log
-        async function loadDailyLog(userId) {
-            const entries = await window.getNutritionEntries(userId);
+        async function loadDailyLog(userId, targetDate = null) {
             const container = document.getElementById('dailyFoodLog');
+            const titleEl = document.getElementById('foodLogTitle');
             container.innerHTML = '';
             
+            // Use targetDate if provided, otherwise use today or selectedDate
+            const dateToLoad = targetDate || selectedDate || new Date().toDateString();
+            
+            // Update title based on date
+            if (titleEl) {
+                const dateObj = new Date(dateToLoad);
+                const today = new Date().toDateString();
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (dateToLoad === today) {
+                    titleEl.textContent = "Today's Food Log";
+                } else if (dateToLoad === yesterday.toDateString()) {
+                    titleEl.textContent = "Yesterday's Food Log";
+                } else {
+                    titleEl.textContent = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + " Food Log";
+                }
+            }
+            
+            // Get entries for the specific date
+            const entries = await window.getNutritionEntries(userId, dateToLoad);
+            
             if (entries.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No food entries for today</p>';
+                const dateObj = new Date(dateToLoad);
+                const today = new Date().toDateString();
+                if (dateToLoad === today) {
+                    container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No food entries for today</p>';
+                } else {
+                    container.innerHTML = `<p style="text-align: center; color: #666; padding: 20px;">No food entries for ${dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>`;
+                }
             } else {
                 entries.forEach(entry => {
                     const entryDiv = document.createElement('div');
@@ -3210,6 +3665,7 @@
         window.addFavoriteFood = addFavoriteFood;
         window.addFavoriteFoodById = addFavoriteFoodById;
         window.switchNutritionChart = switchNutritionChart;
+        window.switchTimePeriod = switchTimePeriod;
         window.editFoodEntry = editFoodEntry;
         window.saveFoodEdit = saveFoodEdit;
         window.cancelFoodEdit = cancelFoodEdit;

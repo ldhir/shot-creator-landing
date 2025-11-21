@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Global Benchmark</title>
+    <style>
+        body {
+            font-family: 'Courier Prime', monospace;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status.processing {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: 'Courier Prime', monospace;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Record Global Benchmark</h1>
+        <p style="text-align: center; color: #666;">Record your shot live using your camera. This will be saved as the global benchmark for all players.</p>
+        
+        <div class="video-container" style="position: relative; margin: 20px 0; text-align: center;">
+            <video id="video" autoplay playsinline muted style="width: 100%; max-width: 640px; border-radius: 8px; background: #000;"></video>
+            <canvas id="canvas" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); max-width: 640px; width: 100%; pointer-events: none;"></canvas>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button id="startBtn">Start Recording</button>
+            <button id="stopBtn" disabled style="display: none;">Stop Recording</button>
+        </div>
+    </div>
+
+    <!-- MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnM_7z6rqd0Wnv3LdnTWDtiy_pKiWZeso",
+            authDomain: "shotsyn-c24ae.firebaseapp.com",
+            projectId: "shotsyn-c24ae",
+            storageBucket: "shotsyn-c24ae.firebasestorage.app",
+            messagingSenderId: "845157536043",
+            appId: "1:845157536043:web:945c7961316be19549b56e"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Make save function available globally
+        window.saveGlobalBenchmark = async (benchmarkData) => {
+            try {
+                console.log('💾 Saving global benchmark to Firebase...');
+                console.log('Benchmark data length:', benchmarkData?.length || 0);
+                
+                if (!benchmarkData || benchmarkData.length === 0) {
+                    console.error('❌ Cannot save: benchmark data is empty');
+                    return false;
+                }
+                
+                // Convert nested arrays to Firebase-compatible format
+                const firebaseCompatibleData = benchmarkData.map(frame => {
+                    const landmarks = frame.landmarks.map((landmark, index) => {
+                        if (Array.isArray(landmark) && landmark.length >= 3) {
+                            return {
+                                x: landmark[0],
+                                y: landmark[1],
+                                z: landmark[2],
+                                index: index
+                            };
+                        }
+                        return {
+                            x: landmark?.x || 0,
+                            y: landmark?.y || 0,
+                            z: landmark?.z || 0,
+                            index: index
+                        };
+                    });
+                    
+                    return {
+                        state: frame.state,
+                        time: frame.time,
+                        elbow_angle: frame.elbow_angle,
+                        wrist_angle: frame.wrist_angle,
+                        arm_angle: frame.arm_angle,
+                        landmarks: landmarks
+                    };
+                });
+                
+                const benchmarkRef = doc(db, 'globalBenchmark', 'custom');
+                await setDoc(benchmarkRef, {
+                    data: firebaseCompatibleData,
+                    updatedAt: serverTimestamp(),
+                    frameCount: firebaseCompatibleData.length
+                }, { merge: true });
+                
+                console.log('✅ Global benchmark saved successfully to Firebase');
+                return true;
+            } catch (error) {
+                console.error('❌ Error saving global benchmark:', error);
+                return false;
+            }
+        };
+    </script>
+    
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        
+        let camera = null;
+        let stream = null;
+        let pose = null;
+        let recordedData = [];
+        let recordingActive = false;
+        let previousStage = "neutral";
+        let seenFollowThrough = false;
+        let startTime = null;
+        
+        function showStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            status.style.display = 'none';
+        }
+        
+        // Utility functions
+        function get3DPoint(landmarks, index, width, height) {
+            if (!landmarks || index >= landmarks.length || landmarks[index].visibility < 0.5) {
+                return null;
+            }
+            return [
+                landmarks[index].x * width,
+                landmarks[index].y * height,
+                landmarks[index].z || 0
+            ];
+        }
+        
+        function calculateAngle(a, b, c) {
+            if (!a || !b || !c) return null;
+            const ba = [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+            const bc = [c[0] - b[0], c[1] - b[1], c[2] - b[2]];
+            const dot = ba[0] * bc[0] + ba[1] * bc[1] + ba[2] * bc[2];
+            const magBA = Math.sqrt(ba[0] * ba[0] + ba[1] * ba[1] + ba[2] * ba[2]);
+            const magBC = Math.sqrt(bc[0] * bc[0] + bc[1] * bc[1] + bc[2] * bc[2]);
+            if (magBA < 1e-5 || magBC < 1e-5) return null;
+            const cosAngle = dot / (magBA * magBC);
+            return Math.acos(Math.max(-1, Math.min(1, cosAngle))) * (180 / Math.PI);
+        }
+        
+        function normalizePoseOrientation(landmarks) {
+            // EXACT COPY from app.js - more sophisticated normalization
+            if (!landmarks || landmarks.length < 33) {
+                return landmarks;
+            }
+            
+            // Get shoulder points (MediaPipe indices: 11 = left shoulder, 12 = right shoulder)
+            const leftShoulder = landmarks[11];
+            const rightShoulder = landmarks[12];
+            
+            // Check if shoulders are valid
+            if (!leftShoulder || !rightShoulder || 
+                isNaN(leftShoulder[0]) || isNaN(rightShoulder[0])) {
+                return landmarks; // Return original if shoulders not detected
+            }
+            
+            // Calculate shoulder vector (from left to right shoulder)
+            const shoulderVec = [
+                rightShoulder[0] - leftShoulder[0],
+                rightShoulder[1] - leftShoulder[1],
+                rightShoulder[2] - leftShoulder[2]
+            ];
+            
+            // Project to XZ plane (ignore Y for rotation calculation)
+            const shoulderVecXZ = [shoulderVec[0], shoulderVec[2]];
+            const shoulderMag = Math.sqrt(shoulderVecXZ[0] ** 2 + shoulderVecXZ[1] ** 2);
+            
+            if (shoulderMag < 1e-5) {
+                return landmarks; // Shoulders too close, can't determine orientation
+            }
+            
+            // Calculate angle to rotate shoulder vector to align with +X axis
+            const targetVec = [1, 0];
+            const currentVec = [shoulderVecXZ[0] / shoulderMag, shoulderVecXZ[1] / shoulderMag];
+            
+            // Calculate rotation angle (around Y-axis)
+            const cosAngle = currentVec[0] * targetVec[0] + currentVec[1] * targetVec[1];
+            const sinAngle = currentVec[0] * targetVec[1] - currentVec[1] * targetVec[0];
+            let angle = Math.atan2(sinAngle, cosAngle);
+            
+            // If the dot product is negative, we need to flip direction (rotate 180 degrees)
+            if (cosAngle < 0) {
+                angle += Math.PI;
+            }
+            
+            // Rotation matrix for rotation around Y-axis
+            const cos = Math.cos(-angle); // Negative to align with +X
+            const sin = Math.sin(-angle);
+            
+            // Calculate shoulder midpoint for translation
+            const shoulderMidpoint = [
+                (leftShoulder[0] + rightShoulder[0]) / 2,
+                (leftShoulder[1] + rightShoulder[1]) / 2,
+                (leftShoulder[2] + rightShoulder[2]) / 2
+            ];
+            
+            // Apply rotation and translation to all landmarks
+            const normalized = landmarks.map(landmark => {
+                if (!landmark || isNaN(landmark[0])) {
+                    return [NaN, NaN, NaN];
+                }
+                
+                // Translate to origin (using shoulder midpoint)
+                const translated = [
+                    landmark[0] - shoulderMidpoint[0],
+                    landmark[1] - shoulderMidpoint[1],
+                    landmark[2] - shoulderMidpoint[2]
+                ];
+                
+                // Rotate around Y-axis
+                const rotated = [
+                    translated[0] * cos - translated[2] * sin,
+                    translated[1],
+                    translated[0] * sin + translated[2] * cos
+                ];
+                
+                return rotated;
+            });
+            
+            return normalized;
+        }
+        
+        function getArmState(landmarks, width, height) {
+            // EXACT COPY from app.js
+            const rightShoulder = get3DPoint(landmarks, 12, width, height);
+            const rightElbow = get3DPoint(landmarks, 14, width, height);
+            const rightWrist = get3DPoint(landmarks, 16, width, height);
+            const leftWrist = get3DPoint(landmarks, 15, width, height);
+            const leftHip = get3DPoint(landmarks, 23, width, height);
+            const rightHip = get3DPoint(landmarks, 24, width, height);
+
+            if (rightWrist && leftWrist && leftHip && rightHip && rightShoulder) {
+                const waistY = (leftHip[1] + rightHip[1]) / 2.0;
+                const avgWristY = (rightWrist[1] + leftWrist[1]) / 2.0;
+                const distWrists = Math.sqrt(
+                    Math.pow(rightWrist[0] - leftWrist[0], 2) +
+                    Math.pow(rightWrist[1] - leftWrist[1], 2) +
+                    Math.pow(rightWrist[2] - leftWrist[2], 2)
+                );
+                
+                if (distWrists < 0.15 * width && avgWristY < waistY && rightWrist[1] > rightShoulder[1]) {
+                    return "pre_shot";
+                }
+            }
+
+            if (rightShoulder && rightElbow && rightWrist) {
+                const shoulderY = rightShoulder[1];
+                const elbowY = rightElbow[1];
+                const wristY = rightWrist[1];
+                
+                const armRaised = wristY < shoulderY;
+                const armExtended = Math.abs(wristY - elbowY) > Math.abs(elbowY - shoulderY) * 0.5;
+                
+                if (armRaised && armExtended) {
+                    return "follow_through";
+                } else if (armRaised) {
+                    return "pre_shot";
+                }
+            }
+            
+            return "neutral";
+        }
+        
+        function getOverlayColor(state) {
+            // EXACT COPY from app.js
+            if (state === "pre_shot") return "#00FF00"; // Green
+            if (state === "follow_through") return "#0000FF"; // Blue
+            return "#FF0000"; // Red for neutral
+        }
+        
+        // Initialize MediaPipe Pose
+        pose = new Pose({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+            }
+        });
+        
+        pose.setOptions({
+            modelComplexity: 2,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            smoothSegmentation: false,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+        
+        // Start recording
+        startBtn.addEventListener('click', async () => {
+            try {
+                showStatus('Requesting camera access...', 'info');
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                
+                video.srcObject = stream;
+                await video.play();
+                
+                canvas.width = 640;
+                canvas.height = 480;
+                
+                recordedData = [];
+                recordingActive = false;
+                previousStage = "neutral";
+                seenFollowThrough = false;
+                startTime = null;
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                stopBtn.style.display = 'inline-block';
+                hideStatus();
+                
+                pose.onResults((results) => {
+                    ctx.save();
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    if (results.image) {
+                        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    if (results.poseLandmarks) {
+                        const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                        const overlayColor = getOverlayColor(state);
+                        const currentTime = Date.now() / 1000.0;
+                        
+                        // Draw pose overlay
+                        if (typeof drawConnections !== 'undefined' && typeof POSE_CONNECTIONS !== 'undefined') {
+                            drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+                                color: overlayColor,
+                                lineWidth: 2
+                            });
+                            drawLandmarks(ctx, results.poseLandmarks, {
+                                color: overlayColor,
+                                lineWidth: 1,
+                                radius: 3
+                            });
+                        } else {
+                            // Fallback: draw connections manually
+                            const connections = [
+                                [11, 12], [11, 13], [13, 15], [15, 17], [15, 19], [15, 21],
+                                [12, 14], [14, 16], [16, 18], [16, 20], [16, 22],
+                                [11, 23], [12, 24], [23, 24]
+                            ];
+                            connections.forEach(([start, end]) => {
+                                if (results.poseLandmarks[start] && results.poseLandmarks[end]) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(results.poseLandmarks[start].x * canvas.width, 
+                                              results.poseLandmarks[start].y * canvas.height);
+                                    ctx.lineTo(results.poseLandmarks[end].x * canvas.width, 
+                                              results.poseLandmarks[end].y * canvas.height);
+                                    ctx.strokeStyle = overlayColor;
+                                    ctx.lineWidth = 2;
+                                    ctx.stroke();
+                                }
+                            });
+                            // Draw landmarks
+                            results.poseLandmarks.forEach(landmark => {
+                                if (landmark.visibility > 0.5) {
+                                    ctx.beginPath();
+                                    ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 3, 0, 2 * Math.PI);
+                                    ctx.fillStyle = overlayColor;
+                                    ctx.fill();
+                                }
+                            });
+                        }
+                        
+                        // Draw status text
+                        ctx.fillStyle = overlayColor;
+                        ctx.font = 'bold 20px Arial';
+                        ctx.fillText(`State: ${state}`, 10, 30);
+                        if (recordingActive) {
+                            ctx.fillText(`Recording... (${recordedData.length} frames)`, 10, 60);
+                        }
+                        
+                        const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
+                        const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
+                        const rightWrist = get3DPoint(results.poseLandmarks, 16, canvas.width, canvas.height);
+                        const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
+                        const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
+                        
+                        const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+                        const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
+                        const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
+                        
+                        const landmarks3D = [];
+                        for (let i = 0; i < 33; i++) {
+                            const pt = get3DPoint(results.poseLandmarks, i, canvas.width, canvas.height);
+                            landmarks3D.push(pt || [NaN, NaN, NaN]);
+                        }
+                        
+                        const normalizedLandmarks = normalizePoseOrientation(landmarks3D);
+                        
+                        // State machine for recording - EXACT COPY from app.js startUserRecording
+                        if (state !== previousStage) {
+                            if (state === "pre_shot" && !recordingActive) {
+                                recordingActive = true;
+                                seenFollowThrough = false;
+                                startTime = currentTime;
+                                recordedData = [];
+                                showStatus('🎬 Recording shot...', 'info');
+                                console.log('Shot detected! Recording started.');
+                            } else if (state === "neutral" && recordingActive && !seenFollowThrough) {
+                                recordingActive = false;
+                                seenFollowThrough = false;
+                                startTime = null;
+                                recordedData = [];
+                            } else if (state === "follow_through" && recordingActive) {
+                                seenFollowThrough = true;
+                            } else if (state === "pre_shot" && recordingActive && seenFollowThrough) {
+                                // Shot complete - record final frame
+                                const elapsed = currentTime - startTime;
+                                recordedData.push({
+                                    state: state,
+                                    time: elapsed,
+                                    elbow_angle: elbowAngle,
+                                    wrist_angle: wristAngle,
+                                    arm_angle: armAngle,
+                                    landmarks: normalizedLandmarks
+                                });
+                                // Auto-stop and save
+                                stopRecordingAndSave();
+                                return;
+                            }
+                            previousStage = state;
+                        }
+                        
+                        // Record data while active - records EVERY frame
+                        if (recordingActive) {
+                            const elapsed = currentTime - startTime;
+                            recordedData.push({
+                                state: state,
+                                time: elapsed,
+                                elbow_angle: elbowAngle,
+                                wrist_angle: wristAngle,
+                                arm_angle: armAngle,
+                                landmarks: normalizedLandmarks
+                            });
+                        }
+                    }
+                    ctx.restore();
+                });
+                
+                camera = new Camera(video, {
+                    onFrame: async () => {
+                        await pose.send({ image: video });
+                    },
+                    width: 640,
+                    height: 480
+                });
+                
+                camera.start();
+                showStatus('✅ Camera started. Get ready to shoot!', 'success');
+                
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                showStatus('❌ Error: ' + error.message, 'error');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+        
+        // Stop recording
+        stopBtn.addEventListener('click', stopRecording);
+        
+        function stopRecording() {
+            if (camera) {
+                camera.stop();
+                camera = null;
+            }
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            stopBtn.style.display = 'none';
+            
+            if (recordedData.length > 0) {
+                showStatus(`✅ Recorded ${recordedData.length} frames!`, 'success');
+                saveToFirebase();
+            } else {
+                showStatus('⚠️ No data recorded. Please try again.', 'error');
+            }
+        }
+        
+        async function stopRecordingAndSave() {
+            // Stop recording first
+            if (camera) {
+                camera.stop();
+                camera = null;
+            }
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            stopBtn.style.display = 'none';
+            
+            if (recordedData.length > 0) {
+                showStatus(`✅ Recorded ${recordedData.length} frames! Auto-saving...`, 'success');
+                await saveToFirebase();
+            } else {
+                showStatus('⚠️ No data recorded. Please try again.', 'error');
+            }
+        }
+        
+        async function saveToFirebase() {
+            if (recordedData.length === 0) {
+                showStatus('❌ No data to save', 'error');
+                return;
+            }
+            
+            showStatus('💾 Saving to Firebase...', 'info');
+            
+            const success = await window.saveGlobalBenchmark(recordedData);
+            
+            if (success) {
+                showStatus(`✅ SUCCESS! Saved ${recordedData.length} frames as global benchmark! All players will now use this benchmark.`, 'success');
+                alert(`✅ SUCCESS!\n\nRecorded and saved ${recordedData.length} frames as the global benchmark.\n\nAll players (Curry, LeBron, Jordan, etc.) will now use this benchmark for comparisons.`);
+            } else {
+                showStatus('❌ Failed to save. Check console for errors.', 'error');
+                alert('❌ Failed to save to Firebase. Please check the browser console (F12) for error details.');
+            }
+        }
+    </script>
+</body>
+</html>
+
