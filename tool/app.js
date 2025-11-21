@@ -115,18 +115,20 @@ function initializeProPlayerBenchmarks() {
             proPlayerBenchmarks[player] = window.lebron_benchmark_data;
             console.log(`Loaded real LeBron data: ${proPlayerBenchmarks[player].length} frames`);
         } else if (player === 'curry') {
-            // Don't load from curry_benchmark.js - we'll process the video instead
-            // Only use it as fallback if video processing fails
+            // Always process video for Curry - don't use curry_benchmark.js even if it exists
+            // The video processing will create a realistic benchmark
+            // Only check if it's already been processed and stored
             if (typeof window.curry_benchmark_data !== 'undefined' && window.curry_benchmark_data.length > 0) {
                 proPlayerBenchmarks[player] = window.curry_benchmark_data;
                 console.log(`Loaded real Curry data from file: ${proPlayerBenchmarks[player].length} frames`);
             } else {
-                // Use synthetic data as temporary placeholder (will be replaced by video processing)
-                proPlayerBenchmarks[player] = generateExampleBenchmarkData();
-                console.log(`Using placeholder Curry data (will be replaced by video processing): ${proPlayerBenchmarks[player].length} frames`);
+                // Don't set placeholder - leave it undefined so video processing is triggered
+                // This ensures we always try to process the video for a realistic benchmark
+                console.log(`Curry benchmark not found (or empty) - will process video when player is selected`);
+                // Explicitly don't set proPlayerBenchmarks['curry'] so the check in selectPlayer works
             }
         } else {
-            proPlayerBenchmarks[player] = generateExampleBenchmarkData();
+        proPlayerBenchmarks[player] = generateExampleBenchmarkData();
         }
     });
 }
@@ -882,32 +884,44 @@ async function stopBenchmarkRecording() {
         }
         document.getElementById('retakeBenchmark').style.display = 'inline-block';
         
-        // Save as global benchmark for all users
-        if (window.saveGlobalBenchmark) {
-            console.log('💾 Saving global benchmark...', benchmarkPoseData.length, 'frames');
-            const success = await window.saveGlobalBenchmark(benchmarkPoseData);
-            if (success) {
-                if (statusEl) {
-                    statusEl.textContent = `✅ Recorded ${benchmarkPoseData.length} frames. Saved as global benchmark for all users!`;
-                    statusEl.className = 'status success';
-                    statusEl.style.display = 'block';
+        // Only save as global benchmark if NOT in custom mode
+        // For custom mode, user records their own benchmark to compare against
+        if (selectedPlayer !== 'custom') {
+            // Save as global benchmark for all users (for NBA players)
+            if (window.saveGlobalBenchmark) {
+                console.log('💾 Saving global benchmark...', benchmarkPoseData.length, 'frames');
+                const success = await window.saveGlobalBenchmark(benchmarkPoseData);
+                if (success) {
+                    if (statusEl) {
+                        statusEl.textContent = `✅ Recorded ${benchmarkPoseData.length} frames. Saved as global benchmark for all users!`;
+                        statusEl.className = 'status success';
+                        statusEl.style.display = 'block';
+                    }
+                    console.log('✅ Global benchmark saved successfully to Firebase');
+                    alert('✅ Global benchmark saved successfully! All users will now use this benchmark.');
+                } else {
+                    console.error('❌ Failed to save global benchmark');
+                    if (statusEl) {
+                        statusEl.textContent = `⚠️ Recorded ${benchmarkPoseData.length} frames, but failed to save as global benchmark.`;
+                        statusEl.className = 'status error';
+                        statusEl.style.display = 'block';
+                    }
+                    alert('⚠️ Warning: Benchmark recorded but failed to save globally. Please try again.');
                 }
-                console.log('✅ Global benchmark saved successfully to Firebase');
-                alert('✅ Global benchmark saved successfully! All users will now use this benchmark.');
             } else {
-                console.error('❌ Failed to save global benchmark');
+                console.warn('⚠️ saveGlobalBenchmark function not available');
                 if (statusEl) {
-                    statusEl.textContent = `⚠️ Recorded ${benchmarkPoseData.length} frames, but failed to save as global benchmark.`;
-                    statusEl.className = 'status error';
-                    statusEl.style.display = 'block';
+                    statusEl.textContent = `Recorded ${benchmarkPoseData.length} frames. (Global save not available)`;
                 }
-                alert('⚠️ Warning: Benchmark recorded but failed to save globally. Please try again.');
             }
         } else {
-            console.warn('⚠️ saveGlobalBenchmark function not available');
+            // Custom mode: just store locally for comparison
             if (statusEl) {
-                statusEl.textContent = `Recorded ${benchmarkPoseData.length} frames. (Global save not available)`;
+                statusEl.textContent = `✅ Recorded ${benchmarkPoseData.length} frames. Now record your shot to compare!`;
+                statusEl.className = 'status success';
+                statusEl.style.display = 'block';
             }
+            console.log('✅ Custom benchmark recorded:', benchmarkPoseData.length, 'frames');
         }
         
         // Move to step 2
@@ -1109,6 +1123,13 @@ async function startUserRecording() {
                         landmarks: normalizedLandmarks
                     });
                     
+                    // Update frame count display in real-time
+                    const userStatusEl = document.getElementById('userStatus');
+                    if (userStatusEl) {
+                        userStatusEl.textContent = `Recording shot... (${userPoseData.length} frames captured)`;
+                        userStatusEl.style.display = 'block';
+                    }
+                    
                     if (state === "pre_shot" || state === "follow_through") {
                         if (currentTime - lastPrintTime.value >= 0.1) {
                             lastPrintTime.value = currentTime;
@@ -1164,32 +1185,20 @@ async function stopUserRecording() {
         }
         document.getElementById('retakeUser').style.display = 'inline-block';
         
-        // For custom mode, automatically save user shot as global benchmark
+        // For custom mode, we should already have a benchmark from step 1
+        // The benchmark was recorded in step 1 and stored in benchmarkPoseData
+        // Now we compare the user's shot (userPoseData) against that benchmark
         if (selectedPlayer === 'custom') {
-            // Check if we have a benchmark to compare against
-            const hasBenchmark = (benchmarkPoseData && benchmarkPoseData.length > 0) || 
-                                (proPlayerBenchmarks['custom'] && proPlayerBenchmarks['custom'].length > 0);
-            
-            if (!hasBenchmark) {
-                // No benchmark exists yet - save this shot as the benchmark
-                console.log('💾 No benchmark exists - saving your shot as global benchmark...');
-                if (window.saveGlobalBenchmark) {
-                    const success = await window.saveGlobalBenchmark(userPoseData);
-                    if (success) {
-                        benchmarkPoseData = [...userPoseData];
-                        proPlayerBenchmarks['custom'] = [...userPoseData];
-                        console.log('✅ Your shot saved as global benchmark');
-                        if (userStatusEl) {
-                            userStatusEl.textContent = `✅ Recorded ${userPoseData.length} frames. Saved as global benchmark!`;
-                        }
-                        // For first time, just show success message (no comparison yet)
-                        alert('✅ Your shot has been saved as the global benchmark! Record another shot to compare against it.');
-                        return; // Don't compare yet
-                    } else {
-                        console.error('Failed to save global benchmark');
-                    }
+            if (!benchmarkPoseData || benchmarkPoseData.length === 0) {
+                // This shouldn't happen if user followed the flow, but handle gracefully
+                alert('⚠️ No benchmark found. Please record a benchmark first in Step 1.');
+                if (userStatusEl) {
+                    userStatusEl.textContent = '⚠️ Please record a benchmark first.';
+                    userStatusEl.className = 'status error';
                 }
+                return;
             }
+            console.log('✅ Custom mode: Comparing user shot against recorded benchmark');
         }
         
         compareShots();
@@ -1358,8 +1367,8 @@ async function processUploadedUserVideo() {
         // Check if we captured any data
         if (userPoseData.length > 0) {
             if (statusEl) {
-                statusEl.textContent = `Processed ${userPoseData.length} frames. Analyzing...`;
-                statusEl.className = 'status success';
+            statusEl.textContent = `Processed ${userPoseData.length} frames. Analyzing...`;
+            statusEl.className = 'status success';
                 statusEl.style.display = 'block';
             }
             document.getElementById('retakeUser').style.display = 'inline-block';
@@ -1977,7 +1986,20 @@ async function compareShots() {
             }
         }
         
-        if (globalBenchmarkData && globalBenchmarkData.length > 0) {
+        if (selectedPlayer === 'custom') {
+            // For custom benchmark, use the benchmark the user recorded (benchmarkPoseData)
+            if (benchmarkPoseData && benchmarkPoseData.length > 0) {
+                benchmarkData = benchmarkPoseData;
+                console.log('Using custom user-recorded benchmark for comparison:', benchmarkData.length, 'frames');
+            } else if (proPlayerBenchmarks['custom'] && proPlayerBenchmarks['custom'].length > 0) {
+                benchmarkData = proPlayerBenchmarks['custom'];
+                console.log('Using stored custom benchmark:', benchmarkData.length, 'frames');
+            } else {
+                document.getElementById('loading').innerHTML = '<p style="color: red;">No benchmark data found. Please record a benchmark first.</p>';
+                return;
+            }
+        } else if (globalBenchmarkData && globalBenchmarkData.length > 0) {
+            // For NBA players, use global benchmark if available
             benchmarkData = globalBenchmarkData;
             console.log('Using global benchmark for comparison:', benchmarkData.length, 'frames');
         } else if (selectedPlayer && selectedPlayer !== 'custom') {
@@ -1989,21 +2011,6 @@ async function compareShots() {
                 // Initialize if needed
                 initializeProPlayerBenchmarks();
                 benchmarkData = proPlayerBenchmarks[selectedPlayer];
-            }
-        } else if (selectedPlayer === 'custom') {
-            // For custom, try to use global benchmark first
-            if (proPlayerBenchmarks['custom'] && proPlayerBenchmarks['custom'].length > 0) {
-                benchmarkData = proPlayerBenchmarks['custom'];
-            } else if (benchmarkPoseData && benchmarkPoseData.length > 0) {
-                // Fall back to current benchmarkPoseData if global not loaded
-                benchmarkData = benchmarkPoseData;
-            } else {
-                // Try to load global benchmark
-                const globalBenchmark = await window.getGlobalBenchmark();
-                if (globalBenchmark && globalBenchmark.length > 0) {
-                    benchmarkData = globalBenchmark;
-                    proPlayerBenchmarks['custom'] = globalBenchmark;
-                }
             }
         }
         
@@ -4563,16 +4570,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Show upload controls
                 if (selectUserVideoBtn) selectUserVideoBtn.style.display = 'inline-flex';
                 if (processUserVideoBtn) processUserVideoBtn.style.display = 'none'; // Only show after file selected
-                userUploadModeBtn.classList.add('active');
+            userUploadModeBtn.classList.add('active');
 
-                // Stop any active recording
-                if (userCamera) {
-                    userCamera.stop();
-                    userCamera = null;
-                }
-                if (userStream) {
-                    userStream.getTracks().forEach(track => track.stop());
-                    userStream = null;
+            // Stop any active recording
+            if (userCamera) {
+                userCamera.stop();
+                userCamera = null;
+            }
+            if (userStream) {
+                userStream.getTracks().forEach(track => track.stop());
+                userStream = null;
                 }
             } else {
                 // Switch back to recording mode
@@ -4634,6 +4641,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====================== PLAYER SELECTION ======================
 
 function selectPlayer(player) {
+    console.log('🎯 selectPlayer called with player:', player);
     // Back buttons are now always visible on recording pages, no need to manually show them
     selectedPlayer = player;
     
@@ -4663,38 +4671,108 @@ function selectPlayer(player) {
     };
     
     if (player === 'custom') {
-        // Custom mode: load global benchmark or show recording step
-        loadGlobalBenchmark();
-    } else if (player === 'curry') {
-        // Curry mode: process video file to extract benchmark
-        console.log('🏀 Curry selected - starting video processing...');
-        console.log('Current proPlayerBenchmarks[curry]:', proPlayerBenchmarks['curry']?.length || 'undefined');
-        
-        // Show loading state
-        const step2Title = document.getElementById('step2Title');
-        if (step2Title) {
-            step2Title.textContent = 'Processing Curry Benchmark...';
+        // Custom mode: show benchmark recording step (user records their own benchmark)
+        selectedPlayer = 'custom';
+        const step1Title = document.getElementById('step1Title');
+        if (step1Title) {
+            step1Title.textContent = 'Step 1: Record Your Benchmark Shot';
         }
-        document.getElementById('step2').classList.add('active');
-        document.getElementById('step2').style.display = 'block';
-        
-        processCurryBenchmarkVideo().then(() => {
-            console.log('✅ Curry video processing completed successfully');
-        }).catch(error => {
-            console.error('❌ Error in processCurryBenchmarkVideo:', error);
-            console.error('Error stack:', error.stack);
-            // Fall back to default
-            initializeProPlayerBenchmarks();
-            if (!proPlayerBenchmarks['curry'] || proPlayerBenchmarks['curry'].length === 0) {
-                proPlayerBenchmarks['curry'] = generateExampleBenchmarkData();
-                console.log('Using fallback Curry data:', proPlayerBenchmarks['curry'].length, 'frames');
+        document.getElementById('step1').classList.add('active');
+        document.getElementById('step1').style.display = 'block';
+    } else {
+        // For all NBA players, check if we have a realistic benchmark from Curry video
+        // If not, process Curry video first to create realistic benchmark for all
+        if (!globalBenchmarkData || globalBenchmarkData.length === 0) {
+            // Check if Curry benchmark exists and has frames
+            // Also check window.curry_benchmark_data in case it was loaded from file
+            const curryFromFile = typeof window.curry_benchmark_data !== 'undefined' && window.curry_benchmark_data.length > 0;
+            const curryInMemory = proPlayerBenchmarks['curry'] && proPlayerBenchmarks['curry'].length > 0;
+            const curryBenchmarkExists = curryInMemory || curryFromFile;
+            
+            console.log('🔍 Curry benchmark check:', {
+                'curryFromFile': curryFromFile,
+                'curryInMemory': curryInMemory,
+                'curryBenchmarkExists': curryBenchmarkExists,
+                'window.curry_benchmark_data': typeof window.curry_benchmark_data !== 'undefined' ? `${window.curry_benchmark_data.length} frames` : 'undefined',
+                'proPlayerBenchmarks[curry]': proPlayerBenchmarks['curry'] ? `${proPlayerBenchmarks['curry'].length} frames` : 'undefined'
+            });
+            
+            // If we have data from file, use it
+            if (curryFromFile && (!proPlayerBenchmarks['curry'] || proPlayerBenchmarks['curry'].length === 0)) {
+                proPlayerBenchmarks['curry'] = window.curry_benchmark_data;
+                console.log(`✅ Loaded Curry benchmark from file: ${proPlayerBenchmarks['curry'].length} frames`);
             }
+            
+            if (!curryBenchmarkExists) {
+                console.log('🏀 No realistic benchmark found. Processing Curry video to create benchmark for all players...');
+                console.log('📋 Current Curry benchmark status:', {
+                    'proPlayerBenchmarks[curry]': proPlayerBenchmarks['curry']?.length || 'undefined',
+                    'window.curry_benchmark_data': typeof window.curry_benchmark_data !== 'undefined' ? window.curry_benchmark_data.length : 'undefined'
+                });
+                
+                // Show loading state
+                const step2Title = document.getElementById('step2Title');
+                if (step2Title) {
+                    step2Title.textContent = 'Processing Realistic Benchmark from Curry Video...';
+                }
+                document.getElementById('step2').classList.add('active');
+                document.getElementById('step2').style.display = 'block';
+                
+                // Process Curry video to create realistic benchmark
+                processCurryBenchmarkVideo().then(() => {
+                    console.log('✅ Realistic benchmark created from Curry video');
+                    // Update all players with the new benchmark
+                    proPlayerBenchmarks[player] = [...proPlayerBenchmarks['curry']];
+                    console.log(`✅ Using realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
+                    
+                    // Now proceed with player selection
+                    const step2Title = document.getElementById('step2Title');
+                    if (step2Title) {
+                        step2Title.textContent = `Record Your Shot (vs ${playerNames[player]})`;
+                    }
+                }).catch(error => {
+                    console.error('❌ Error processing Curry video:', error);
+                    console.error('Error details:', error.message);
+                    console.error('Error stack:', error.stack);
+                    alert(`Failed to process Curry video: ${error.message}\n\nPlease make sure the video file exists in the tool/ directory.\n\nUsing default benchmark data.`);
+                    // Fall back to example data
+                    initializeProPlayerBenchmarks();
+                    if (!proPlayerBenchmarks[player] || proPlayerBenchmarks[player].length === 0) {
+                        proPlayerBenchmarks[player] = generateExampleBenchmarkData();
+                    }
+                    const step2Title = document.getElementById('step2Title');
+                    if (step2Title) {
+                        step2Title.textContent = `Record Your Shot (vs ${playerNames[player]})`;
+                    }
+                });
+    } else {
+                // Use existing Curry benchmark for all players
+                proPlayerBenchmarks[player] = [...proPlayerBenchmarks['curry']];
+                console.log(`✅ Using realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
+                
+                const step2Title = document.getElementById('step2Title');
+                if (step2Title) {
+                    step2Title.textContent = `Record Your Shot (vs ${playerNames[player]})`;
+                }
+                document.getElementById('step2').classList.add('active');
+                document.getElementById('step2').style.display = 'block';
+            }
+        } else {
+            // Use global benchmark for all players
+            proPlayerBenchmarks[player] = [...globalBenchmarkData];
+            console.log(`✅ Using global realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
+            
             const step2Title = document.getElementById('step2Title');
             if (step2Title) {
-                step2Title.textContent = `Record Your Shot (vs ${playerNames['curry']})`;
+                step2Title.textContent = `Record Your Shot (vs ${playerNames[player]})`;
             }
-        });
-    } else {
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('step2').style.display = 'block';
+        }
+    }
+    
+    // Old Curry-specific code removed - now handled above
+    if (false) {
         // Other pro player mode: skip to user recording with pre-loaded benchmark
         // Use the pre-loaded benchmark data
         if (!proPlayerBenchmarks[player] || proPlayerBenchmarks[player].length === 0) {
@@ -4711,7 +4789,7 @@ function selectPlayer(player) {
     }
 }
 
-// Process Curry benchmark video file
+// Process Curry benchmark video file - uses the same method as processVideoForBenchmark (like LeBron)
 async function processCurryBenchmarkVideo() {
     const playerNames = {
         'curry': 'Stephen Curry',
@@ -4721,55 +4799,48 @@ async function processCurryBenchmarkVideo() {
         'clark': 'Caitlin Clark'
     };
     
-    console.log('🎬 Starting Curry video processing...');
+    console.log('🎬 Starting Curry video processing using same method as LeBron...');
     
     try {
-        // Path to Curry video file - update this to your video file path
-        // You can place the video file in the tool/ directory and reference it here
-        const curryVideoPath = 'steph_curry_shooting.mov'; // Change this to your actual video file path/name
-        console.log('📹 Loading video from:', curryVideoPath);
+        // Path to Curry video file - try the overlay version first (has 62 frames), then fallback
+        const possiblePaths = [
+            'curry_benchmark_with_overlay.mp4',  // Try this first (user mentioned this has 62 frames)
+            'curry_benchmark_with_overlay.mov',   // Also try .mov version
+            'steph_curry_shooting.mov',           // Fallback to original
+            './curry_benchmark_with_overlay.mp4',
+            './steph_curry_shooting.mov'
+        ];
         
-        // Create a video element to load the Curry video
-        const video = document.createElement('video');
-        video.src = curryVideoPath;
-        video.crossOrigin = 'anonymous';
-        video.muted = true;
-        video.playsInline = true;
-        console.log('📺 Video element created, starting load...');
+        let curryVideoPath = possiblePaths[0]; // Default to overlay version
+        console.log('📹 Attempting to fetch Curry video from:', curryVideoPath);
         
-        // Wait for video to load
-        await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject(new Error('Video loading timeout. Make sure the video file exists and is accessible.'));
-            }, 10000); // 10 second timeout
-            
-            video.addEventListener('loadeddata', () => {
-                clearTimeout(timeout);
-                console.log('✅ Curry video loaded successfully. Duration:', video.duration);
-                resolve();
-            }, { once: true });
-            
-            video.addEventListener('error', (e) => {
-                clearTimeout(timeout);
-                console.error('❌ Video load error:', e);
-                console.error('Video src:', curryVideoPath);
-                reject(new Error(`Failed to load video: ${curryVideoPath}. Make sure the file exists in the tool/ directory.`));
-            }, { once: true });
-            
-            video.load();
-        });
+        // Fetch the video file and convert to File object for processVideoForBenchmark
+        let videoFile = null;
+        let lastError = null;
         
-        // Process the video to extract benchmark data
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 640;
-        canvas.height = 480;
+        for (const path of possiblePaths) {
+            try {
+                console.log(`📥 Trying to fetch: ${path}`);
+                const response = await fetch(path);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    // Create a File object from the blob
+                    videoFile = new File([blob], path.split('/').pop(), { type: blob.type || 'video/mp4' });
+                    console.log(`✅ Successfully fetched video: ${path}`);
+                    break;
+                } else {
+                    console.log(`❌ Failed to fetch ${path}: ${response.status} ${response.statusText}`);
+                    lastError = new Error(`Failed to fetch ${path}: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                console.log(`❌ Error fetching ${path}:`, error.message);
+                lastError = error;
+            }
+        }
         
-        benchmarkPoseData = [];
-        let previousStage = "neutral";
-        let startTime = null;
-        let recordingActive = false;
-        let seenFollowThrough = false;
+        if (!videoFile) {
+            throw lastError || new Error(`Could not load video from any of the attempted paths: ${possiblePaths.join(', ')}`);
+        }
         
         // Show loading message
         const step2Title = document.getElementById('step2Title');
@@ -4779,128 +4850,38 @@ async function processCurryBenchmarkVideo() {
         document.getElementById('step2').classList.add('active');
         document.getElementById('step2').style.display = 'block';
         
-        // Process each frame
-        const processFrame = async () => {
-            return new Promise((resolve) => {
-                benchmarkPose.onResults((results) => {
-                    ctx.save();
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    if (results.image) {
-                        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-                    }
-                    
-                    if (results.poseLandmarks) {
-                        const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
-                        const currentTime = video.currentTime;
-                        
-                        const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
-                        const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
-                        const rightWrist = get3DPoint(results.poseLandmarks, 16, canvas.width, canvas.height);
-                        const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
-                        const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
-                        
-                        const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-                        const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
-                        const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
-                        
-                        const landmarks3D = [];
-                        for (let i = 0; i < 33; i++) {
-                            const pt = get3DPoint(results.poseLandmarks, i, canvas.width, canvas.height);
-                            landmarks3D.push(pt || [NaN, NaN, NaN]);
-                        }
-                        
-                        const normalizedLandmarks = normalizePoseOrientation(landmarks3D);
-                        
-                        if (state !== previousStage) {
-                            if (state === "pre_shot" && !recordingActive) {
-                                recordingActive = true;
-                                seenFollowThrough = false;
-                                startTime = currentTime;
-                                benchmarkPoseData = [];
-                            } else if (state === "neutral" && recordingActive && !seenFollowThrough) {
-                                recordingActive = false;
-                                seenFollowThrough = false;
-                                startTime = null;
-                                benchmarkPoseData = [];
-                            } else if (state === "follow_through" && recordingActive) {
-                                seenFollowThrough = true;
-                            } else if (state === "pre_shot" && recordingActive && seenFollowThrough) {
-                                const elapsed = currentTime - startTime;
-                                benchmarkPoseData.push({
-                                    state: state,
-                                    time: elapsed,
-                                    elbow_angle: elbowAngle,
-                                    wrist_angle: wristAngle,
-                                    arm_angle: armAngle,
-                                    landmarks: normalizedLandmarks
-                                });
-                                resolve(true); // Shot complete
-                                return;
-                            }
-                            previousStage = state;
-                        }
-                        
-                        if (recordingActive) {
-                            const elapsed = currentTime - startTime;
-                            benchmarkPoseData.push({
-                                state: state,
-                                time: elapsed,
-                                elbow_angle: elbowAngle,
-                                wrist_angle: wristAngle,
-                                arm_angle: armAngle,
-                                landmarks: normalizedLandmarks
-                            });
-                        }
-                    }
-                    
-                    ctx.restore();
-                    resolve(false); // Continue processing
-                });
-            });
-        };
+        // Use the same processVideoForBenchmark function that was used for LeBron
+        console.log('🔄 Processing video using processVideoForBenchmark (same method as LeBron)...');
+        const poseData = await processVideoForBenchmark(videoFile, 'curry');
         
-        // Reset video to beginning and play
-        video.currentTime = 0;
-        await video.play();
+        console.log(`✅ Processed Curry benchmark: ${poseData.length} frames`);
         
-        // Process video frame by frame
-        const frameInterval = 1 / 30; // 30 FPS
-        while (video.currentTime < video.duration) {
-            await benchmarkPose.send({ image: video });
-            const shotComplete = await processFrame();
+        // Store the benchmark data (poseData is returned from processVideoForBenchmark)
+        if (poseData && poseData.length > 0) {
+            console.log('✅ Benchmark data sample:', poseData[0]);
             
-            if (shotComplete) {
-                break;
-            }
+            // Use Curry video as benchmark for ALL NBA players
+            proPlayerBenchmarks['curry'] = poseData;
+            proPlayerBenchmarks['lebron'] = [...poseData]; // Same realistic benchmark
+            proPlayerBenchmarks['jordan'] = [...poseData]; // Same realistic benchmark
+            proPlayerBenchmarks['durant'] = [...poseData]; // Same realistic benchmark
+            proPlayerBenchmarks['clark'] = [...poseData]; // Same realistic benchmark
             
-            // Advance to next frame
-            video.currentTime += frameInterval;
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        
-        video.pause();
-        
-        // Store the benchmark data
-        if (benchmarkPoseData.length > 0) {
-            proPlayerBenchmarks['curry'] = benchmarkPoseData;
-            // Also set benchmarkPoseData for compatibility
-            const curryDataCopy = [...benchmarkPoseData];
-            benchmarkPoseData = curryDataCopy;
-            console.log(`✅ Processed Curry benchmark: ${benchmarkPoseData.length} frames`);
-            console.log('✅ Curry benchmark data stored:', proPlayerBenchmarks['curry'].length, 'frames');
-            console.log('✅ Benchmark data sample:', proPlayerBenchmarks['curry'][0]);
+            // Also set as global benchmark
+            globalBenchmarkData = [...poseData];
+            
+            // Also update window.curry_benchmark_data so it can be loaded from file next time
+            window.curry_benchmark_data = poseData;
             
             // Save as global benchmark for all players
             if (window.saveGlobalBenchmark) {
-                console.log('💾 Saving Curry video as global benchmark...');
-                const success = await window.saveGlobalBenchmark(benchmarkPoseData);
+                console.log('💾 Saving Curry video as global benchmark for all players...');
+                const success = await window.saveGlobalBenchmark(poseData);
                 if (success) {
-                    globalBenchmarkData = [...benchmarkPoseData];
-                    console.log('✅ Curry video saved as global benchmark! All players will use this.');
-                    alert('✅ Curry video processed and saved as global benchmark! All players will now use this benchmark.');
+                    console.log('✅ Curry video saved as global benchmark! All players will use this realistic benchmark.');
+                    alert(`✅ Curry video processed successfully!\n\n${poseData.length} frames captured.\n\nThis realistic benchmark will be used for all players (Curry, LeBron, Jordan, Durant, Clark).`);
                 } else {
-                    console.error('⚠️ Failed to save as global benchmark, but Curry benchmark is ready');
+                    console.error('⚠️ Failed to save as global benchmark, but benchmarks are set locally');
                 }
             }
             
@@ -4914,16 +4895,7 @@ async function processCurryBenchmarkVideo() {
             document.getElementById('step2').classList.add('active');
             document.getElementById('step2').style.display = 'block';
         } else {
-            console.error('❌ No shot detected in Curry video');
-            console.error('Video duration:', video.duration, 'Current time:', video.currentTime);
-            alert('No shot detected in Curry video. Please check the video file. Using default benchmark data.');
-            // Fall back to pre-loaded data
-            initializeProPlayerBenchmarks();
-            proPlayerBenchmarks['curry'] = proPlayerBenchmarks['curry'] || generateExampleBenchmarkData();
-            const step2Title = document.getElementById('step2Title');
-            if (step2Title) {
-                step2Title.textContent = `Record Your Shot (vs ${playerNames['curry']})`;
-            }
+            throw new Error('No shot detected in Curry video or processing returned no data');
         }
         
     } catch (error) {

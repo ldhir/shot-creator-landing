@@ -1411,24 +1411,6 @@
 
                     <h2 style="text-align: center; margin-bottom: 12px; font-size: 32px; color: #333; font-weight: 700; font-family: 'Forum', serif;">Choose Your Benchmark</h2>
                     <p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 16px;">Compare your shot to a professional player or create your own custom benchmark</p>
-                    
-                    <!-- Global Benchmark Recording Section -->
-                    <div id="globalBenchmarkSection" style="background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto;">
-                        <h3 style="text-align: center; margin-bottom: 12px; font-size: 20px; color: #333; font-weight: 600; font-family: 'Forum', serif;">Record Global Benchmark</h3>
-                        <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 14px;">Record your shot once to use as the benchmark for all comparisons</p>
-                        <div class="video-container" style="position: relative; margin-bottom: 20px;">
-                            <video id="globalBenchmarkVideo" autoplay playsinline muted style="width: 100%; max-width: 640px; height: auto; display: block; border-radius: 12px; z-index: 1;"></video>
-                            <canvas id="globalBenchmarkCanvas" style="position: absolute; top: 0; left: 0; width: 100%; max-width: 640px; height: auto; border-radius: 12px; z-index: 2; pointer-events: none;"></canvas>
-                        </div>
-                        <div class="controls" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;">
-                            <button id="startGlobalBenchmark" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px;">Start Recording</button>
-                            <button id="stopGlobalBenchmark" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px; display: none;">Stop Recording</button>
-                            <label for="globalBenchmarkVideoUpload" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px; background: #f3f4f6; color: #374151; cursor: pointer; display: inline-block; text-align: center;">Upload Video</label>
-                            <input type="file" id="globalBenchmarkVideoUpload" accept="video/*" style="display: none;">
-                            <button id="processGlobalBenchmarkVideo" class="btn" style="min-width: 140px; height: 44px; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 10px; display: none;">Process Video</button>
-                        </div>
-                        <div id="globalBenchmarkStatus" class="status" style="display: none; margin-top: 15px; text-align: center; padding: 12px; border-radius: 8px; font-size: 14px;"></div>
-                    </div>
 
                     <div class="player-selection" style="margin-bottom: 30px; opacity: 0.5; pointer-events: none;" id="playerSelectionContainer">
                         <div class="player-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto;">
