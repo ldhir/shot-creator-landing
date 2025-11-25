@@ -10,8 +10,8 @@
         .player-btn:hover {
             transform: translateY(-4px) !important;
             border-color: var(--primary-color) !important;
-            box-shadow: 0 8px 20px rgba(255, 107, 122, 0.2) !important;
-            background: linear-gradient(135deg, #fff5f7 0%, #ffffff 100%) !important;
+            box-shadow: 0 8px 20px rgba(255, 107, 122, 0.3) !important;
+            background: var(--bg-surface) !important;
         }
 
         .player-btn:active {
@@ -19,7 +19,7 @@
         }
 
         .custom-btn:hover {
-            background: linear-gradient(135deg, #fff5f7 0%, #ffffff 100%) !important;
+            background: var(--bg-surface) !important;
             border-color: var(--primary-hover) !important;
             border-style: solid !important;
         }
@@ -39,14 +39,14 @@
             min-width: 140px;
             height: 44px;
             padding: 12px 24px;
-            background: #f3f4f6;
-            border: 2px solid #d1d5db;
+            background: var(--bg-surface-light);
+            border: 2px solid var(--border-color);
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
             font-size: 15px;
             font-weight: 600;
-            color: #374151;
+            color: var(--text-dark);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -61,35 +61,36 @@
 
         .mode-toggle-btn:hover:not(.active) {
             border-color: var(--primary-color);
-            background: #e5e7eb;
-            color: #1f2937;
+            background: var(--bg-surface);
+            color: var(--text-dark);
         }
 
         #uploadedFileName {
             font-style: italic;
             padding: 8px;
-            background: #f8f9fa;
+            background: var(--bg-surface-light);
             border-radius: 4px;
+            color: var(--text-dark);
         }
-        
+
         /* Navbar Tab Styles */
         .nav-tab {
             background: none;
             border: none;
             padding: 10px 20px;
-            font-family: 'Courier Prime', monospace;
+            font-family: 'Nunito Sans', sans-serif;
             font-size: 16px;
             font-weight: 600;
-            color: #666;
+            color: var(--text-gray);
             cursor: pointer;
             border-bottom: 3px solid transparent;
             transition: all 0.3s;
         }
-        
+
         .nav-tab:hover {
             color: var(--primary-color);
         }
-        
+
         .nav-tab.active {
             color: var(--primary-color);
             border-bottom-color: var(--primary-color);
@@ -97,59 +98,62 @@
         
         /* Stat Card Styles */
         .stat-card {
-            background: white;
+            background: var(--bg-surface);
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             text-align: center;
+            border: 1px solid var(--border-color);
         }
-        
+
         .stat-label {
             font-size: 14px;
-            color: #666;
+            color: var(--text-gray);
             margin-bottom: 10px;
-            font-family: 'Courier Prime', monospace;
+            font-family: 'Nunito Sans', sans-serif;
         }
-        
+
         .stat-value {
             font-size: 32px;
             font-weight: 700;
             color: var(--primary-color);
-            font-family: 'Courier Prime', monospace;
+            font-family: 'Nunito Sans', sans-serif;
         }
-        
+
         /* Badge Card Styles */
         .badge-card {
-            background: white;
+            background: var(--bg-surface);
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             text-align: center;
             transition: transform 0.3s;
+            border: 1px solid var(--border-color);
         }
-        
+
         .badge-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border-color: var(--primary-color);
         }
-        
+
         .badge-card.locked {
             opacity: 0.6;
         }
-        
+
         .badge-icon {
             font-size: 64px;
             margin-bottom: 15px;
         }
-        
+
         .badge-name {
             font-size: 20px;
             font-weight: 700;
-            color: #333;
+            color: var(--text-dark);
             margin-bottom: 10px;
-            font-family: 'Courier Prime', monospace;
+            font-family: 'Nunito Sans', sans-serif;
         }
-        
+
         .badge-level {
             font-weight: 600;
         }

@@ -1,0 +1,978 @@
+@import url('https://fonts.googleapis.com/css2?family=Forum&family=Nunito+Sans:wght@400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Background/Base */
+    --bg-primary: #0a0a0a;
+    --bg-surface: #1a1a1a;
+    --bg-surface-light: #2a2a2a;
+
+    /* Text */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+
+    /* Accent (Coral) */
+    --accent-primary: #FF6B7A;
+    --accent-hover: #FF5468;
+    --accent-muted: rgba(255, 107, 122, 0.15);
+
+    /* Borders */
+    --border-color: #2a2a2a;
+    --border-accent: rgba(255, 107, 122, 0.3);
+
+    /* Legacy compatibility */
+    --primary-color: #FF6B7A;
+    --primary-hover: #FF5468;
+    --text-dark: #f8fafc;
+    --text-gray: #94a3b8;
+    --bg-light: #1a1a1a;
+    --bg-white: #0a0a0a;
+}
+
+body {
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-primary);
+    line-height: 1.6;
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Navbar */
+.navbar {
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 40px;
+    margin: 0 auto;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 400;
+    font-size: 15px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: var(--accent-primary);
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 122, 0.3);
+}
+
+/* Hero Section */
+.hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.30;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hero-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 10;
+    color: var(--text-primary);
+}
+
+.badge {
+    display: inline-block;
+    background: var(--accent-muted);
+    backdrop-filter: blur(10px);
+    color: var(--accent-primary);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 400;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin-bottom: 32px;
+    border: 1px solid var(--border-accent);
+}
+
+.hero-title {
+    font-size: 64px;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    color: var(--text-primary);
+    font-family: 'Forum', Georgia, serif;
+}
+
+.highlight {
+    color: var(--accent-primary);
+}
+
+.hero-subtitle {
+    font-size: 20px;
+    color: var(--text-secondary);
+    max-width: 700px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+}
+
+.btn-hero {
+    background: transparent;
+    color: var(--accent-primary);
+    border: 2px solid var(--accent-primary);
+    padding: 16px 48px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 16px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-hero:hover {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 107, 122, 0.4);
+}
+
+/* Demo Section */
+.demo {
+    padding: 100px 0;
+    background: var(--bg-primary);
+    text-align: center;
+}
+
+.video-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.video-container iframe,
+.video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+}
+
+.video-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
+    border: 2px dashed rgba(255, 107, 122, 0.3);
+    border-radius: 16px;
+}
+
+.video-placeholder-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.video-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+}
+
+.video-placeholder p {
+    color: var(--text-gray);
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.video-instructions {
+    font-size: 14px !important;
+    color: var(--text-gray);
+    opacity: 0.7;
+}
+
+/* Benefits Section */
+.benefits {
+    position: relative;
+    padding: 100px 0;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.section-title {
+    font-size: 48px;
+    font-weight: 400;
+    text-align: center;
+    margin-bottom: 16px;
+    font-family: 'Forum', Georgia, serif;
+}
+
+.section-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 64px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 32px;
+}
+
+.benefit-card {
+    padding: 40px;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.benefit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.benefit-card-highlighted {
+    border: 2px solid var(--accent-primary);
+    background: var(--bg-surface-light);
+}
+
+.benefit-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.benefit-icon img {
+    width: 64px;
+    height: 64px;
+}
+
+.benefit-card h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    font-weight: 700;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+.card-divider {
+    width: 80%;
+    border: none;
+    border-top: 1px solid rgba(255, 107, 122, 0.3);
+    margin: 16px 0 24px 0;
+}
+
+.card-content {
+    width: 100%;
+    text-align: left;
+}
+
+.card-content p {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.feature-list {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 12px;
+}
+
+.feature-list li {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 6px;
+    padding-left: 20px;
+    position: relative;
+}
+
+.feature-list li::before {
+    content: "•";
+    color: var(--accent-primary);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+}
+
+/* How It Works Section */
+.how-it-works {
+    position: relative;
+    padding: 100px 0;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 40px;
+}
+
+.step-card {
+    background: var(--bg-surface);
+    padding: 48px 32px;
+    border-radius: 16px;
+    text-align: center;
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+.step-number {
+    width: 56px;
+    height: 56px;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 auto 24px;
+}
+
+.step-card h3 {
+    font-size: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.step-card p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Pricing Section */
+.pricing {
+    padding: 100px 0;
+    background: var(--bg-primary);
+}
+
+.underline {
+    text-decoration: underline;
+    text-decoration-color: var(--primary-color);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.pricing-card {
+    background: var(--bg-surface);
+    padding: 48px 32px;
+    border-radius: 16px;
+    position: relative;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+}
+
+.pricing-card.featured {
+    background: var(--bg-surface-light);
+    border: 2px solid var(--accent-primary);
+}
+
+.popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    padding: 6px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.plan-name {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.price {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.currency {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.amount {
+    font-size: 56px;
+    font-weight: 700;
+}
+
+.period {
+    font-size: 18px;
+    color: var(--text-secondary);
+}
+
+.btn-plan {
+    width: 100%;
+    padding: 16px;
+    border: 2px solid var(--accent-primary);
+    background: transparent;
+    color: var(--accent-primary);
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 32px;
+}
+
+.btn-plan.primary {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.btn-plan:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(255, 107, 122, 0.2);
+}
+
+.features-list {
+    list-style: none;
+}
+
+.features-list li {
+    padding: 12px 0;
+    color: var(--text-primary);
+    font-size: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.features-list li:last-child {
+    border-bottom: none;
+}
+
+/* Testimonials Section - Twitter Wall */
+.testimonials {
+    position: relative;
+    padding: 100px 0;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.twitter-wall-container {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+}
+
+.twitter-wall {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    min-height: 400px;
+}
+
+.tweet-placeholder {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 40px;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    border: 2px dashed var(--border-accent);
+}
+
+.tweet-placeholder p {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.tweet-instructions {
+    font-size: 16px !important;
+    color: var(--text-secondary);
+}
+
+.tweet-card {
+    background: var(--bg-surface);
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+}
+
+.tweet-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.tweet-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.tweet-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+}
+
+.tweet-author-info {
+    flex: 1;
+}
+
+.tweet-author-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.tweet-handle {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.tweet-content {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.tweet-hashtag {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.tweet-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.tweet-date {
+    font-size: 13px;
+    color: var(--text-tertiary);
+}
+
+.tweet-link {
+    font-size: 14px;
+    color: var(--accent-primary);
+    text-decoration: none;
+    transition: opacity 0.3s;
+}
+
+.tweet-link:hover {
+    opacity: 0.7;
+}
+
+.twitter-cta {
+    text-align: center;
+    margin-top: 48px;
+}
+
+.twitter-share-text {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+    font-weight: 500;
+}
+
+.btn-tweet {
+    display: inline-block;
+    background: #1DA1F2;
+    color: white;
+    padding: 16px 48px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 16px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.btn-tweet:hover {
+    background: #1a8cd8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(29, 161, 242, 0.3);
+}
+
+/* Feedback Section (formerly FAQ) */
+.faq {
+    position: relative;
+    padding: 100px 0;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.typeform-container {
+    max-width: 900px;
+    margin: 0 auto;
+    min-height: 600px;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* CTA Section */
+.cta {
+    position: relative;
+    padding: 100px 0;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+/* Section Canvas Styling */
+.section-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    display: none; /* Hide canvases to show gradient backgrounds */
+}
+
+section .container {
+    position: relative;
+    z-index: 10;
+}
+
+.cta-content {
+    text-align: center;
+    background: var(--bg-surface-light);
+    padding: 80px 60px;
+    border-radius: 24px;
+    color: var(--text-primary);
+    border: 2px solid var(--accent-primary);
+    box-shadow: 0 8px 32px rgba(255, 107, 122, 0.3);
+}
+
+.cta-content h2 {
+    font-size: 48px;
+    font-weight: 400;
+    margin-bottom: 16px;
+    font-family: 'Forum', Georgia, serif;
+}
+
+.cta-content p {
+    font-size: 20px;
+    margin-bottom: 32px;
+    opacity: 0.95;
+}
+
+.btn-cta {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: 1px solid var(--accent-primary);
+    padding: 18px 48px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(255, 107, 122, 0.4);
+}
+
+.btn-cta:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(255, 107, 122, 0.6);
+}
+
+/* Footer */
+.footer {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    padding: 48px 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer-simple {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.footer-brand p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+}
+
+.footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    transition: color 0.3s;
+}
+
+.footer-links a:hover {
+    color: var(--accent-primary);
+}
+
+.social-links {
+    display: flex;
+    gap: 24px;
+}
+
+.social-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    transition: color 0.3s;
+}
+
+.social-links a:hover {
+    color: var(--accent-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+    }
+
+    .hero-title {
+        font-size: 40px;
+    }
+
+    .hero-subtitle {
+        font-size: 16px;
+    }
+
+    .section-title {
+        font-size: 32px;
+    }
+
+    .section-subtitle {
+        font-size: 16px;
+    }
+
+    .pricing-grid,
+    .benefits-grid,
+    .steps-grid,
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cta-content {
+        padding: 60px 30px;
+    }
+
+    .cta-content h2 {
+        font-size: 32px;
+    }
+
+    .footer-simple {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .footer-brand {
+        align-items: center;
+    }
+}
+
+/* Hero Gradient Grid Background */
+.hero-gradient-grid {
+    background: transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-gradient-grid::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(65deg, rgba(255, 107, 122, 0.15) 1px, transparent 1px),
+        linear-gradient(-25deg, rgba(255, 107, 122, 0.15) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Glassy Button Base */
+.btn-glassy {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: pointer;
+    color: white;
+}
+
+.btn-glassy:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-glassy-primary {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: 1px solid var(--accent-primary);
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 32px 0 rgba(255, 107, 122, 0.4);
+    padding: 16px 48px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 16px;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: pointer;
+}
+
+.btn-glassy-primary:hover {
+    background: var(--accent-hover);
+    border: 1px solid var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px 0 rgba(255, 107, 122, 0.6);
+}
+
+/* Blur Circle Decorations */
+.blur-circle {
+    width: 256px;
+    height: 256px;
+    background: rgba(255, 107, 122, 0.1);
+    border-radius: 50%;
+    filter: blur(80px);
+    position: absolute;
+    pointer-events: none;
+}
