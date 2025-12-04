@@ -11,7 +11,7 @@ let comparisonChart = null;
 let currentResultsData = null; // Store results data for email
 let userInfo = null; // Store user info (firstName, lastName, email)
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

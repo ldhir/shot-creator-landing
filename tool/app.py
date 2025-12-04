@@ -30,8 +30,64 @@ except ImportError:
     DTW_AVAILABLE = False
     print("Warning: fastdtw not available. Install it with: pip install fastdtw")
 
-app = Flask(__name__, static_folder='static')
-CORS(app)
+# Direct integration of AI-Basketball-Shot-Detection-Tracker
+# Use it EXACTLY as it runs in the other window - import the Flask app and detector directly
+
+try:
+    import sys
+    import threading
+    # Add AI-Basketball-Shot-Detection-Tracker folder to path
+    tracker_folder = os.path.join(os.path.dirname(__file__), 'AI-Basketball-Shot-Detection-Tracker')
+    if os.path.exists(tracker_folder):
+        sys.path.insert(0, tracker_folder)
+        print("=" * 60)
+        print("AI-Basketball-Shot-Detection-Tracker Direct Integration")
+        print("=" * 60)
+        print(f"✓ Found AI-Basketball-Shot-Detection-Tracker folder at: {tracker_folder}")
+        
+        # Import the original Flask app and detector - use EXACTLY as written
+        import shot_detector_web_simple as tracker_module
+        from shot_detector_web_simple import ShotDetectorWeb
+        
+        print("✓ Successfully imported from AI-Basketball-Shot-Detection-Tracker")
+        print("=" * 60)
+        
+        YOLOV8_AVAILABLE = True
+        
+    else:
+        YOLOV8_AVAILABLE = False
+        print(f"✗ Warning: AI-Basketball-Shot-Detection-Tracker folder not found at {tracker_folder}")
+            
+except ImportError as e:
+    YOLOV8_AVAILABLE = False
+    print(f"Warning: Could not import from AI-Basketball-Shot-Detection-Tracker: {e}")
+    import traceback
+    traceback.print_exc()
+except Exception as e:
+    YOLOV8_AVAILABLE = False
+    print(f"Warning: Error importing AI-Basketball-Shot-Detection-Tracker: {e}")
+    import traceback
+    traceback.print_exc()
+
+# Use the detector from the original module - initialize it the SAME way as original (line 1832)
+# We'll initialize it when needed, but use the original module's detector variable
+
+# Configure Flask to serve from project root for landing page
+from pathlib import Path
+project_root = Path(__file__).parent.parent  # Go up from tool/ to project root
+
+app = Flask(__name__, static_folder='static')  # Default static folder for tool
+CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"], "allow_headers": ["Content-Type"]}})
+
+# Configure upload folder (EXACT COPY from original shot_detector_web_simple.py)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
+app.config['ALLOWED_EXTENSIONS'] = {'mp4', 'avi', 'mov', 'mkv', 'webm'}
+
+# Create uploads directory if it doesn't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Note: Root static files will be handled after route definitions to avoid conflicts
 
 # ====================== CONFIG / CONSTANTS ======================
 
@@ -306,7 +362,32 @@ def generate_feedback(benchmark_data, user_data, bench_times, user_times, user_c
 
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    """Serve the landing page from project root"""
+    return send_from_directory(str(project_root), 'index.html')
+
+@app.route('/tool')
+@app.route('/tool/')
+def tool_index():
+    """Serve the ShotSync application"""
+    # Serve index.html from the tool directory
+    tool_dir = Path(__file__).parent
+    return send_from_directory(str(tool_dir), 'index.html')
+
+@app.route('/tool/<path:filename>')
+def tool_static(filename):
+    """Serve static files for the tool"""
+    # Serve files from the tool directory (style.css, app.js, etc.)
+    tool_dir = Path(__file__).parent
+    # First try tool directory, then try static subdirectory
+    file_path = tool_dir / filename
+    if file_path.exists():
+        return send_from_directory(str(tool_dir), filename)
+    # Fallback to static subdirectory
+    static_dir = tool_dir / 'static'
+    if (static_dir / filename).exists():
+        return send_from_directory(str(static_dir), filename)
+    from flask import abort
+    abort(404)
 
 @app.route('/api/process_shot', methods=['POST'])
 def process_shot():
@@ -527,6 +608,608 @@ def send_email():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ====================== SHOT TRACKER DETECTION ======================
+
+    # Using only YOLOv8 tracker state from AI-Basketball-Shot-Detection-Tracker
+
+# Global detector instance - initialized the same way as original
+
+# Frame queue for feeding frames to ShotDetectorWeb
+frame_queue = None
+frame_queue_lock = threading.Lock()
+
+class FrameFeeder:
+    """Custom VideoCapture-like class that feeds frames from API to ShotDetectorWeb"""
+    def __init__(self):
+        self.frame_queue = []
+        self.lock = threading.Lock()
+        self.current_frame = None
+    
+    def read(self):
+        """Read a frame from the queue - matches cv2.VideoCapture.read() interface"""
+        with self.lock:
+            if self.frame_queue:
+                frame = self.frame_queue.pop(0)
+                self.current_frame = frame.copy()  # Keep a copy
+                return True, frame
+            elif self.current_frame is not None:
+                # Return last frame if queue is empty (keep processing same frame)
+                return True, self.current_frame.copy()
+            else:
+                # Return black frame if no frames available (detector will wait)
+                return True, np.zeros((480, 640, 3), dtype=np.uint8)
+    
+    def set(self, prop, value):
+        """Dummy method to match cv2.VideoCapture interface"""
+        pass
+    
+    def release(self):
+        """Release resources"""
+        with self.lock:
+            self.frame_queue = []
+            self.current_frame = None
+    
+    def push_frame(self, frame):
+        """Push a frame into the queue from API"""
+        with self.lock:
+            # Keep only last 5 frames to avoid memory issues
+            if len(self.frame_queue) > 5:
+                self.frame_queue.pop(0)
+            self.frame_queue.append(frame.copy())
+            self.current_frame = frame
+
+def initialize_shot_detector():
+    """Initialize detector EXACTLY as original does (line 1832: detector = ShotDetectorWeb(...))"""
+    global frame_queue
+    if not YOLOV8_AVAILABLE:
+        return False
+    
+    # Use the original module's detector variable - initialize it the SAME way
+    if hasattr(tracker_module, 'detector') and tracker_module.detector is not None:
+        return True  # Already initialized
+    
+    try:
+        # Create frame feeder that acts like VideoCapture
+        frame_queue = FrameFeeder()
+        
+        # Monkey-patch sys.exit to prevent it from killing Flask
+        import sys
+        original_exit = sys.exit
+        def safe_exit(code=0):
+            if code != 0:
+                raise Exception(f"ShotDetectorWeb tried to exit with code {code}")
+            original_exit(code)
+        sys.exit = safe_exit
+        
+        try:
+            # Initialize EXACTLY as original (line 1832): ShotDetectorWeb(video_path=video_path, use_webcam=False)
+            import tempfile
+            import cv2
+            
+            dummy_video = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
+            dummy_video.close()
+            
+            # Create minimal valid video file
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(dummy_video.name, fourcc, 20.0, (640, 480))
+            if out.isOpened():
+                frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                for _ in range(10):
+                    out.write(frame)
+                out.release()
+            
+            # Initialize EXACTLY as original does - use the original module's detector variable
+            # BUT: Stop the processing thread first, replace cap, then restart
+            tracker_module.detector = ShotDetectorWeb(video_path=dummy_video.name, use_webcam=False)
+            
+            # Stop the processing thread temporarily
+            tracker_module.detector.running = False
+            if tracker_module.detector.processing_thread.is_alive():
+                tracker_module.detector.processing_thread.join(timeout=1.0)
+            
+            # Replace VideoCapture with frame feeder
+            original_cap = tracker_module.detector.cap
+            tracker_module.detector.cap = frame_queue
+            if original_cap:
+                original_cap.release()  # Release the dummy video capture
+            
+            # Restart the processing thread - it will now read from frame_queue
+            tracker_module.detector.running = True
+            tracker_module.detector.processing_thread = threading.Thread(target=tracker_module.detector.process_video, daemon=True)
+            tracker_module.detector.processing_thread.start()
+            
+            print("✓ ShotDetectorWeb initialized EXACTLY as original - using original module's detector")
+            
+            # Clean up dummy file
+            try:
+                if os.path.exists(dummy_video.name):
+                    os.unlink(dummy_video.name)
+            except:
+                pass
+            
+            return True
+        finally:
+            # Restore original sys.exit
+            sys.exit = original_exit
+                
+    except Exception as e:
+        print(f"✗ Warning: Could not initialize ShotDetectorWeb: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+# DON'T initialize on import - initialize lazily when first needed
+# This prevents sys.exit from killing Flask during startup
+
+def detect_ball_hsv_fallback(frame):
+    """
+    HSV-based color detection for basketball (fallback when YOLO fails)
+    Detects orange/red basketball colors
+    """
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    height, width = frame.shape[:2]
+    
+    # Orange range: Hue 10-30, Saturation > 50%, Value > 40%
+    # Red range: Hue 0-10 or 170-180, Saturation > 60%, Value > 50%
+    orange_lower = np.array([10, 128, 102])  # HSV: [10, 50%, 40%]
+    orange_upper = np.array([30, 255, 255])
+    
+    red_lower1 = np.array([0, 153, 128])      # HSV: [0, 60%, 50%]
+    red_upper1 = np.array([10, 255, 255])
+    red_lower2 = np.array([170, 153, 128])
+    red_upper2 = np.array([180, 255, 255])
+    
+    # Create masks for orange and red
+    orange_mask = cv2.inRange(hsv, orange_lower, orange_upper)
+    red_mask1 = cv2.inRange(hsv, red_lower1, red_upper1)
+    red_mask2 = cv2.inRange(hsv, red_lower2, red_upper2)
+    ball_mask = cv2.bitwise_or(orange_mask, cv2.bitwise_or(red_mask1, red_mask2))
+    
+    # Find contours
+    contours, _ = cv2.findContours(ball_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if contours:
+        # Find largest contour (likely the ball)
+        largest_contour = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(largest_contour)
+        
+        # Filter by size (reasonable ball size)
+        if 50 < area < 5000:  # Ball should be between 50-5000 pixels
+            (x, y), radius = cv2.minEnclosingCircle(largest_contour)
+            if 5 < radius < 120:  # Reasonable radius
+                return True, int(x), int(y), int(radius)
+    
+    return False, 0, 0, 0
+
+def detect_rim_brightness_fallback(frame):
+    """
+    Brightness-based detection for rim (fallback when YOLO fails)
+    Detects bright white/metallic rim
+    """
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    height, width = frame.shape[:2]
+    
+    # Look for bright regions in upper portion of frame (rim is usually at top)
+    roi_top = int(height * 0.1)
+    roi_bottom = int(height * 0.6)
+    roi = gray[roi_top:roi_bottom, :]
+    
+    # Threshold for bright white/metallic (value > 70% of 255 = 178)
+    _, bright_mask = cv2.threshold(roi, 178, 255, cv2.THRESH_BINARY)
+    
+    # Find contours
+    contours, _ = cv2.findContours(bright_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if contours:
+        # Find largest bright contour in upper region
+        largest_contour = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(largest_contour)
+        
+        # Filter by size (rim should be reasonably sized)
+        if 200 < area < 20000:  # Rim should be between 200-20000 pixels
+            (x, y), radius = cv2.minEnclosingCircle(largest_contour)
+            y += roi_top  # Adjust y coordinate for ROI offset
+            if 10 < radius < 150:  # Reasonable radius
+                return True, int(x), int(y), int(radius)
+    
+    return False, 0, 0, 0
+
+def detect_ball_and_rim_yolo8(frame):
+    """
+    Use the original detector EXACTLY as it works in the other window
+    Use tracker_module.detector.get_frame() and get_stats() - same as original routes
+    """
+    # Check if tracker_module is available
+    if not YOLOV8_AVAILABLE or 'tracker_module' not in globals():
+        return None
+    
+    # Lazy initialization - only initialize when first needed
+    if not hasattr(tracker_module, 'detector') or tracker_module.detector is None:
+        initialize_shot_detector()
+    
+    if not hasattr(tracker_module, 'detector') or tracker_module.detector is None or frame_queue is None:
+        return None
+    
+    try:
+        detector = tracker_module.detector
+        
+        # Feed frame into detector (via frame feeder)
+        # The detector's process_video() background thread reads from cap.read() continuously
+        frame_queue.push_frame(frame)
+        
+        # Wait for detector to process the frame
+        # The detector's process_video() loop will read this frame and process it
+        # IMPORTANT: The detector needs time to:
+        # 1. Read frame from FrameFeeder
+        # 2. Run YOLO detection
+        # 3. Draw visualizations (yellow lines, corner rectangles, shot counter)
+        # 4. Store in current_frame
+        import time
+        initial_frame_count = detector.frame_count
+        # Wait longer for processing - detector needs time to draw visualizations
+        for _ in range(100):  # Check 100 times over 1 second
+            time.sleep(0.01)
+            if detector.frame_count > initial_frame_count:
+                # Frame was processed, but wait a bit more for visualizations to be drawn
+                time.sleep(0.05)  # Extra 50ms for visualization drawing
+                break  # Frame was processed
+        
+        # Use the original detector EXACTLY as original routes do:
+        # - tracker_module.detector.get_frame() (line 1770 in original)
+        # - tracker_module.detector.get_stats() (line 1781 in original)
+        
+        # Get processed frame with all visualizations (exactly as original route does)
+        # The detector's process_video() loop has already drawn:
+        # - Yellow lines from rim to player (cv2.line with color (0, 255, 255))
+        # - Corner rectangles around ball and rim (cvzone.cornerRect)
+        # - Shot counter and make/miss overlay (display_score method)
+        frame_bytes = detector.get_frame()
+        if frame_bytes:
+            # Decode to get the frame with all visualizations
+            nparr = np.frombuffer(frame_bytes, np.uint8)
+            processed_frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if processed_frame is None:
+                # Fallback if decoding fails
+                processed_frame = frame.copy()
+        else:
+            # If get_frame() returns None, use original frame (detector hasn't processed yet)
+            processed_frame = frame.copy()
+        
+        # Get stats using detector's get_stats() method (exactly as original route line 1781)
+        stats = detector.get_stats()
+        
+        # Extract detection info from detector state (same as original)
+        ball_detected = len(detector.ball_pos) > 0
+        ball_x, ball_y, ball_radius = 0, 0, 0
+        ball_box = None
+        if detector.ball_pos:
+            latest_ball = detector.ball_pos[-1]
+            ball_x, ball_y = latest_ball[0]
+            ball_radius = max(latest_ball[2], latest_ball[3]) // 2
+            ball_box = [ball_x - latest_ball[2]//2, ball_y - latest_ball[3]//2,
+                       ball_x + latest_ball[2]//2, ball_y + latest_ball[3]//2]
+        
+        rim_detected = len(detector.hoop_pos) > 0
+        rim_x, rim_y, rim_radius = 0, 0, 0
+        rim_box = None
+        if detector.hoop_pos:
+            latest_rim = detector.hoop_pos[-1]
+            rim_x, rim_y = latest_rim[0]
+            rim_radius = max(latest_rim[2], latest_rim[3]) // 2
+            rim_box = [rim_x - latest_rim[2]//2, rim_y - latest_rim[3]//2,
+                      rim_x + latest_rim[2]//2, rim_y + latest_rim[3]//2]
+        
+        # Get shot result from overlay_text (exactly as original)
+        shot_result = None
+        if detector.overlay_text == "Make":
+                                    shot_result = 'make'
+        elif detector.overlay_text == "Miss":
+                                    shot_result = 'miss'
+                                
+        # Encode processed frame
+        _, buffer = cv2.imencode('.jpg', processed_frame)
+        frame_base64 = base64.b64encode(buffer).decode('utf-8')
+        
+        return {
+            'ball_detected': ball_detected,
+            'ball_x': ball_x,
+            'ball_y': ball_y,
+            'ball_radius': ball_radius,
+            'ball_box': ball_box,
+            'rim_detected': rim_detected,
+            'rim_x': rim_x,
+            'rim_y': rim_y,
+            'rim_radius': rim_radius,
+            'rim_box': rim_box,
+            'shot_result': shot_result,
+            'makes': stats['makes'],
+            'attempts': stats['attempts'],
+            'processed_frame': frame_base64
+        }
+    except Exception as e:
+        print(f"ShotDetectorWeb detection error: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def detect_ball_and_rim(frame):
+    """
+    Use ShotDetectorWeb class directly from AI-Basketball-Shot-Detection-Tracker
+    This is the primary and only detection method - uses the original code without modifications
+    """
+    # Use original detector (AI-Basketball-Shot-Detection-Tracker) - same as original
+    if YOLOV8_AVAILABLE and hasattr(tracker_module, 'detector') and tracker_module.detector is not None:
+        result = detect_ball_and_rim_yolo8(frame)
+        if result:
+            return result
+    
+    # If ShotDetectorWeb not available, return empty detection
+        return {
+        'ball_detected': False,
+        'ball_x': 0, 'ball_y': 0, 'ball_radius': 0,
+        'rim_detected': False,
+        'rim_x': 0, 'rim_y': 0, 'rim_radius': 0,
+        'shot_result': None,
+        'makes': 0,
+        'attempts': 0
+    }
+    
+    # Using only AI-Basketball-Shot-Detection-Tracker (YOLOv8)
+
+# Shot detection is now handled inside detect_ball_and_rim_yolo8 (AI-Basketball-Shot-Detection-Tracker approach)
+
+# Use ORIGINAL routes from AI-Basketball-Shot-Detection-Tracker - NO MODIFICATIONS
+# The original code has these routes defined in tracker_module.app
+# We'll proxy them to our app
+if YOLOV8_AVAILABLE and tracker_module:
+    # Get the original Flask app from the module
+    original_app = tracker_module.app
+    
+    # Register original routes by copying them
+    @app.route('/api/upload', methods=['POST'])
+    def upload_file():
+        """ORIGINAL upload route - EXACT COPY from shot_detector_web_simple.py"""
+        if 'video' not in request.files:
+            return jsonify({'success': False, 'message': 'No file provided'}), 400
+        
+        file = request.files['video']
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No file selected'}), 400
+        
+        if file and tracker_module.allowed_file(file.filename):
+            from werkzeug.utils import secure_filename
+            filename = secure_filename(file.filename)
+            timestamp = str(int(time.time()))
+            name, ext = os.path.splitext(filename)
+            filename = f"{name}_{timestamp}{ext}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            try:
+                file.save(filepath)
+                
+                # Initialize detector if it's None, or switch video if already running
+                # EXACT COPY from original shot_detector_web_simple.py line 1792-1832
+                if tracker_module.detector is None:
+                    # Monkey-patch sys.exit during initialization
+                    import sys
+                    original_exit = sys.exit
+                    def safe_exit(code=0):
+                        if code != 0:
+                            raise Exception(f"ShotDetectorWeb tried to exit with code {code}")
+                        original_exit(code)
+                    sys.exit = safe_exit
+                    try:
+                        tracker_module.detector = ShotDetectorWeb(video_path=filepath, use_webcam=False)
+                        print(f"✓ ShotDetectorWeb initialized with uploaded video: {filepath}")
+                    finally:
+                        sys.exit = original_exit  # Restore sys.exit
+                else:
+                    if tracker_module.detector.switch_video(filepath):
+                        print(f"✓ ShotDetectorWeb switched video to: {filepath}")
+                    else:
+                        return jsonify({'success': False, 'message': 'Failed to load video'}), 500
+                
+                return jsonify({'success': True, 'message': 'Video uploaded and processing started'})
+            except Exception as e:
+                print(f"Error during video upload or detector initialization: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'success': False, 'message': f'Error saving file or initializing detector: {str(e)}'}), 500
+        else:
+            return jsonify({'success': False, 'message': 'Invalid file type. Please upload MP4, AVI, MOV, MKV, or WEBM'}), 400
+    
+    @app.route('/api/video_feed')
+    def video_feed():
+        """ORIGINAL video_feed route - EXACT COPY"""
+        if tracker_module.detector is None:
+            # Return placeholder if detector not initialized
+            placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+            cv2.putText(placeholder, "Upload a video to start", (100, 240), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            _, buffer = cv2.imencode('.jpg', placeholder)
+            from flask import Response
+            return Response(b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n', 
+                          mimetype='multipart/x-mixed-replace; boundary=frame')
+        def generate():
+            while True:
+                frame = tracker_module.detector.get_frame()
+                if frame:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                else:
+                    time.sleep(0.1)
+        from flask import Response
+        return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    
+    @app.route('/api/stats')
+    def stats():
+        """ORIGINAL stats route - EXACT COPY"""
+        if tracker_module.detector is None:
+            return jsonify({'makes': 0, 'attempts': 0, 'overlay_text': 'Waiting...', 'overlay_color': [0, 0, 0], 'heatmap': []})
+        return jsonify(tracker_module.detector.get_stats())
+
+@app.route('/api/detect_shot', methods=['POST'])
+def detect_shot():
+    """Compatibility endpoint - uses ORIGINAL detector EXACTLY as original code"""
+    try:
+        # Check if original detector exists - it's initialized when video is uploaded
+        if not YOLOV8_AVAILABLE or not tracker_module:
+            return jsonify({'error': 'AI-Basketball-Shot-Detection-Tracker not available'}), 500
+        
+        # Use original detector variable - EXACTLY as original code does
+        if not hasattr(tracker_module, 'detector') or tracker_module.detector is None:
+            return jsonify({'error': 'Detector not initialized. Upload a video first.'}), 500
+        
+        # Use original detector - NO MODIFICATIONS
+        detector = tracker_module.detector
+        
+        # Use original get_frame() - EXACT COPY from original /video_feed route
+        frame_bytes = detector.get_frame()
+        if not frame_bytes:
+            return jsonify({'error': 'No frame available'}), 500
+        
+        # Use original get_stats() - EXACT COPY from original /stats route  
+        stats = detector.get_stats()
+        
+        # Extract info from detector state (same as original code does)
+        ball_detected = len(detector.ball_pos) > 0
+        ball_x, ball_y, ball_radius = 0, 0, 0
+        ball_box = None
+        if detector.ball_pos:
+            latest_ball = detector.ball_pos[-1]
+            ball_x, ball_y = latest_ball[0]
+            ball_radius = max(latest_ball[2], latest_ball[3]) // 2
+            ball_box = [ball_x - latest_ball[2]//2, ball_y - latest_ball[3]//2,
+                       ball_x + latest_ball[2]//2, ball_y + latest_ball[3]//2]
+        
+        rim_detected = len(detector.hoop_pos) > 0
+        rim_x, rim_y, rim_radius = 0, 0, 0
+        rim_box = None
+        if detector.hoop_pos:
+            latest_rim = detector.hoop_pos[-1]
+            rim_x, rim_y = latest_rim[0]
+            rim_radius = max(latest_rim[2], latest_rim[3]) // 2
+            rim_box = [rim_x - latest_rim[2]//2, rim_y - latest_rim[3]//2,
+                      rim_x + latest_rim[2]//2, rim_y + latest_rim[3]//2]
+        
+        shot_result = None
+        if detector.overlay_text == "Make":
+                            shot_result = 'make'
+        elif detector.overlay_text == "Miss":
+                            shot_result = 'miss'
+                        
+        # Frame is already JPEG bytes from get_frame() - encode to base64
+        frame_base64 = base64.b64encode(frame_bytes).decode('utf-8')
+        
+        return jsonify({
+            'success': True,
+            'tracker': 'AI-Basketball-Shot-Detection-Tracker (YOLOv8)',
+            'ball_detected': ball_detected,
+            'ball_x': ball_x,
+            'ball_y': ball_y,
+            'ball_radius': ball_radius,
+            'ball_box': ball_box,
+            'rim_detected': rim_detected,
+            'rim_x': rim_x,
+            'rim_y': rim_y,
+            'rim_radius': rim_radius,
+            'rim_box': rim_box,
+            'shot_result': shot_result,
+            'makes': stats['makes'],
+            'attempts': stats['attempts'],
+            'processed_frame': frame_base64  # Frame with ALL original visualizations
+        })
+    except Exception as e:
+        print(f"Error in detect_shot: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reset_shot_tracker', methods=['POST'])
+def reset_shot_tracker():
+    """Reset shot tracker state - use original detector"""
+    if hasattr(tracker_module, 'detector') and tracker_module.detector:
+        detector = tracker_module.detector
+        detector.ball_pos = []
+        detector.hoop_pos = []
+        detector.frame_count = 0
+        detector.makes = 0
+        detector.attempts = 0
+        detector.up = False
+        detector.down = False
+        detector.up_frame = 0
+        detector.down_frame = 0
+        detector.overlay_text = "Waiting..."
+        detector.overlay_color = (0, 0, 0)
+        detector.shot_heatmap = []
+    return jsonify({'success': True})
+
+@app.route('/api/get_shot_heatmap_data', methods=['POST'])
+def get_shot_heatmap_data():
+    """Get shot locations for heatmap visualization from ShotDetectorWeb."""
+    try:
+        data = request.json or {}
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        # Get heatmap data from original detector (same as original)
+        if hasattr(tracker_module, 'detector') and tracker_module.detector:
+            # Use original detector's get_stats() method which includes heatmap (same as original)
+            stats = tracker_module.detector.get_stats()
+            heatmap_data = stats.get('heatmap', [])
+            
+            # Convert to format expected by frontend
+            # ShotDetectorWeb stores: {'x': normalized_x, 'y': court_y, 'is_make': is_make}
+            shots = []
+            for idx, shot in enumerate(heatmap_data):
+                shots.append({
+                    'x': shot.get('x', 0.5),
+                    'y': shot.get('y', 0.5),
+                    'timestamp': time.time() - (len(heatmap_data) - idx) * 60,  # Approximate timestamps
+                    'result': 'make' if shot.get('is_make', False) else 'miss'
+                })
+            
+            # Filter by date range if provided
+            filtered_shots = shots
+            if start_date and end_date:
+                try:
+                    start_ts = time.mktime(time.strptime(start_date, '%Y-%m-%d'))
+                    end_ts = time.mktime(time.strptime(end_date, '%Y-%m-%d')) + 86400
+                    filtered_shots = [
+                        shot for shot in shots
+                        if start_ts <= shot['timestamp'] <= end_ts
+                    ]
+                except:
+                    # If date parsing fails, return all shots
+                    filtered_shots = shots
+        else:
+            filtered_shots = []
+        
+        return jsonify({
+            'success': True,
+            'shots': filtered_shots
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Serve root static files (CSS, JS, images for landing page) - must be after API routes
+@app.route('/<path:filename>')
+def root_static(filename):
+    """Serve static files from project root (for landing page)"""
+    # Only serve specific file types to avoid conflicts with API routes
+    static_extensions = ('.css', '.js', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.mov', '.mp4', '.ico')
+    if filename.endswith(static_extensions):
+        try:
+            return send_from_directory(str(project_root), filename)
+        except:
+            from flask import abort
+            abort(404)
+    else:
+        from flask import abort
+        abort(404)
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=True, host='0.0.0.0', port=port)
 
