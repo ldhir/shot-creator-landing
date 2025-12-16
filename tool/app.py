@@ -15,6 +15,13 @@ import boto3
 from botocore.exceptions import ClientError
 import requests
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, that's okay
+
 try:
     import mediapipe as mp
     MEDIAPIPE_AVAILABLE = True
@@ -68,7 +75,6 @@ except Exception as e:
     print(f"Warning: Error importing AI-Basketball-Shot-Detection-Tracker: {e}")
     import traceback
     traceback.print_exc()
-
 # Use the detector from the original module - initialize it the SAME way as original (line 1832)
 # We'll initialize it when needed, but use the original module's detector variable
 
@@ -294,6 +300,120 @@ def process_video_frames(frames_data):
     
     return shot_angles, landmark_frames
 
+def process_video_file(video_path):
+    """
+    Process a video file directly (for benchmark extraction).
+    Uses the same angle extraction logic as process_video_frames.
+    Returns: shot_angles, landmark_frames
+    """
+    if not MEDIAPIPE_AVAILABLE:
+        return [], []
+    
+    shot_angles = []
+    landmark_frames = []
+    
+    previous_stage = "neutral"
+    start_time = None
+    last_print_time = None
+    recording_active = False
+    seen_follow_through = False
+    
+    # Open video file
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video file {video_path}")
+        return [], []
+    
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps <= 0:
+        fps = 30.0  # Default to 30 FPS if unknown
+    
+    frame_count = 0
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(rgb_frame)
+        
+        h, w, _ = frame.shape
+        current_time = frame_count / fps  # Calculate time from frame number and FPS
+        
+        if results.pose_landmarks:
+            landmarks = results.pose_landmarks.landmark
+            state = get_arm_state(landmarks, w, h)
+            
+            # Compute angles (EXACT SAME as process_video_frames)
+            right_shoulder = get_3d_point(landmarks, 12, w, h)
+            right_elbow    = get_3d_point(landmarks, 14, w, h)
+            right_wrist    = get_3d_point(landmarks, 16, w, h)
+            
+            elbow_angle = calculate_3d_angle(right_shoulder, right_elbow, right_wrist)
+            wrist_angle = calculate_3d_angle(right_elbow, right_wrist,
+                                             get_3d_point(landmarks, 20, w, h))
+            arm_angle   = calculate_3d_angle(get_3d_point(landmarks, 11, w, h),
+                                             right_shoulder, right_elbow)
+            
+            # Store full body landmarks
+            frame_landmarks_3d = np.full((33,3), np.nan, dtype=np.float32)
+            for i in range(33):
+                p = get_3d_point(landmarks, i, w, h)
+                if p is not None:
+                    frame_landmarks_3d[i] = p
+            
+            # Stage transitions (EXACT SAME as process_video_frames)
+            if state != previous_stage:
+                if state == "pre_shot" and not recording_active:
+                    recording_active = True
+                    seen_follow_through = False
+                    start_time = current_time
+                    shot_angles = []
+                    landmark_frames = []
+                    last_print_time = start_time
+                elif state == "neutral" and recording_active and not seen_follow_through:
+                    recording_active = False
+                    seen_follow_through = False
+                    start_time = None
+                    shot_angles = []
+                    landmark_frames = []
+                elif state == "follow_through" and recording_active:
+                    seen_follow_through = True
+                elif state == "pre_shot" and recording_active and seen_follow_through:
+                    elapsed = current_time - start_time
+                    landmark_frames.append({
+                        'time': float(elapsed),
+                        'landmarks': frame_landmarks_3d.tolist()
+                    })
+                    break  # Shot completed
+                
+                previous_stage = state
+            
+            # Record frames while actively recording (EXACT SAME as process_video_frames)
+            if recording_active:
+                elapsed = current_time - start_time if start_time else 0.0
+                landmark_frames.append({
+                    'time': float(elapsed),
+                    'landmarks': frame_landmarks_3d.tolist()
+                })
+                
+                if state in ["pre_shot", "follow_through"]:
+                    if last_print_time is None or current_time - last_print_time >= 0.1:
+                        shot_angles.append({
+                            'state': state,
+                            'time': float(elapsed),
+                            'elbow_angle': float(elbow_angle) if elbow_angle else None,
+                            'wrist_angle': float(wrist_angle) if wrist_angle else None,
+                            'arm_angle': float(arm_angle) if arm_angle else None
+                        })
+                        last_print_time = current_time
+        
+        frame_count += 1
+    
+    cap.release()
+    return shot_angles, landmark_frames
+
 # ====================== FORM ANALYSIS ======================
 
 def compute_overall_form(e, w, a):
@@ -373,6 +493,13 @@ def tool_index():
     tool_dir = Path(__file__).parent
     return send_from_directory(str(tool_dir), 'index.html')
 
+@app.route('/tool/coach')
+@app.route('/tool/coach/')
+def coach_page():
+    """Serve the AI Coach interface"""
+    static_dir = Path(__file__).parent / 'static'
+    return send_from_directory(str(static_dir), 'coach.html')
+
 @app.route('/tool/<path:filename>')
 def tool_static(filename):
     """Serve static files for the tool"""
@@ -409,71 +536,121 @@ def process_shot():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/compare_shots', methods=['POST'])
-def compare_shots():
-    """Compare benchmark and user shots."""
-    try:
-        data = request.json
-        benchmark_data = data.get('benchmark', {})
-        user_data = data.get('user', {})
-        
-        bench_angles = benchmark_data.get('shot_angles', [])
-        user_angles = user_data.get('shot_angles', [])
-        
-        if not bench_angles or not user_angles:
-            return jsonify({'error': 'Missing shot data'}), 400
-        
-        # Extract form series
-        bench_times, bench_form = extract_form_series(bench_angles)
-        user_times, user_form = extract_form_series(user_angles)
-        
-        if len(bench_form) < 2 or len(user_form) < 2:
-            return jsonify({'error': 'Insufficient data for comparison'}), 400
-        
-        # Run DTW
-        if not DTW_AVAILABLE:
-            return jsonify({'error': 'fastdtw library not available. Install with: pip install fastdtw'}), 500
-        
-        dist, path = fastdtw(bench_form.reshape(-1,1), user_form.reshape(-1,1), dist=euclidean)
-        
-        # Compute closeness
-        user_closeness = compute_user_closeness(bench_form, user_form, path)
-        
-        # Generate feedback
-        feedback = generate_feedback(bench_angles, user_angles, bench_times, user_times, user_closeness)
-        
-        # Key events
-        def key_events(times):
-            if len(times) == 0:
-                return []
-            idxs = [0, len(times)//3, len(times)//2, (2*len(times))//3, len(times)-1]
-            names = ["Start", "Ball Set", "Elbow Above Shoulder", "Release", "Follow Through"]
-            return [{'name': names[k], 'time': float(times[idxs[k]])} for k in range(len(idxs))]
-        
-        bench_events = key_events(bench_times)
-        user_events = key_events(user_times)
-        
-        # Align times
-        if bench_events and user_events:
-            start_offset = bench_events[0]['time'] - user_events[0]['time']
-            user_times_aligned = (user_times + start_offset).tolist()
-        else:
-            user_times_aligned = user_times.tolist()
-        
-        return jsonify({
-            'success': True,
-            'dtw_distance': float(dist),
-            'user_closeness': user_closeness.tolist(),
-            'bench_times': bench_times.tolist(),
-            'user_times': user_times_aligned,
-            'bench_events': bench_events,
-            'user_events': user_events,
-            'feedback': feedback,
-            'benchmark_landmarks': benchmark_data.get('landmark_frames', []),
-            'user_landmarks': user_data.get('landmark_frames', [])
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    @app.route('/api/process_benchmark_video', methods=['POST'])
+    def process_benchmark_video():
+        """Process a video file to extract benchmark angles (same method as live processing)."""
+        try:
+            if 'video' not in request.files:
+                return jsonify({'success': False, 'message': 'No video file provided'}), 400
+            
+            file = request.files['video']
+            if file.filename == '':
+                return jsonify({'success': False, 'message': 'No file selected'}), 400
+            
+            # Save uploaded file temporarily
+            from werkzeug.utils import secure_filename
+            filename = secure_filename(file.filename)
+            timestamp = str(int(time.time()))
+            name, ext = os.path.splitext(filename)
+            temp_filename = f"{name}_{timestamp}{ext}"
+            temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+            
+            file.save(temp_filepath)
+            
+            try:
+                # Process video using the same method as live processing
+                shot_angles, landmark_frames = process_video_file(temp_filepath)
+                
+                if len(shot_angles) == 0:
+                    return jsonify({
+                        'success': False,
+                        'message': 'No shot detected in video. Make sure the video contains a clear shooting motion.'
+                    }), 400
+                
+                return jsonify({
+                    'success': True,
+                    'shot_angles': shot_angles,
+                    'landmark_frames': landmark_frames,
+                    'message': f'Successfully extracted {len(shot_angles)} angle measurements'
+                })
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_filepath):
+                    try:
+                        os.remove(temp_filepath)
+                    except:
+                        pass
+                        
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/compare_shots', methods=['POST'])
+    def compare_shots():
+        """Compare benchmark and user shots."""
+        try:
+            data = request.json
+            benchmark_data = data.get('benchmark', {})
+            user_data = data.get('user', {})
+            
+            bench_angles = benchmark_data.get('shot_angles', [])
+            user_angles = user_data.get('shot_angles', [])
+            
+            if not bench_angles or not user_angles:
+                return jsonify({'error': 'Missing shot data'}), 400
+            
+            # Extract form series
+            bench_times, bench_form = extract_form_series(bench_angles)
+            user_times, user_form = extract_form_series(user_angles)
+            
+            if len(bench_form) < 2 or len(user_form) < 2:
+                return jsonify({'error': 'Insufficient data for comparison'}), 400
+            
+            # Run DTW
+            if not DTW_AVAILABLE:
+                return jsonify({'error': 'fastdtw library not available. Install with: pip install fastdtw'}), 500
+            
+            dist, path = fastdtw(bench_form.reshape(-1,1), user_form.reshape(-1,1), dist=euclidean)
+            
+            # Compute closeness
+            user_closeness = compute_user_closeness(bench_form, user_form, path)
+            
+            # Generate feedback
+            feedback = generate_feedback(bench_angles, user_angles, bench_times, user_times, user_closeness)
+            
+            # Key events
+            def key_events(times):
+                if len(times) == 0:
+                    return []
+                idxs = [0, len(times)//3, len(times)//2, (2*len(times))//3, len(times)-1]
+                names = ["Start", "Ball Set", "Elbow Above Shoulder", "Release", "Follow Through"]
+                return [{'name': names[k], 'time': float(times[idxs[k]])} for k in range(len(idxs))]
+            
+            bench_events = key_events(bench_times)
+            user_events = key_events(user_times)
+            
+            # Align times
+            if bench_events and user_events:
+                start_offset = bench_events[0]['time'] - user_events[0]['time']
+                user_times_aligned = (user_times + start_offset).tolist()
+            else:
+                user_times_aligned = user_times.tolist()
+            
+            return jsonify({
+                'success': True,
+                'dtw_distance': float(dist),
+                'user_closeness': user_closeness.tolist(),
+                'bench_times': bench_times.tolist(),
+                'user_times': user_times_aligned,
+                'bench_events': bench_events,
+                'user_events': user_events,
+                'feedback': feedback,
+                'benchmark_landmarks': benchmark_data.get('landmark_frames', []),
+                'user_landmarks': user_data.get('landmark_frames', [])
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
 @app.route('/api/send_email', methods=['POST'])
 def send_email():
@@ -977,7 +1154,18 @@ if YOLOV8_AVAILABLE and tracker_module:
         if file.filename == '':
             return jsonify({'success': False, 'message': 'No file selected'}), 400
         
-        if file and tracker_module.allowed_file(file.filename):
+        # Check file extension - handle case where tracker_module.allowed_file might not exist
+        def check_file_extension(filename):
+            if hasattr(tracker_module, 'allowed_file') and callable(tracker_module.allowed_file):
+                return tracker_module.allowed_file(filename)
+            # Fallback: check extension directly
+            allowed_extensions = {'mp4', 'avi', 'mov', 'mkv', 'webm'}
+            if '.' in filename:
+                ext = filename.rsplit('.', 1)[1].lower()
+                return ext in allowed_extensions
+            return False
+        
+        if file and check_file_extension(file.filename):
             from werkzeug.utils import secure_filename
             filename = secure_filename(file.filename)
             timestamp = str(int(time.time()))
@@ -1048,6 +1236,44 @@ if YOLOV8_AVAILABLE and tracker_module:
         if tracker_module.detector is None:
             return jsonify({'makes': 0, 'attempts': 0, 'overlay_text': 'Waiting...', 'overlay_color': [0, 0, 0], 'heatmap': []})
         return jsonify(tracker_module.detector.get_stats())
+
+# Fallback route for /api/stats if tracker module is not available
+if not (YOLOV8_AVAILABLE and tracker_module):
+    @app.route('/api/stats')
+    def stats_fallback():
+        """Fallback stats route when tracker module is not available"""
+        return jsonify({
+            'makes': 0, 
+            'attempts': 0, 
+            'overlay_text': 'Waiting for video upload...', 
+            'overlay_color': [0, 0, 0], 
+            'heatmap': []
+        })
+    
+    @app.route('/api/video_feed')
+    def video_feed_fallback():
+        """Fallback video feed route when tracker module is not available"""
+        # Return a placeholder image
+        placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+        cv2.putText(placeholder, "Video upload feature not available", (50, 200), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        cv2.putText(placeholder, "Please check server logs", (50, 250), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        _, buffer = cv2.imencode('.jpg', placeholder)
+        from flask import Response
+        return Response(b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n', 
+                      mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# Fallback route for /api/upload if tracker module is not available
+# This ensures the route always exists and returns JSON, not HTML 404
+if not (YOLOV8_AVAILABLE and tracker_module):
+    @app.route('/api/upload', methods=['POST'])
+    def upload_file_fallback():
+        """Fallback upload route when tracker module is not available"""
+        return jsonify({
+            'success': False, 
+            'message': 'Video upload feature is not available. The AI-Basketball-Shot-Detection-Tracker module is not loaded. Please check server logs for details.'
+        }), 503
 
 @app.route('/api/detect_shot', methods=['POST'])
 def detect_shot():
@@ -1208,6 +1434,154 @@ def root_static(filename):
     else:
         from flask import abort
         abort(404)
+
+# ====================== AI COACH ENDPOINTS ======================
+
+try:
+    from ai_coach import AICoach
+    AI_COACH_AVAILABLE = True
+except ImportError:
+    AI_COACH_AVAILABLE = False
+    print("Warning: ai_coach module not available")
+
+# In-memory storage for coach instances (in production, use Redis or similar)
+coach_instances = {}
+
+def get_db_service():
+    """Get Firestore database service if Firebase is configured"""
+    try:
+        import firebase_admin
+        from firebase_admin import firestore
+        if not firebase_admin._apps:
+            # Initialize Firebase if not already initialized
+            try:
+                firebase_admin.initialize_app()
+            except ValueError:
+                # Already initialized
+                pass
+        return firestore.client()
+    except ImportError:
+        print("Firebase Admin SDK not installed. Install with: pip install firebase-admin")
+        return None
+    except Exception as e:
+        print(f"Firebase not available: {e}")
+        return None
+
+@app.route('/api/coach/chat', methods=['POST'])
+def coach_chat():
+    """Chat with the AI coach"""
+    if not AI_COACH_AVAILABLE:
+        return jsonify({'error': 'AI Coach not available'}), 500
+    
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        message = data.get('message', '')
+        use_anthropic = data.get('use_anthropic', False)
+        
+        if not user_id or not message:
+            return jsonify({'error': 'userId and message are required'}), 400
+        
+        # Get or create coach instance for this user
+        if user_id not in coach_instances:
+            db_service = get_db_service()
+            coach_instances[user_id] = AICoach(user_id, db_service)
+            # Load previous conversation if exists
+            if db_service:
+                coach_instances[user_id].load_conversation(db_service)
+        
+        coach = coach_instances[user_id]
+        response = coach.chat(message, use_anthropic=use_anthropic)
+        
+        # Save conversation
+        db_service = get_db_service()
+        if db_service:
+            coach.save_conversation(db_service)
+        
+        return jsonify({
+            'success': True,
+            'response': response
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/coach/insights', methods=['GET'])
+def coach_insights():
+    """Get personalized insights from the AI coach"""
+    if not AI_COACH_AVAILABLE:
+        return jsonify({'error': 'AI Coach not available'}), 500
+    
+    try:
+        user_id = request.args.get('userId')
+        if not user_id:
+            return jsonify({'error': 'userId is required'}), 400
+        
+        # Get or create coach instance
+        if user_id not in coach_instances:
+            db_service = get_db_service()
+            coach_instances[user_id] = AICoach(user_id, db_service)
+        
+        coach = coach_instances[user_id]
+        insights = coach.get_personalized_insights()
+        
+        return jsonify({
+            'success': True,
+            'insights': insights
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/coach/conversation', methods=['GET'])
+def get_conversation():
+    """Get conversation history"""
+    if not AI_COACH_AVAILABLE:
+        return jsonify({'error': 'AI Coach not available'}), 500
+    
+    try:
+        user_id = request.args.get('userId')
+        if not user_id:
+            return jsonify({'error': 'userId is required'}), 400
+        
+        # Get or create coach instance
+        if user_id not in coach_instances:
+            db_service = get_db_service()
+            coach_instances[user_id] = AICoach(user_id, db_service)
+            coach_instances[user_id].load_conversation(db_service)
+        
+        coach = coach_instances[user_id]
+        
+        return jsonify({
+            'success': True,
+            'conversation': coach.conversation_history
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/coach/clear', methods=['POST'])
+def clear_conversation():
+    """Clear conversation history"""
+    if not AI_COACH_AVAILABLE:
+        return jsonify({'error': 'AI Coach not available'}), 500
+    
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        if not user_id:
+            return jsonify({'error': 'userId is required'}), 400
+        
+        if user_id in coach_instances:
+            coach_instances[user_id].conversation_history = []
+            db_service = get_db_service()
+            if db_service:
+                coach_instances[user_id].save_conversation(db_service)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

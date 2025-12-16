@@ -1459,6 +1459,7 @@
                     <button id="badgesTab" class="nav-tab" onclick="showBadges()">Badges</button>
                     <button id="nutritionTab" class="nav-tab" onclick="showNutrition()">Nutrition</button>
                     <button id="workoutsTab" class="nav-tab" onclick="showWorkouts()">Workouts</button>
+                    <button id="aiCoachTab" class="nav-tab" onclick="showAICoach()">AI Coach</button>
                     <button id="backToHomeTab" class="nav-tab">Home</button>
                 </div>
             </div>
@@ -1542,10 +1543,18 @@
                     </div>
 
                     <h2 style="text-align: center; margin-bottom: 12px; font-size: 32px; color: #333; font-weight: 700; font-family: 'Forum', serif;">Choose Your Benchmark</h2>
-                    <p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 16px;">Compare your shot to a professional player or create your own custom benchmark</p>
+                    <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 16px;">Compare your shot to a professional player or create your own custom benchmark</p>
+                    
+                    <!-- Find My Player Comp Button -->
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <button id="findPlayerCompBtn" onclick="startPlayerCompFlow()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 16px 32px; font-size: 18px; font-weight: 600; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; font-family: 'Courier Prime', monospace;">
+                            🎯 Find My Player Comp
+                        </button>
+                        <p style="margin-top: 12px; color: #666; font-size: 14px;">Record 3 shots to discover which NBA player's form matches yours</p>
+                    </div>
 
-                    <div class="player-selection" style="margin-bottom: 30px; opacity: 0.5; pointer-events: none;" id="playerSelectionContainer">
-                        <div class="player-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto;">
+                    <div class="player-selection" style="margin-bottom: 30px; pointer-events: auto !important;" id="playerSelectionContainer">
+                        <div class="player-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto; pointer-events: auto !important;">
                             <button class="player-btn" data-player="curry" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                                 <img src="/tool/stephrootsicon.jpeg" alt="Stephen Curry" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
                                 <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Courier Prime', monospace;">30</div>
@@ -1671,6 +1680,73 @@
                 <div id="userStatus" class="status" style="display: none;"></div>
             </section>
 
+            <!-- Player Comp Flow: Record 3 Shots -->
+            <section id="playerCompFlow" class="step" style="display: none;">
+                <h2 style="font-family: 'Forum', serif; text-align: center; margin-bottom: 20px;">Find Your Player Comp</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 30px; font-size: 16px;">Record 3 shots to analyze your form and find your NBA player comparison</p>
+                
+                <!-- Progress Indicator -->
+                <div style="max-width: 600px; margin: 0 auto 30px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div id="compShot1" style="flex: 1; text-align: center; padding: 12px; background: #e5e7eb; border-radius: 8px; margin-right: 10px;">
+                            <div style="font-weight: 600; color: #666;">Shot 1</div>
+                            <div id="compShot1Status" style="font-size: 12px; color: #999; margin-top: 5px;">Not recorded</div>
+                        </div>
+                        <div id="compShot2" style="flex: 1; text-align: center; padding: 12px; background: #e5e7eb; border-radius: 8px; margin-right: 10px;">
+                            <div style="font-weight: 600; color: #666;">Shot 2</div>
+                            <div id="compShot2Status" style="font-size: 12px; color: #999; margin-top: 5px;">Not recorded</div>
+                        </div>
+                        <div id="compShot3" style="flex: 1; text-align: center; padding: 12px; background: #e5e7eb; border-radius: 8px;">
+                            <div style="font-weight: 600; color: #666;">Shot 3</div>
+                            <div id="compShot3Status" style="font-size: 12px; color: #999; margin-top: 5px;">Not recorded</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; color: #666; font-size: 14px;">
+                        <span id="compCurrentShot">Ready to record Shot 1</span>
+                    </div>
+                </div>
+                
+                <!-- Video Container for Recording -->
+                <div class="video-container" style="position: relative; max-width: 640px; margin: 0 auto 30px;">
+                    <video id="compVideo" playsinline muted style="width: 100%; max-width: 640px; height: auto; display: block; border-radius: 12px; z-index: 1;"></video>
+                    <canvas id="compCanvas" style="display: none;"></canvas>
+                    <canvas id="compOutput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-width: 640px; z-index: 2; pointer-events: none;"></canvas>
+                    <div id="compBodyWarning" class="body-warning-overlay" style="display: none;">
+                        <div class="warning-content">
+                            <div class="warning-icon">⚠️</div>
+                            <h3>Full Body Required</h3>
+                            <p>Please step back so your entire body is visible in the frame</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                    <div style="display: flex; gap: 15px;">
+                        <button id="compStartBtn" onclick="startCompRecording()" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">Start Recording</button>
+                        <button id="compStopBtn" onclick="stopCompRecording()" class="btn btn-secondary" style="padding: 12px 30px; font-size: 16px; display: none;">Stop Recording</button>
+                    </div>
+                    <button id="compAnalyzeBtn" onclick="analyzePlayerComp()" class="btn btn-success" style="padding: 12px 40px; font-size: 16px; display: none;">Analyze & Find My Comp</button>
+                    <button id="compBackBtn" onclick="backToPlayerSelection()" class="btn btn-secondary" style="padding: 10px 20px; font-size: 14px;">← Back to Player Selection</button>
+                </div>
+                
+                <div id="compStatus" class="status" style="display: none; margin-top: 20px;"></div>
+            </section>
+            
+            <!-- Player Comp Results -->
+            <section id="playerCompResults" class="step" style="display: none;">
+                <h2 style="font-family: 'Forum', serif; text-align: center; margin-bottom: 30px;">Your Player Comparisons</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 40px; font-size: 16px;">Based on your 3 shots, here are the players whose shooting form is most similar to yours</p>
+                
+                <div id="playerCompList" style="max-width: 900px; margin: 0 auto;">
+                    <!-- Top 5 players will be inserted here -->
+                </div>
+                
+                <div style="text-align: center; margin-top: 40px;">
+                    <button onclick="backToPlayerSelection()" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">← Back to Player Selection</button>
+                </div>
+            </section>
+            
             <!-- Step 3: Analysis Results -->
             <section id="step3" class="step" style="display: none;">
                 <h2 style="font-family: 'Forum', serif; text-align: center;">Analysis Results</h2>
@@ -1685,6 +1761,54 @@
                     <div class="chart-container">
                         <canvas id="comparisonChart"></canvas>
                     </div>
+                    
+                    <!-- Joint Animation Slider Section -->
+                    <div id="jointAnimationSection" style="display: none; margin-top: 40px; padding: 30px; background: #f8f9fa; border-radius: 12px;">
+                        <h3 style="text-align: center; margin-bottom: 25px; font-family: 'Forum', serif; color: #333;">Joint Movement Comparison</h3>
+                        <p style="text-align: center; color: #666; margin-bottom: 30px; font-size: 14px;">Use the slider to compare your elbow, shoulder, and wrist positions throughout the shot</p>
+                        
+                        <!-- Animation Controls -->
+                        <div style="margin-bottom: 25px; display: flex; align-items: center; gap: 15px; max-width: 800px; margin-left: auto; margin-right: auto;">
+                            <button id="playPauseBtn" style="padding: 8px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">Play</button>
+                            <input type="range" id="animationSlider" min="0" max="100" value="0" style="flex: 1; height: 6px; border-radius: 3px; background: #ddd; outline: none;">
+                            <span id="frameCounter" style="min-width: 80px; text-align: center; font-family: 'Courier Prime', monospace; color: #666; font-size: 14px;">0 / 0</span>
+                            <span id="timeDisplay" style="min-width: 100px; text-align: center; font-family: 'Courier Prime', monospace; color: #666; font-size: 14px;">0.00s</span>
+                        </div>
+                        
+                        <!-- Three Side-by-Side Canvas Containers -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+                            <!-- Elbow -->
+                            <div style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <h4 style="text-align: center; margin-top: 0; margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">Elbow</h4>
+                                <canvas id="elbowCanvas" width="300" height="300" style="width: 100%; height: auto; border-radius: 4px; background: #fafafa;"></canvas>
+                                <div style="margin-top: 10px; text-align: center; font-size: 12px; color: #666;">
+                                    <span style="color: #ff6b7a;">●</span> Your Shot
+                                    <span style="margin-left: 15px; color: #4a90e2;">●</span> Benchmark
+                                </div>
+                            </div>
+                            
+                            <!-- Shoulder -->
+                            <div style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <h4 style="text-align: center; margin-top: 0; margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">Shoulder</h4>
+                                <canvas id="shoulderCanvas" width="300" height="300" style="width: 100%; height: auto; border-radius: 4px; background: #fafafa;"></canvas>
+                                <div style="margin-top: 10px; text-align: center; font-size: 12px; color: #666;">
+                                    <span style="color: #ff6b7a;">●</span> Your Shot
+                                    <span style="margin-left: 15px; color: #4a90e2;">●</span> Benchmark
+                                </div>
+                            </div>
+                            
+                            <!-- Wrist -->
+                            <div style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <h4 style="text-align: center; margin-top: 0; margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">Wrist</h4>
+                                <canvas id="wristCanvas" width="300" height="300" style="width: 100%; height: auto; border-radius: 4px; background: #fafafa;"></canvas>
+                                <div style="margin-top: 10px; text-align: center; font-size: 12px; color: #666;">
+                                    <span style="color: #ff6b7a;">●</span> Your Shot
+                                    <span style="margin-left: 15px; color: #4a90e2;">●</span> Benchmark
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Coordinate Table (Hidden) -->
                     <div id="coordinateTableContainer" style="display: none; margin-top: 30px; overflow-x: auto; max-height: 400px; overflow-y: auto;">
                         <table id="coordinateTable" style="width: 100%; border-collapse: collapse; font-size: 12px; background: white; border-radius: 8px; overflow: hidden;">
@@ -1840,7 +1964,7 @@
                         <span style="color: #ff0000;">✕ Misses</span>
                     </div>
                 </div>
-                
+
                 <!-- Shot Tracker Stats Bar -->
                 <div id="shotTrackerStatsBar" style="max-width: 800px; margin: 20px auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none;">
                     <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px; color: white;">
@@ -1865,7 +1989,7 @@
                         💾 Save to Training Database
                     </button>
                     <div id="saveTrainingDbMessage" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none; width: 100%; text-align: center; font-size: 14px;"></div>
-                        </div>
+                    </div>
 
                 <!-- Back Button -->
                 <div style="text-align: center; margin-top: 20px;">
@@ -2027,6 +2151,67 @@
     </div>
 
     <!-- Workouts View -->
+    <!-- AI Coach View -->
+    <div id="aiCoachView" class="tab-view" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100vh; background: var(--bg-white); z-index: 100; overflow: hidden;">
+        <div id="coachContainer" style="width: 100%; height: 100vh; display: flex; background: var(--bg-surface); border-radius: 0;">
+            <!-- Sidebar -->
+            <div id="aiCoachSidebar" style="width: 260px; background: var(--bg-surface-light); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0;">
+                <div style="padding: 16px; border-bottom: 1px solid var(--border-color);">
+                    <button onclick="createNewAICoachChat()" style="width: 100%; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-dark); font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        New Chat
+                    </button>
+                </div>
+                <div id="aiCoachChatList" style="flex: 1; overflow-y: auto; padding: 8px;">
+                    <!-- Chat list will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Main Chat Area -->
+            <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                <div class="coach-header" style="background: var(--bg-surface-light); border-bottom: 1px solid var(--border-color); color: var(--text-dark); padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                    <div>
+                        <h1 style="font-size: 24px; font-weight: 600; color: var(--text-dark); font-family: 'Nunito Sans', sans-serif; margin: 0;">🏀 AI Coach</h1>
+                        <div class="coach-status" style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-gray); margin-top: 5px;">
+                            <span class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite;"></span>
+                            <span>Online</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insights-panel" id="aiCoachInsightsPanel" style="background: var(--bg-surface-light); padding: 15px 30px; border-bottom: 1px solid var(--border-color); display: flex; gap: 20px; overflow-x: auto; flex-shrink: 0;">
+                    <!-- Insights will be loaded here -->
+                </div>
+
+                <div class="chat-messages" id="aiCoachMessages" style="flex: 1; overflow-y: auto; padding: 20px 30px; display: flex; flex-direction: column; gap: 15px; background: var(--bg-surface); min-height: 0;">
+                    <!-- Messages will appear here -->
+                </div>
+
+                <div class="chat-input-container" style="padding: 20px 30px; border-top: 1px solid var(--border-color); background: var(--bg-surface-light); flex-shrink: 0;">
+                    <div class="chat-input-wrapper" style="display: flex; gap: 10px; align-items: flex-end;">
+                        <textarea 
+                            id="aiCoachInput" 
+                            class="chat-input" 
+                            placeholder="Ask your coach anything..."
+                            rows="1"
+                            onkeydown="handleAICoachKeyDown(event)"
+                            style="flex: 1; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 24px; font-size: 14px; font-family: inherit; resize: none; max-height: 120px; outline: none; transition: border-color 0.2s; background: var(--bg-surface); color: var(--text-dark);"
+                        ></textarea>
+                        <button class="send-button" id="aiCoachSendButton" onclick="sendAICoachMessage()" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex-shrink: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="workoutsView" class="tab-view" style="display: none;">
         <div class="container" style="max-width: 1200px; margin: 40px auto; padding: 20px;">
             <h2 style="font-family: 'Courier Prime', monospace; margin-bottom: 30px;">Workout Tracker</h2>
@@ -2445,12 +2630,62 @@
             window.curry_benchmark_data = curry_data;
         }
     </script>
-    <script src="app.js"></script>
+    <script src="/tool/app.js"></script>
     <script>
         // Tab navigation functions
         let trainingChart = null;
         
+        // Handler function for player button clicks (works with inline onclick)
+        function handlePlayerClick(player) {
+            console.log('🎯 handlePlayerClick called with player:', player);
+            console.log('window.selectPlayer type:', typeof window.selectPlayer);
+            console.log('selectPlayer type:', typeof selectPlayer);
+            
+            // Try to find selectPlayer function - check window first since app.js exports it there
+            let selectPlayerFunc = null;
+            
+            if (typeof window.selectPlayer === 'function') {
+                selectPlayerFunc = window.selectPlayer;
+                console.log('✅ Found window.selectPlayer');
+            } else if (typeof selectPlayer === 'function') {
+                selectPlayerFunc = selectPlayer;
+                console.log('✅ Found selectPlayer in local scope');
+            }
+            
+            if (selectPlayerFunc) {
+                try {
+                    selectPlayerFunc(player);
+                } catch (error) {
+                    console.error('Error calling selectPlayer:', error);
+                    alert('Error selecting player. Please refresh the page.');
+                }
+            } else {
+                // Wait a bit for app.js to load if it hasn't yet
+                console.log('⏳ selectPlayer not found, waiting for app.js to load...');
+                let attempts = 0;
+                const maxAttempts = 10;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    const func = window.selectPlayer || selectPlayer;
+                    if (typeof func === 'function') {
+                        console.log('✅ Found selectPlayer after', attempts * 50, 'ms');
+                        clearInterval(checkInterval);
+                        func(player);
+                    } else if (attempts >= maxAttempts) {
+                        console.error('❌ selectPlayer function not found after', maxAttempts * 50, 'ms');
+                        console.log('Available window functions:', Object.keys(window).filter(k => k.toLowerCase().includes('select') || k.toLowerCase().includes('player')));
+                        clearInterval(checkInterval);
+                        alert('Player selection is not available. Please refresh the page.');
+                    }
+                }, 50);
+            }
+        }
+        
+        // Make it globally accessible
+        window.handlePlayerClick = handlePlayerClick;
+        
         function showShotSync() {
+            
             // Hide all tab views
             document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
             
@@ -2474,6 +2709,30 @@
             // Update nav tabs
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById('shotSyncTab').classList.add('active');
+            
+            // Re-attach player button listeners after showing the tab
+            // Use setTimeout to ensure DOM is updated and buttons are visible
+            setTimeout(() => {
+                console.log('🔄 showShotSync: Re-attaching player button listeners...');
+                const buttonsBefore = document.querySelectorAll('.player-btn').length;
+                console.log('   Found', buttonsBefore, 'buttons before re-attachment');
+                
+                if (typeof window.attachPlayerButtonListeners === 'function') {
+                    window.attachPlayerButtonListeners();
+                    
+                    // Test if buttons are clickable
+                    setTimeout(() => {
+                        const testButtons = document.querySelectorAll('.player-btn');
+                        console.log('   Found', testButtons.length, 'buttons after re-attachment');
+                        testButtons.forEach(btn => {
+                            const player = btn.getAttribute('data-player');
+                            console.log(`   Testing ${player} button - clickable:`, btn.style.pointerEvents !== 'none');
+                        });
+                    }, 50);
+                } else {
+                    console.error('❌ attachPlayerButtonListeners not available');
+                }
+            }, 200);
             
             // Save active tab to localStorage
             localStorage.setItem('activeTab', 'shotSync');
@@ -2764,49 +3023,56 @@
                 
                 // Get shot data from backend
                 const user = window.firebaseAuth?.currentUser;
-                if (!user) return;
-                
-                // Get date range from scores
-                if (scores.length === 0) {
+                if (!user) {
                     ctx.fillStyle = '#999';
                     ctx.font = '16px "Courier Prime", monospace';
                     ctx.textAlign = 'center';
-                    ctx.fillText('No shot data available', heatmapCanvas.width / 2, heatmapCanvas.height / 2);
+                    ctx.fillText('Please sign in to view heatmap', heatmapCanvas.width / 2, heatmapCanvas.height / 2);
                     return;
                 }
                 
                 // Filter scores based on interval
                 // IMPORTANT: scores array is already sorted by date (newest first) from getTrainingScores
+                // FIRST: Filter to only shot tracker sessions for the heatmap
+                const shotTrackerScores = scores.filter(s => s.sessionType === 'shot_tracker');
+                
+                console.log('loadShotHeatmap called with:', {
+                    totalScores: scores.length,
+                    shotTrackerScores: shotTrackerScores.length,
+                    interval: interval,
+                    sampleScore: scores[0]
+                });
+                
                 let filteredScores = [];
                 if (interval === 'session') {
-                    // Previous session only (most recent) - prioritize shot tracker sessions
-                    if (scores.length > 0) {
-                        // Find the most recent shot tracker session, or fall back to most recent any session
-                        const shotTrackerSession = scores.find(s => s.sessionType === 'shot_tracker');
-                        filteredScores = shotTrackerSession ? [shotTrackerSession] : [scores[0]]; // scores[0] is newest
+                    // Previous session only (most recent shot tracker session)
+                    if (shotTrackerScores.length > 0) {
+                        filteredScores = [shotTrackerScores[0]]; // scores[0] is newest
                     }
                 } else if (interval === 'all') {
-                    // All time
-                    filteredScores = scores;
+                    // All time - all shot tracker sessions
+                    filteredScores = shotTrackerScores;
                 } else if (typeof interval === 'number') {
-                    // Number of sessions (most recent N sessions)
-                    filteredScores = scores.slice(0, interval); // Already sorted newest first
+                    // Number of sessions (most recent N shot tracker sessions)
+                    filteredScores = shotTrackerScores.slice(0, interval); // Already sorted newest first
                 } else {
-                    filteredScores = scores;
+                    filteredScores = shotTrackerScores;
                 }
                 
                 console.log('Filtered scores for heatmap:', filteredScores.length, 'sessions, interval:', interval, 'first session type:', filteredScores[0]?.sessionType);
                 
+                // Calculate date range from filtered scores
+                // If filteredScores is empty, we'll still fetch Firebase shots and filter them by interval
+                let firstDate, lastDate;
                 if (filteredScores.length === 0) {
-                    ctx.fillStyle = '#999';
-                    ctx.font = '16px "Courier Prime", monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('No data for selected interval', heatmapCanvas.width / 2, heatmapCanvas.height / 2);
-                    return;
+                    // If no scores match, set dates to allow fetching all Firebase sessions
+                    // We'll filter them by interval after fetching
+                    lastDate = new Date();
+                    firstDate = new Date(0); // Start of epoch - will filter by interval later
+                } else {
+                    firstDate = filteredScores[0].createdAt?.toDate ? filteredScores[0].createdAt.toDate() : new Date();
+                    lastDate = filteredScores[filteredScores.length - 1].createdAt?.toDate ? filteredScores[filteredScores.length - 1].createdAt.toDate() : new Date();
                 }
-                
-                const firstDate = filteredScores[0].createdAt?.toDate ? filteredScores[0].createdAt.toDate() : new Date();
-                const lastDate = filteredScores[filteredScores.length - 1].createdAt?.toDate ? filteredScores[filteredScores.length - 1].createdAt.toDate() : new Date();
                 
                 // Fetch shot locations from backend AND from Firebase training database
                 const [backendResponse, firebaseShots] = await Promise.all([
@@ -2824,8 +3090,12 @@
                     (async () => {
                         try {
                             const user = window.firebaseAuth?.currentUser;
-                            if (!user) return [];
+                            if (!user) {
+                                console.log('No user for Firebase query');
+                                return [];
+                            }
                             
+                            console.log('Querying Firebase for shot tracker sessions, userId:', user.uid);
                             const q = query(
                                 collection(window.firebaseDB, 'trainingScores'),
                                 where('userId', '==', user.uid),
@@ -2835,16 +3105,26 @@
                             const sessions = [];
                             querySnapshot.forEach((doc) => {
                                 const data = doc.data();
+                                console.log('Found Firebase session:', {
+                                    id: doc.id,
+                                    hasShotLocations: !!data.shotLocations,
+                                    shotLocationsCount: data.shotLocations?.length || 0,
+                                    createdAt: data.createdAt
+                                });
                                 if (data.shotLocations && Array.isArray(data.shotLocations)) {
                                     sessions.push({
                                         shotLocations: data.shotLocations,
                                         createdAt: data.createdAt
                                     });
+                                } else {
+                                    console.warn('Session missing shotLocations:', doc.id, data);
                                 }
                             });
+                            console.log('Firebase query returned', sessions.length, 'sessions with shot locations');
                             return sessions;
                         } catch (error) {
                             console.error('Error fetching Firebase shot data:', error);
+                            console.error('Error details:', error.message, error.stack);
                             return [];
                         }
                     })()
@@ -2862,48 +3142,71 @@
                 }
                 
                 // Add Firebase shots (from saved training database sessions)
-                // Filter by the selected interval
-                firebaseShots.forEach(session => {
-                    const sessionDate = session.createdAt?.toDate ? session.createdAt.toDate() : new Date();
-                    
-                    // Check if this session matches the filtered scores
-                    const sessionMatches = filteredScores.some(score => {
-                        const scoreDate = score.createdAt?.toDate ? score.createdAt.toDate() : new Date();
-                        // Match by date (same day) or by sessionType if it's a shot tracker session
-                        return (score.sessionType === 'shot_tracker' && 
-                                Math.abs(sessionDate.getTime() - scoreDate.getTime()) < 60000) || // Within 1 minute
-                               (sessionDate.toDateString() === scoreDate.toDateString());
-                    });
-                    
-                    if (sessionMatches && sessionDate >= firstDate && sessionDate <= lastDate) {
+                // Sort Firebase sessions by date (newest first) to match the interval logic
+                firebaseShots.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+                    return dateB.getTime() - dateA.getTime(); // Newest first
+                });
+                
+                // Filter Firebase sessions by interval
+                // Always use interval-based filtering for Firebase sessions (more reliable)
+                let sessionsToInclude = [];
+                if (interval === 'session') {
+                    sessionsToInclude = firebaseShots.slice(0, 1); // Most recent session
+                } else if (interval === 'all') {
+                    sessionsToInclude = firebaseShots;
+                } else if (typeof interval === 'number') {
+                    sessionsToInclude = firebaseShots.slice(0, interval); // Most recent N sessions
+                } else {
+                    sessionsToInclude = firebaseShots;
+                }
+                
+                console.log('Firebase sessions:', {
+                    total: firebaseShots.length,
+                    included: sessionsToInclude.length,
+                    interval: interval,
+                    firstSession: firebaseShots[0]?.shotLocations?.length || 0
+                });
+                
+                // Add shots from included sessions
+                sessionsToInclude.forEach(session => {
+                    if (session.shotLocations && Array.isArray(session.shotLocations)) {
                         session.shotLocations.forEach(shot => {
                             allShots.push({
                                 x: shot.x,
                                 y: shot.y,
                                 is_make: shot.is_make,
                                 result: shot.is_make ? 'make' : 'miss',
-                                timestamp: shot.timestamp || sessionDate.getTime() / 1000,
+                                timestamp: shot.timestamp || (session.createdAt?.toDate ? session.createdAt.toDate().getTime() / 1000 : Date.now() / 1000),
                                 source: 'firebase'
                             });
                         });
                     }
                 });
                 
-                console.log('Total shots after filtering:', allShots.length, 'from backend:', backendData.shots?.length || 0, 'from firebase:', firebaseShots.length);
+                console.log('Total shots after filtering:', {
+                    total: allShots.length,
+                    fromBackend: backendData.shots?.length || 0,
+                    fromFirebase: sessionsToInclude.reduce((sum, s) => sum + (s.shotLocations?.length || 0), 0),
+                    firebaseSessions: firebaseShots.length,
+                    includedSessions: sessionsToInclude.length
+                });
                 
                 if (allShots.length === 0) {
+                    console.log('No shots found - showing empty message');
                     ctx.fillStyle = '#999';
                     ctx.font = '16px "Courier Prime", monospace';
                     ctx.textAlign = 'center';
-                    ctx.fillText('No shot locations recorded yet', heatmapCanvas.width / 2, heatmapCanvas.height / 2);
+                    ctx.fillText('No shot locations recorded yet. Save a session from the Shot Tracker first!', heatmapCanvas.width / 2, heatmapCanvas.height / 2);
                     return;
                 }
                 
-                // Filter shots to match the selected interval
-                const filteredShots = allShots.filter(shot => {
-                    const shotDate = new Date((shot.timestamp || 0) * 1000);
-                    return shotDate >= firstDate && shotDate <= lastDate;
-                });
+                // Don't filter by date range - we already filtered sessions by interval
+                // The shots are already from the correct sessions
+                const filteredShots = allShots;
+                
+                console.log('Shots to draw:', filteredShots.length, 'sample shot:', filteredShots[0]);
                 
                 if (filteredShots.length === 0) {
                     ctx.fillStyle = '#999';
@@ -2918,14 +3221,16 @@
                 drawBasketballCourtForHeatmap(ctx, heatmapCanvas.width, heatmapCanvas.height);
                 
                 // Calculate and display stats for this interval
-                const intervalShotTrackerSessions = filteredScores.filter(s => s.sessionType === 'shot_tracker');
-                const intervalMakes = intervalShotTrackerSessions.reduce((sum, s) => sum + (s.makes || 0), 0);
-                const intervalAttempts = intervalShotTrackerSessions.reduce((sum, s) => sum + (s.attempts || 0), 0);
+                // Calculate from filtered shots (more accurate than from scores)
+                const intervalMakes = filteredShots.filter(s => s.is_make || s.result === 'make').length;
+                const intervalAttempts = filteredShots.length;
                 const intervalPercentage = intervalAttempts > 0 ? Math.round((intervalMakes / intervalAttempts) * 100) : 0;
+                
+                console.log('Heatmap stats:', { interval, makes: intervalMakes, attempts: intervalAttempts, percentage: intervalPercentage, filteredShots: filteredShots.length });
                 
                 // Update shot tracker stats bar (for shot tracker section)
                 const trackerStatsBar = document.getElementById('shotTrackerStatsBar');
-                if (trackerStatsBar && intervalShotTrackerSessions.length > 0) {
+                if (trackerStatsBar && filteredShots.length > 0) {
                     trackerStatsBar.style.display = 'block';
                     document.getElementById('trackerTotalMakes').textContent = intervalMakes;
                     document.getElementById('trackerTotalAttempts').textContent = intervalAttempts;
@@ -2936,7 +3241,7 @@
                 
                 // Update shot tracker stats bar (for training database)
                 const trainingDbStatsBar = document.getElementById('trainingDbShotTrackerStats');
-                if (trainingDbStatsBar && intervalShotTrackerSessions.length > 0) {
+                if (trainingDbStatsBar && filteredShots.length > 0) {
                     trainingDbStatsBar.style.display = 'block';
                     document.getElementById('trainingDbTotalMakes').textContent = intervalMakes;
                     document.getElementById('trainingDbTotalAttempts').textContent = intervalAttempts;
@@ -3413,6 +3718,9 @@
                     case 'workouts':
                         showWorkouts();
                         break;
+                    case 'aiCoach':
+                        showAICoach();
+                        break;
                     default:
                         showShotSync();
                 }
@@ -3515,6 +3823,528 @@
             
             // Load workouts data
             loadWorkouts();
+        }
+        
+        function showAICoach() {
+            // Hide all views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'none';
+            
+            // Hide ShotSync header/tagline on AI coach page (but keep logo)
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'none';
+            
+            // Show AI coach (full screen)
+            document.getElementById('aiCoachView').style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('aiCoachTab').classList.add('active');
+            
+            // Save active tab to localStorage
+            localStorage.setItem('activeTab', 'aiCoach');
+            
+            // Initialize AI Coach if not already done
+            initializeAICoach();
+        }
+        
+        // AI Coach functions - separate namespace to avoid conflicts
+        let aiCoachUserId = null;
+        let aiCoachChats = [];
+        let currentChatId = null;
+        
+        function initializeAICoach() {
+            // Get or create user ID specifically for AI Coach (separate from other tabs)
+            if (!aiCoachUserId) {
+                // Try to get from Firebase
+                let firebaseAuth = window.firebaseAuth;
+                if (firebaseAuth && firebaseAuth.currentUser) {
+                    aiCoachUserId = 'aiCoach_' + firebaseAuth.currentUser.uid;
+                } else {
+                    // Use separate localStorage key for AI Coach
+                    aiCoachUserId = localStorage.getItem('aiCoachUserId');
+                    if (!aiCoachUserId) {
+                        aiCoachUserId = 'aiCoach_test_user_' + Date.now();
+                        localStorage.setItem('aiCoachUserId', aiCoachUserId);
+                    }
+                }
+            }
+            
+            // Load chat list
+            loadAICoachChatList();
+            
+            // Create or load first chat
+            if (aiCoachChats.length === 0) {
+                createNewAICoachChat();
+            } else {
+                // Load the most recent chat or first chat
+                switchToAICoachChat(aiCoachChats[0].id);
+            }
+        }
+        
+        function loadAICoachChatList() {
+            const savedChats = localStorage.getItem(`aiCoachChats_${aiCoachUserId}`);
+            if (savedChats) {
+                aiCoachChats = JSON.parse(savedChats);
+            } else {
+                aiCoachChats = [];
+            }
+            renderAICoachChatList();
+        }
+        
+        function saveAICoachChatList() {
+            localStorage.setItem(`aiCoachChats_${aiCoachUserId}`, JSON.stringify(aiCoachChats));
+        }
+        
+        function renderAICoachChatList() {
+            const chatList = document.getElementById('aiCoachChatList');
+            chatList.innerHTML = '';
+            
+            aiCoachChats.forEach(chat => {
+                const chatItem = document.createElement('div');
+                chatItem.style.cssText = 'padding: 12px 16px; margin: 4px 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; group relative;';
+                chatItem.style.background = chat.id === currentChatId ? 'var(--bg-surface)' : 'transparent';
+                chatItem.style.border = chat.id === currentChatId ? '1px solid var(--border-color)' : '1px solid transparent';
+                
+                chatItem.onclick = () => switchToAICoachChat(chat.id);
+                
+                const chatTitle = document.createElement('div');
+                chatTitle.style.cssText = 'flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dark); font-size: 14px; font-family: \'Nunito Sans\', sans-serif;';
+                chatTitle.textContent = chat.title || 'New Chat';
+                chatTitle.title = chat.title || 'New Chat';
+                
+                const dotsButton = document.createElement('button');
+                dotsButton.style.cssText = 'opacity: 0; transition: opacity 0.2s; padding: 4px; border: none; background: transparent; color: var(--text-gray); cursor: pointer; border-radius: 4px;';
+                dotsButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>';
+                dotsButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteAICoachChat(chat.id);
+                };
+                
+                // Hover handlers
+                chatItem.onmouseenter = function() {
+                    if (chat.id !== currentChatId) {
+                        this.style.background = 'var(--bg-surface)';
+                    }
+                    dotsButton.style.opacity = '1';
+                };
+                chatItem.onmouseleave = function() {
+                    if (chat.id !== currentChatId) {
+                        this.style.background = 'transparent';
+                    }
+                    dotsButton.style.opacity = '0';
+                };
+                
+                chatItem.appendChild(chatTitle);
+                chatItem.appendChild(dotsButton);
+                chatList.appendChild(chatItem);
+            });
+        }
+        
+        function createNewAICoachChat() {
+            const chatId = 'chat_' + Date.now();
+            const newChat = {
+                id: chatId,
+                title: 'New Chat',
+                userId: aiCoachUserId,
+                createdAt: Date.now()
+            };
+            
+            aiCoachChats.unshift(newChat); // Add to beginning
+            saveAICoachChatList();
+            renderAICoachChatList();
+            switchToAICoachChat(chatId);
+        }
+        
+        function switchToAICoachChat(chatId) {
+            currentChatId = chatId;
+            const chat = aiCoachChats.find(c => c.id === chatId);
+            if (!chat) return;
+            
+            // Update UI
+            renderAICoachChatList();
+            
+            // Clear messages
+            document.getElementById('aiCoachMessages').innerHTML = '';
+            
+            // Load conversation for this chat
+            loadAICoachConversation(chatId);
+            loadAICoachInsights();
+        }
+        
+        function deleteAICoachChat(chatId) {
+            if (!confirm('Delete this chat?')) return;
+            
+            // Get chat before deleting for server cleanup
+            const chat = aiCoachChats.find(c => c.id === chatId);
+            
+            // Remove from list
+            aiCoachChats = aiCoachChats.filter(c => c.id !== chatId);
+            saveAICoachChatList();
+            
+            // Clear from server if chat existed
+            if (chat && aiCoachUserId) {
+                const chatUserId = `${aiCoachUserId}_${chatId}`;
+                fetch('http://localhost:5001/api/coach/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: chatUserId })
+                }).catch(err => console.error('Error clearing chat:', err));
+            }
+            
+            // If deleted chat was current, switch to another or create new
+            if (currentChatId === chatId) {
+                if (aiCoachChats.length > 0) {
+                    switchToAICoachChat(aiCoachChats[0].id);
+                } else {
+                    createNewAICoachChat();
+                }
+            } else {
+                renderAICoachChatList();
+            }
+        }
+        
+        function updateChatTitle(chatId, firstMessage) {
+            const chat = aiCoachChats.find(c => c.id === chatId);
+            if (chat && chat.title === 'New Chat') {
+                // Use first 30 chars of first message as title
+                chat.title = firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '');
+                saveAICoachChatList();
+                renderAICoachChatList();
+            }
+        }
+        
+        function formatAICoachMessage(text) {
+            // Escape HTML first
+            let formatted = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // Split into lines for processing
+            const lines = formatted.split('\n');
+            const result = [];
+            let inList = false;
+            let listType = null; // 'ul' or 'ol'
+            let listItems = [];
+            
+            function closeList() {
+                if (listItems.length > 0) {
+                    const listTag = listType === 'ol' ? 'ol' : 'ul';
+                    const listStyle = listType === 'ol' 
+                        ? 'margin: 12px 0; padding-left: 24px; list-style-type: decimal; color: var(--text-dark);'
+                        : 'margin: 12px 0; padding-left: 24px; list-style-type: disc; color: var(--text-dark);';
+                    result.push(`<${listTag} style="${listStyle}">${listItems.join('')}</${listTag}>`);
+                    listItems = [];
+                }
+                inList = false;
+                listType = null;
+            }
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Check for numbered list (1. 2. 3. or 1) 2) 3))
+                const numberedMatch = line.match(/^(\d+)[\.\)]\s+(.+)$/);
+                if (numberedMatch) {
+                    if (!inList || listType !== 'ol') {
+                        closeList();
+                        inList = true;
+                        listType = 'ol';
+                    }
+                    listItems.push(`<li style="margin: 6px 0; line-height: 1.6;">${numberedMatch[2]}</li>`);
+                    continue;
+                }
+                
+                // Check for bullet list (- or • or *)
+                const bulletMatch = line.match(/^[\-\•\*]\s+(.+)$/);
+                if (bulletMatch) {
+                    if (!inList || listType !== 'ul') {
+                        closeList();
+                        inList = true;
+                        listType = 'ul';
+                    }
+                    listItems.push(`<li style="margin: 6px 0; line-height: 1.6;">${bulletMatch[1]}</li>`);
+                    continue;
+                }
+                
+                // Not a list item - close any open list
+                if (inList) {
+                    closeList();
+                }
+                
+                // Empty line - add paragraph break
+                if (!line) {
+                    result.push('<br>');
+                } else {
+                    // Regular paragraph
+                    result.push(`<p style="margin: 8px 0; line-height: 1.6;">${line}</p>`);
+                }
+            }
+            
+            // Close any remaining list
+            closeList();
+            
+            formatted = result.join('');
+            
+            // Convert **bold** to <strong>
+            formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong style="font-weight: 600; color: var(--text-dark);">$1</strong>');
+            
+            // Convert single *italic* to <em> (but be careful not to match list markers)
+            formatted = formatted.replace(/(?<![\-\•\*\d])\*([^*\n]+?)\*(?![\-\•\*])/g, '<em style="font-style: italic;">$1</em>');
+            
+            // Clean up empty paragraphs and extra breaks
+            formatted = formatted.replace(/<p[^>]*>\s*<\/p>/g, '');
+            formatted = formatted.replace(/(<br>\s*){3,}/g, '<br><br>');
+            
+            return formatted;
+        }
+        
+        function handleAICoachKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendAICoachMessage();
+            }
+        }
+        
+        async function sendAICoachMessage() {
+            const input = document.getElementById('aiCoachInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            if (!aiCoachUserId) {
+                initializeAICoach();
+            }
+            
+            // Ensure we have a current chat
+            if (!currentChatId) {
+                createNewAICoachChat();
+            }
+            
+            // Update chat title if it's still "New Chat"
+            const chat = aiCoachChats.find(c => c.id === currentChatId);
+            if (chat && chat.title === 'New Chat') {
+                updateChatTitle(currentChatId, message);
+            }
+            
+            // Clear input
+            input.value = '';
+            
+            // Show user message
+            showAICoachMessage('user', message);
+            
+            // Show loading
+            const loadingId = showAICoachLoading();
+            
+            // Use chat-specific user ID
+            const chatUserId = `${aiCoachUserId}_${currentChatId}`;
+            
+            try {
+                const response = await fetch('http://localhost:5001/api/coach/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: chatUserId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                removeAICoachLoading(loadingId);
+                
+                if (data.success) {
+                    showAICoachMessage('coach', data.response);
+                    loadAICoachInsights();
+                } else {
+                    showAICoachMessage('coach', `Error: ${data.error || 'Something went wrong'}`, true);
+                }
+            } catch (error) {
+                removeAICoachLoading(loadingId);
+                showAICoachMessage('coach', `Error: ${error.message}`, true);
+            }
+        }
+        
+        function showAICoachMessage(sender, text, isError = false) {
+            const messagesContainer = document.getElementById('aiCoachMessages');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.style.cssText = 'display: flex; gap: 12px; animation: fadeIn 0.3s ease-in;' + (sender === 'user' ? 'flex-direction: row-reverse;' : '');
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;';
+            avatar.style.background = sender === 'user' 
+                ? 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%)'
+                : 'var(--bg-surface-light)';
+            avatar.style.color = sender === 'user' ? 'white' : 'var(--primary-color)';
+            avatar.style.border = sender === 'coach' ? '1px solid var(--border-color)' : 'none';
+            avatar.textContent = sender === 'user' ? 'You' : '🏀';
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.style.cssText = 'max-width: 70%; padding: 12px 16px; border-radius: 18px; line-height: 1.6;';
+            if (sender === 'user') {
+                content.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%)';
+                content.style.color = 'white';
+                content.style.borderBottomRightRadius = '4px';
+                content.textContent = text; // User messages stay as plain text
+            } else {
+                content.style.background = 'var(--bg-surface-light)';
+                content.style.color = 'var(--text-dark)';
+                content.style.border = '1px solid var(--border-color)';
+                content.style.borderBottomLeftRadius = '4px';
+                
+                if (isError) {
+                    content.style.background = 'rgba(239, 68, 68, 0.1)';
+                    content.style.color = '#ef4444';
+                    content.style.borderColor = '#ef4444';
+                    content.textContent = text;
+                } else {
+                    // Format coach messages with markdown-like formatting
+                    content.innerHTML = formatAICoachMessage(text);
+                }
+            }
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function showAICoachLoading() {
+            const messagesContainer = document.getElementById('aiCoachMessages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message coach';
+            loadingDiv.id = 'aiCoachLoading';
+            loadingDiv.style.cssText = 'display: flex; gap: 12px; animation: fadeIn 0.3s ease-in;';
+            
+            const avatar = document.createElement('div');
+            avatar.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; background: var(--bg-surface-light); color: var(--primary-color); border: 1px solid var(--border-color);';
+            avatar.textContent = '🏀';
+            
+            const loading = document.createElement('div');
+            loading.style.cssText = 'display: flex; gap: 4px; padding: 12px 16px;';
+            loading.innerHTML = '<div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); animation: bounce 1.4s infinite;"></div><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); animation: bounce 1.4s infinite; animation-delay: 0.2s;"></div><div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); animation: bounce 1.4s infinite; animation-delay: 0.4s;"></div>';
+            
+            loadingDiv.appendChild(avatar);
+            loadingDiv.appendChild(loading);
+            messagesContainer.appendChild(loadingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return 'aiCoachLoading';
+        }
+        
+        function removeAICoachLoading(loadingId) {
+            const loading = document.getElementById(loadingId);
+            if (loading) loading.remove();
+        }
+        
+        async function loadAICoachInsights() {
+            if (!aiCoachUserId) return;
+            try {
+                const response = await fetch(`http://localhost:5001/api/coach/insights?userId=${aiCoachUserId}`);
+                const data = await response.json();
+                if (data.success && data.insights) {
+                    displayAICoachInsights(data.insights);
+                }
+            } catch (error) {
+                console.error('Error loading insights:', error);
+            }
+        }
+        
+        function displayAICoachInsights(insights) {
+            const panel = document.getElementById('aiCoachInsightsPanel');
+            panel.innerHTML = '';
+            
+            if (insights.shot_analysis) {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: var(--bg-surface); padding: 10px 15px; border-radius: 8px; font-size: 12px; white-space: nowrap; border: 1px solid var(--border-color);';
+                item.innerHTML = `<span style="color: var(--text-gray); font-weight: 500;">Shot Score:</span> <span style="color: var(--primary-color); font-weight: 600; margin-left: 5px;">${insights.shot_analysis.average_score.toFixed(1)}%</span>`;
+                panel.appendChild(item);
+            }
+            
+            if (insights.nutrition) {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: var(--bg-surface); padding: 10px 15px; border-radius: 8px; font-size: 12px; white-space: nowrap; border: 1px solid var(--border-color);';
+                const onTrack = insights.nutrition.on_track ? '✓' : '⚠';
+                item.innerHTML = `<span style="color: var(--text-gray); font-weight: 500;">Nutrition:</span> <span style="color: var(--primary-color); font-weight: 600; margin-left: 5px;">${onTrack} ${insights.nutrition.calorie_actual.toFixed(0)}/${insights.nutrition.calorie_goal} cal</span>`;
+                panel.appendChild(item);
+            }
+            
+            if (insights.workouts) {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: var(--bg-surface); padding: 10px 15px; border-radius: 8px; font-size: 12px; white-space: nowrap; border: 1px solid var(--border-color);';
+                item.innerHTML = `<span style="color: var(--text-gray); font-weight: 500;">Workouts:</span> <span style="color: var(--primary-color); font-weight: 600; margin-left: 5px;">${insights.workouts.total_workouts} this month</span>`;
+                panel.appendChild(item);
+            }
+        }
+        
+        async function loadAICoachConversation(chatId) {
+            if (!chatId || !aiCoachUserId) return;
+            const chatUserId = `${aiCoachUserId}_${chatId}`;
+            try {
+                const response = await fetch(`http://localhost:5001/api/coach/conversation?userId=${chatUserId}`);
+                const data = await response.json();
+                if (data.success && data.conversation && data.conversation.length > 0) {
+                    const messagesContainer = document.getElementById('aiCoachMessages');
+                    data.conversation.forEach(msg => {
+                        if (msg.role === 'user' || msg.role === 'assistant') {
+                            showAICoachMessage(msg.role === 'user' ? 'user' : 'coach', msg.content, false);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+            }
+        }
+        
+        // Add CSS animations if not already added
+        if (!document.getElementById('aiCoachStyles')) {
+            const style = document.createElement('style');
+            style.id = 'aiCoachStyles';
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+                @keyframes bounce {
+                    0%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                }
+                #aiCoachView .quick-question-btn:hover {
+                    background: var(--primary-color) !important;
+                    color: white !important;
+                    border-color: var(--primary-color) !important;
+                }
+                #aiCoachView .chat-input:focus {
+                    border-color: var(--primary-color) !important;
+                }
+                #aiCoachView .send-button:hover:not(:disabled) {
+                    transform: scale(1.05);
+                    box-shadow: 0 4px 12px rgba(255, 107, 122, 0.4);
+                }
+                #aiCoachSidebar {
+                    scrollbar-width: thin;
+                    scrollbar-color: var(--border-color) transparent;
+                }
+                #aiCoachSidebar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                #aiCoachSidebar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                #aiCoachSidebar::-webkit-scrollbar-thumb {
+                    background: var(--border-color);
+                    border-radius: 3px;
+                }
+            `;
+            document.head.appendChild(style);
         }
         
         function showNutrition() {
@@ -3815,7 +4645,19 @@
                         method: 'POST',
                         body: formData
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        // Check if response is JSON
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            return response.json();
+                        } else {
+                            // If not JSON, it's probably an HTML error page
+                            return response.text().then(text => {
+                                console.error('Server returned non-JSON response:', text.substring(0, 200));
+                                throw new Error('Server error: Received HTML instead of JSON. The video upload feature may not be available.');
+                            });
+                        }
+                    })
                     .then(data => {
                         if (data.success) {
                             showMessage('Video uploaded successfully! Processing...', 'success');
@@ -3828,6 +4670,7 @@
                         }
                     })
                     .catch(error => {
+                        console.error('Upload error:', error);
                         showMessage('Error uploading video: ' + error.message, 'error');
                     })
                     .finally(() => {

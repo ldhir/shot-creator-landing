@@ -2915,6 +2915,9 @@ function displayResults(data) {
     // Display stage-based angle analysis tabs
     displayStageAngleTabs(data);
     
+    // Initialize joint animation slider
+    initializeJointAnimation(data);
+    
     // Generate and display detailed feedback
     try {
         console.log('Generating feedback for player:', data.playerName, 'Data:', data);
@@ -4523,14 +4526,60 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize professional player benchmarks
     initializeProPlayerBenchmarks();
     
-    // Set up player selection buttons
-    const playerButtons = document.querySelectorAll('.player-btn');
-    playerButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
+    // Set up player selection buttons - simple approach like original GitHub code
+    function attachPlayerButtonListeners() {
+        const playerButtons = document.querySelectorAll('.player-btn');
+        console.log('🔧 attachPlayerButtonListeners: Found', playerButtons.length, 'player buttons');
+        
+        if (playerButtons.length === 0) {
+            console.warn('⚠️ No player buttons found! They might be hidden or not in DOM yet.');
+            return;
+        }
+        
+        playerButtons.forEach((btn, index) => {
             const player = btn.getAttribute('data-player');
-            selectPlayer(player);
+            console.log(`  - Button ${index + 1}: ${player}`);
+            
+            // Remove any existing listeners by cloning (clean slate)
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            // Add fresh event listener with more debugging
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const clickedPlayer = newBtn.getAttribute('data-player');
+                console.log('🎯 Player button clicked:', clickedPlayer);
+                console.log('   window.selectPlayer type:', typeof window.selectPlayer);
+                console.log('   Event target:', e.target);
+                
+                if (typeof window.selectPlayer === 'function') {
+                    console.log('✅ Calling window.selectPlayer...');
+                    try {
+                        window.selectPlayer(clickedPlayer);
+                    } catch (error) {
+                        console.error('❌ Error calling selectPlayer:', error);
+                        alert('Error selecting player: ' + error.message);
+                    }
+                } else {
+                    console.error('❌ selectPlayer function not found');
+                    console.log('Available window functions:', Object.keys(window).filter(k => k.toLowerCase().includes('select') || k.toLowerCase().includes('player')));
+                    alert('Player selection is not available. Please refresh the page.');
+                }
+            });
+            
+            // Also add a test to see if button is clickable
+            console.log(`  ✅ Listener attached to ${player} button`);
         });
-    });
+        
+        console.log('✅ Finished attaching listeners to all player buttons');
+    }
+    
+    // Attach listeners on page load
+    attachPlayerButtonListeners();
+    
+    // Make function available globally for re-attachment
+    window.attachPlayerButtonListeners = attachPlayerButtonListeners;
     
     // Initialize EmailJS if available
     if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
@@ -4731,11 +4780,9 @@ function selectPlayer(player) {
                         step2Title.textContent = `Record Your Shot (vs ${playerNames[player]})`;
                     }
                 }).catch(error => {
-                    console.error('❌ Error processing Curry video:', error);
-                    console.error('Error details:', error.message);
-                    console.error('Error stack:', error.stack);
-                    alert(`Failed to process Curry video: ${error.message}\n\nPlease make sure the video file exists in the tool/ directory.\n\nUsing default benchmark data.`);
-                    // Fall back to example data
+                    console.warn('⚠️ Could not load Curry video file (this is normal if video file is not present):', error.message);
+                    console.log('Using default benchmark data instead.');
+                    // Fall back to example data silently - no alert needed
                     initializeProPlayerBenchmarks();
                     if (!proPlayerBenchmarks[player] || proPlayerBenchmarks[player].length === 0) {
                         proPlayerBenchmarks[player] = generateExampleBenchmarkData();
@@ -4789,6 +4836,1045 @@ function selectPlayer(player) {
     }
 }
 
+// Make selectPlayer globally accessible immediately after definition
+window.selectPlayer = selectPlayer;
+
+// ====================== PLAYER COMP FLOW ======================
+
+let compShots = []; // Array to store 3 shots
+let compCurrentShotIndex = 0; // 0, 1, or 2
+let compRecordingActive = false;
+let compCamera = null;
+let compPose = null;
+let compVideo = null;
+let compCanvas = null;
+let compOutput = null;
+let compCtx = null;
+let compOutputCtx = null;
+
+// Player data for display
+const playerCompData = {
+    'curry': {
+        name: 'Stephen Curry',
+        team: 'Golden State Warriors',
+        number: 30,
+        position: 'GUARD',
+        height: "6'2\"",
+        weight: '185 lbs',
+        age: 36,
+        season: 16,
+        image: '/tool/stephrootsicon.jpeg',
+        description: 'The greatest shooter of all time, revolutionizing the game with unlimited range and quick release.',
+        skills: ['Pull-up Threat', 'Feel for the Game', 'Floor General']
+    },
+    'lebron': {
+        name: 'LeBron James',
+        team: 'Los Angeles Lakers',
+        number: 23,
+        position: 'FORWARD',
+        height: "6'9\"",
+        weight: '250 lbs',
+        age: 40,
+        season: 22,
+        image: '/tool/lebron_icon.jpeg',
+        description: 'High-usage jumbo guard with the patience and potency of a black belt, bringing heliocentrism back into vogue.',
+        skills: ['Pull-up Threat', 'Feel for the Game', 'Floor General']
+    },
+    'jordan': {
+        name: 'Michael Jordan',
+        team: 'Chicago Bulls',
+        number: 23,
+        position: 'GUARD',
+        height: "6'6\"",
+        weight: '216 lbs',
+        age: 61,
+        season: 15,
+        image: '/tool/jordan_icon.jpeg',
+        description: 'The GOAT with unmatched competitive fire and mid-range mastery.',
+        skills: ['Pull-up Threat', 'Feel for the Game', 'Clutch Performer']
+    },
+    'durant': {
+        name: 'Kevin Durant',
+        team: 'Phoenix Suns',
+        number: 35,
+        position: 'FORWARD',
+        height: "6'10\"",
+        weight: '240 lbs',
+        age: 36,
+        season: 18,
+        image: '/tool/kd_icon.webp',
+        description: 'The best pure scorer of his generation, looking for one last title run.',
+        skills: ['Pull-up Threat', 'Feel for the Game', 'Injury Concerns']
+    },
+    'clark': {
+        name: 'Caitlin Clark',
+        team: 'Indiana Fever',
+        number: 22,
+        position: 'GUARD',
+        height: "6'0\"",
+        weight: '155 lbs',
+        age: 22,
+        season: 1,
+        image: '/tool/caitlin_icon.webp',
+        description: 'Record-breaking college scorer bringing deep range and playmaking to the WNBA.',
+        skills: ['Pull-up Threat', 'Feel for the Game', 'Range']
+    }
+};
+
+function startPlayerCompFlow() {
+    // Hide player selection
+    document.getElementById('step0_5').style.display = 'none';
+    
+    // Show player comp flow
+    document.getElementById('playerCompFlow').style.display = 'block';
+    
+    // Reset state
+    compShots = [];
+    compCurrentShotIndex = 0;
+    compRecordingActive = false;
+    
+    // Update UI
+    updateCompProgress();
+    
+    // Initialize video elements (same as shot sync)
+    compVideo = document.getElementById('compVideo');
+    compCanvas = document.getElementById('compOutput'); // Use compOutput as the canvas
+    compOutput = document.getElementById('compOutput');
+    
+    if (compCanvas) {
+        compCtx = compCanvas.getContext('2d');
+        compCanvas.width = 640;
+        compCanvas.height = 480;
+    }
+    
+    // Initialize pose if not already done
+    if (!compPose) {
+        compPose = new Pose({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+            }
+        });
+        
+        compPose.setOptions({
+            modelComplexity: 2,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            smoothSegmentation: false,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+    }
+}
+
+// Removed - camera will be started in startCompRecording like shot sync
+
+// State tracking for comp recording - EXACT COPY from startUserRecording
+let compPreviousStage = "neutral";
+let compRecordingActiveState = false;
+let compSeenFollowThrough = false;
+let compStartTime = null;
+let compLastPrintTime = { value: Date.now() };
+
+// Removed - will use exact same logic in onResults callback
+
+let compCurrentShotData = [];
+let compStream = null;
+
+async function startCompRecording() {
+    try {
+        // EXACT COPY of startUserRecording logic
+        const video = compVideo;
+        const canvas = compOutput;
+        const ctx = canvas.getContext('2d');
+        
+        if (!video || !canvas || !ctx) {
+            showCompStatus('Error: Video elements not initialized', 'error');
+            return;
+        }
+        
+        // Set canvas dimensions
+        canvas.width = 640;
+        canvas.height = 480;
+
+        // Get webcam stream
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 } 
+        });
+        
+        compStream = stream;
+        video.srcObject = stream;
+        compCurrentShotData = [];
+        
+        // Reset state variables
+        compPreviousStage = "neutral";
+        compRecordingActiveState = false;
+        compSeenFollowThrough = false;
+        compStartTime = null;
+        compLastPrintTime.value = Date.now();
+        
+        // Set UI flag
+        compRecordingActive = true;
+        
+        document.getElementById('compStartBtn').disabled = true;
+        document.getElementById('compStartBtn').style.display = 'none';
+        document.getElementById('compStopBtn').disabled = false;
+        document.getElementById('compStopBtn').style.display = 'inline-block';
+        
+        const statusEl = document.getElementById('compStatus');
+        if (statusEl) {
+            statusEl.textContent = 'Processing video...';
+            statusEl.className = 'status recording';
+            statusEl.style.display = 'block';
+        }
+        
+        // Set up pose results handler - EXACT COPY from startUserRecording
+        compPose.onResults((results) => {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the video frame
+            if (results.image) {
+                ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+            }
+
+            // Check if full body is visible and show/hide warning
+            const bodyWarning = document.getElementById('compBodyWarning');
+            if (bodyWarning) {
+                if (!results.poseLandmarks || !isFullBodyVisible(results.poseLandmarks)) {
+                    bodyWarning.style.display = 'flex';
+                } else {
+                    bodyWarning.style.display = 'none';
+                }
+            }
+            
+            if (results.poseLandmarks) {
+                const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                const overlayColor = getOverlayColor(state);
+                const currentTime = Date.now() / 1000.0;
+                
+                drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+                    color: overlayColor,
+                    lineWidth: 2
+                });
+                drawLandmarks(ctx, results.poseLandmarks, {
+                    color: overlayColor,
+                    lineWidth: 1,
+                    radius: 3
+                });
+                
+                const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
+                const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
+                const rightWrist = get3DPoint(results.poseLandmarks, 16, canvas.width, canvas.height);
+                const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
+                const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
+                
+                const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+                const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
+                const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
+                
+                const landmarks3D = [];
+                for (let i = 0; i < 33; i++) {
+                    const pt = get3DPoint(results.poseLandmarks, i, canvas.width, canvas.height);
+                    landmarks3D.push(pt || [NaN, NaN, NaN]);
+                }
+                
+                // Normalize pose orientation (align shoulders with x-axis)
+                const normalizedLandmarks = normalizePoseOrientation(landmarks3D);
+                
+                if (state !== compPreviousStage) {
+                    if (state === "pre_shot" && !compRecordingActiveState) {
+                        compRecordingActiveState = true;
+                        compSeenFollowThrough = false;
+                        compStartTime = currentTime;
+                        compCurrentShotData = [];
+                        compLastPrintTime.value = currentTime;
+                        const statusEl = document.getElementById('compStatus');
+                        if (statusEl) {
+                            statusEl.textContent = 'Recording shot...';
+                            statusEl.style.display = 'block';
+                        }
+                        console.log('🎯 Comp shot detected! Recording started.');
+                    } else if (state === "neutral" && compRecordingActiveState && !compSeenFollowThrough) {
+                        compRecordingActiveState = false;
+                        compSeenFollowThrough = false;
+                        compStartTime = null;
+                        compCurrentShotData = [];
+                    } else if (state === "follow_through" && compRecordingActiveState) {
+                        compSeenFollowThrough = true;
+                    } else if (state === "pre_shot" && compRecordingActiveState && compSeenFollowThrough) {
+                        const elapsed = currentTime - compStartTime;
+                        compCurrentShotData.push({
+                            state: state,
+                            time: elapsed,
+                            elbow_angle: elbowAngle,
+                            wrist_angle: wristAngle,
+                            arm_angle: armAngle,
+                            landmarks: normalizedLandmarks
+                        });
+                        stopCompRecording();
+                        return;
+                    }
+                    compPreviousStage = state;
+                }
+                
+                if (compRecordingActiveState) {
+                    const elapsed = currentTime - compStartTime;
+                    compCurrentShotData.push({
+                        state: state,
+                        time: elapsed,
+                        elbow_angle: elbowAngle,
+                        wrist_angle: wristAngle,
+                        arm_angle: armAngle,
+                        landmarks: normalizedLandmarks
+                    });
+                    
+                    // Update frame count display in real-time
+                    const statusEl = document.getElementById('compStatus');
+                    if (statusEl) {
+                        statusEl.textContent = `Recording shot... (${compCurrentShotData.length} frames captured)`;
+                        statusEl.style.display = 'block';
+                    }
+                    
+                    if (state === "pre_shot" || state === "follow_through") {
+                        if (currentTime - compLastPrintTime.value >= 0.1) {
+                            compLastPrintTime.value = currentTime;
+                        }
+                    }
+                }
+            }
+            
+            ctx.restore();
+        });
+        
+        // Use Camera utility to process frames
+        compCamera = new Camera(video, {
+            onFrame: async () => {
+                await compPose.send({image: video});
+            },
+            width: 640,
+            height: 480
+        });
+        compCamera.start();
+        
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        const statusEl = document.getElementById('compStatus');
+        if (statusEl) {
+            statusEl.textContent = 'Error accessing camera. Please allow camera permissions.';
+            statusEl.className = 'status error';
+            statusEl.style.display = 'block';
+        }
+    }
+}
+
+async function stopCompRecording() {
+    // EXACT COPY of stopUserRecording logic
+    if (compCamera) {
+        compCamera.stop();
+        compCamera = null;
+    }
+    
+    if (compStream) {
+        compStream.getTracks().forEach(track => track.stop());
+        compStream = null;
+    }
+    
+    compRecordingActive = false;
+    compRecordingActiveState = false;
+    
+    document.getElementById('compStartBtn').disabled = false;
+    document.getElementById('compStartBtn').style.display = 'inline-block';
+    document.getElementById('compStopBtn').disabled = true;
+    document.getElementById('compStopBtn').style.display = 'none';
+    
+    const statusEl = document.getElementById('compStatus');
+    
+    // Validate shot data before saving
+    if (compCurrentShotData && compCurrentShotData.length >= 5) {
+        // Filter out any frames with NaN angles
+        const validShotData = compCurrentShotData.filter(frame => 
+            !isNaN(frame.elbow_angle) && 
+            !isNaN(frame.wrist_angle) && 
+            !isNaN(frame.arm_angle) &&
+            frame.elbow_angle !== null &&
+            frame.wrist_angle !== null &&
+            frame.arm_angle !== null
+        );
+        
+        if (validShotData.length >= 5) {
+            // Save shot
+            compShots[compCurrentShotIndex] = validShotData;
+            compCurrentShotIndex++;
+            
+            if (statusEl) {
+                statusEl.textContent = `Shot ${compCurrentShotIndex} recorded! (${validShotData.length} frames)`;
+                statusEl.className = 'status success';
+                statusEl.style.display = 'block';
+            }
+            
+            // Reset for next shot
+            compPreviousStage = "neutral";
+            compSeenFollowThrough = false;
+            compStartTime = null;
+            compCurrentShotData = [];
+            
+            // Update progress
+            updateCompProgress();
+            
+            // Check if all 3 shots are done
+            if (compCurrentShotIndex >= 3) {
+                document.getElementById('compAnalyzeBtn').style.display = 'inline-block';
+                if (statusEl) {
+                    statusEl.textContent = 'All 3 shots recorded! Click "Analyze & Find My Comp" to see your matches.';
+                    statusEl.className = 'status success';
+                }
+            } else {
+                setTimeout(() => {
+                    if (statusEl) {
+                        statusEl.textContent = `Ready to record Shot ${compCurrentShotIndex + 1} of 3`;
+                        statusEl.className = 'status info';
+                    }
+                }, 2000);
+            }
+        } else {
+            if (statusEl) {
+                statusEl.textContent = `Shot incomplete (only ${validShotData.length} valid frames). Please try again.`;
+                statusEl.className = 'status error';
+            }
+            compCurrentShotData = [];
+        }
+    } else {
+        if (statusEl) {
+            statusEl.textContent = `No shot detected or shot too short (${compCurrentShotData ? compCurrentShotData.length : 0} frames). Please try again.`;
+            statusEl.className = 'status error';
+        }
+        compCurrentShotData = [];
+    }
+}
+
+function updateCompProgress() {
+    // Update shot status indicators
+    for (let i = 0; i < 3; i++) {
+        const shotDiv = document.getElementById(`compShot${i + 1}`);
+        const statusDiv = document.getElementById(`compShot${i + 1}Status`);
+        
+        if (compShots[i]) {
+            shotDiv.style.background = '#d1fae5';
+            statusDiv.textContent = `✓ Recorded (${compShots[i].length} frames)`;
+            statusDiv.style.color = '#059669';
+        } else if (i === compCurrentShotIndex) {
+            shotDiv.style.background = '#dbeafe';
+            statusDiv.textContent = 'Recording...';
+            statusDiv.style.color = '#2563eb';
+        } else {
+            shotDiv.style.background = '#e5e7eb';
+            statusDiv.textContent = 'Not recorded';
+            statusDiv.style.color = '#999';
+        }
+    }
+    
+    // Update current shot text
+    const currentShotEl = document.getElementById('compCurrentShot');
+    if (compCurrentShotIndex < 3) {
+        currentShotEl.textContent = `Ready to record Shot ${compCurrentShotIndex + 1} of 3`;
+    } else {
+        currentShotEl.textContent = 'All shots recorded!';
+    }
+}
+
+function showCompStatus(message, type) {
+    const statusEl = document.getElementById('compStatus');
+    if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
+        statusEl.style.display = 'block';
+    }
+}
+
+async function analyzePlayerComp() {
+    if (compShots.length < 3) {
+        showCompStatus('Please record all 3 shots first.', 'error');
+        return;
+    }
+    
+    // Validate all shots have valid data
+    for (let i = 0; i < compShots.length; i++) {
+        if (!compShots[i] || compShots[i].length < 5) {
+            showCompStatus(`Shot ${i + 1} is incomplete. Please record all 3 shots again.`, 'error');
+            return;
+        }
+    }
+    
+    // Show loading
+    document.getElementById('playerCompFlow').style.display = 'none';
+    document.getElementById('playerCompResults').style.display = 'block';
+    
+    const resultsContainer = document.getElementById('playerCompList');
+    resultsContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p style="margin-top: 20px; color: #666;">Analyzing your shots...</p></div>';
+    
+    // Compare each shot to all players
+    const players = ['curry', 'lebron', 'jordan', 'durant', 'clark'];
+    const playerScores = {};
+    
+    // Initialize scores
+    players.forEach(player => {
+        playerScores[player] = [];
+    });
+    
+    // Compare each of the 3 shots to each player
+    for (let shotIndex = 0; shotIndex < 3; shotIndex++) {
+        const shotData = compShots[shotIndex];
+        if (!shotData || shotData.length === 0) {
+            console.warn(`Shot ${shotIndex + 1} is empty, skipping`);
+            continue;
+        }
+        
+        const shotForm = extractFormSeries(shotData);
+        
+        // Validate form data
+        if (!shotForm.times || shotForm.times.length < 2 || !shotForm.formVals || shotForm.formVals.length < 2) {
+            console.warn(`Shot ${shotIndex + 1} has insufficient form data:`, shotForm);
+            continue;
+        }
+        
+        // Check for NaN values
+        const hasNaN = shotForm.formVals.some(val => isNaN(val));
+        if (hasNaN) {
+            console.warn(`Shot ${shotIndex + 1} contains NaN values, filtering...`);
+            const validIndices = [];
+            shotForm.formVals.forEach((val, idx) => {
+                if (!isNaN(val) && isFinite(val)) {
+                    validIndices.push(idx);
+                }
+            });
+            if (validIndices.length < 2) {
+                console.warn(`Shot ${shotIndex + 1} has too few valid values after filtering`);
+                continue;
+            }
+            shotForm.times = validIndices.map(idx => shotForm.times[idx]);
+            shotForm.formVals = validIndices.map(idx => shotForm.formVals[idx]);
+        }
+        
+        for (const player of players) {
+            // Get player benchmark
+            let benchmarkData = null;
+            
+            if (proPlayerBenchmarks[player] && proPlayerBenchmarks[player].length > 0) {
+                benchmarkData = proPlayerBenchmarks[player];
+            } else if (player === 'curry' && typeof window.curry_benchmark_data !== 'undefined' && window.curry_benchmark_data.length > 0) {
+                benchmarkData = window.curry_benchmark_data;
+            }
+            
+            if (!benchmarkData || benchmarkData.length === 0) {
+                // Use example data as fallback
+                benchmarkData = generateExampleBenchmarkData();
+            }
+            
+            const benchForm = extractFormSeries(benchmarkData);
+            
+            // Validate benchmark form data
+            if (!benchForm.times || benchForm.times.length < 2 || !benchForm.formVals || benchForm.formVals.length < 2) {
+                console.warn(`Benchmark for ${player} has insufficient data`);
+                continue;
+            }
+            
+            // Filter NaN from benchmark too
+            const benchValidIndices = [];
+            benchForm.formVals.forEach((val, idx) => {
+                if (!isNaN(val) && isFinite(val)) {
+                    benchValidIndices.push(idx);
+                }
+            });
+            if (benchValidIndices.length < 2) continue;
+            
+            const benchTimesFiltered = benchValidIndices.map(idx => benchForm.times[idx]);
+            const benchValsFiltered = benchValidIndices.map(idx => benchForm.formVals[idx]);
+            
+            if (shotForm.times.length >= 2 && benchValsFiltered.length >= 2) {
+                try {
+                    const { distance, path } = dtw(benchValsFiltered, shotForm.formVals);
+                    const closeness = computeUserCloseness(benchValsFiltered, shotForm.formVals, path);
+                    
+                    // Validate closeness array
+                    if (!closeness || closeness.length === 0) {
+                        console.warn(`No closeness values for ${player} shot ${shotIndex + 1}`);
+                        continue;
+                    }
+                    
+                    // Filter out NaN values from closeness
+                    const validCloseness = closeness.filter(val => !isNaN(val) && isFinite(val));
+                    if (validCloseness.length === 0) {
+                        console.warn(`All closeness values are NaN for ${player} shot ${shotIndex + 1}`);
+                        continue;
+                    }
+                    
+                    const avgCloseness = validCloseness.reduce((a, b) => a + b, 0) / validCloseness.length;
+                    
+                    if (!isNaN(avgCloseness) && isFinite(avgCloseness)) {
+                        playerScores[player].push(avgCloseness);
+                    }
+                } catch (error) {
+                    console.error(`Error comparing shot ${shotIndex + 1} to ${player}:`, error);
+                }
+            }
+        }
+    }
+    
+    // Calculate average similarity for each player
+    const playerAverages = {};
+    players.forEach(player => {
+        if (playerScores[player].length > 0) {
+            const validScores = playerScores[player].filter(s => !isNaN(s) && isFinite(s));
+            if (validScores.length > 0) {
+                playerAverages[player] = validScores.reduce((a, b) => a + b, 0) / validScores.length;
+            } else {
+                playerAverages[player] = 0;
+            }
+        } else {
+            playerAverages[player] = 0;
+        }
+    });
+    
+    // Sort players by similarity (highest first)
+    const sortedPlayers = players.sort((a, b) => playerAverages[b] - playerAverages[a]);
+    
+    // Display top 5
+    displayPlayerCompResults(sortedPlayers.slice(0, 5), playerAverages);
+}
+
+function displayPlayerCompResults(playerList, scores) {
+    const container = document.getElementById('playerCompList');
+    container.innerHTML = '';
+    
+    playerList.forEach((playerKey, index) => {
+        const player = playerCompData[playerKey];
+        const score = scores[playerKey];
+        const rank = index + 1;
+        
+        // Determine trend icon and color
+        let trendIcon = '→';
+        let trendColor = '#6b7280';
+        if (score >= 85) {
+            trendIcon = '↑';
+            trendColor = '#f97316'; // Orange
+        } else if (score >= 70) {
+            trendIcon = '↗';
+            trendColor = '#3b82f6'; // Blue
+        }
+        
+        const card = document.createElement('div');
+        card.style.cssText = 'background: white; border-radius: 16px; padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; gap: 30px; align-items: flex-start;';
+        
+        card.innerHTML = `
+            <div style="flex-shrink: 0;">
+                <div style="position: relative; width: 120px; height: 120px; border-radius: 12px; overflow: hidden; background: #f3f4f6;">
+                    <img src="${player.image}" alt="${player.name}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${rank}</div>
+                </div>
+                <div style="background: #1f2937; color: white; padding: 8px; text-align: center; border-radius: 8px; margin-top: 8px; font-size: 12px; font-weight: 600; font-family: "Courier Prime", monospace;">${player.position}</div>
+                <div style="margin-top: 12px; text-align: center; font-size: 12px; color: #666; line-height: 1.6;">
+                    <div><strong>HEIGHT</strong> ${player.height}</div>
+                    <div><strong>WEIGHT</strong> ${player.weight}</div>
+                    <div><strong>AGE</strong> ${player.age}</div>
+                    <div><strong>SEASON</strong> ${player.season}</div>
+                </div>
+            </div>
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                    <span style="font-size: 24px; color: ${trendColor};">${trendIcon}</span>
+                    <span style="font-size: 18px; font-weight: 600; color: ${trendColor}; text-decoration: underline;">${rank}</span>
+                    <span style="color: #6b7280; font-size: 14px;">Full Timeline</span>
+                    <span style="margin-left: auto; font-weight: 600; color: #333; font-size: 16px;">${player.name}</span>
+                    <span style="color: #6b7280; font-size: 14px;">${player.team}</span>
+                </div>
+                <p style="color: #374151; line-height: 1.7; margin-bottom: 20px; font-size: 15px;">
+                    <strong style="color: #111827;">${player.description.split('.')[0]}.</strong> ${player.description.split('.').slice(1).join('.').trim()}
+                </p>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    ${player.skills.map(skill => `
+                        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; background: #f9fafb; display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 32px; height: 32px; background: #e5e7eb; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px;">🏀</div>
+                            <span style="font-size: 13px; color: #374151; font-weight: 500;">${skill}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 20px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <div style="font-size: 14px; color: #1e40af; font-weight: 600;">Similarity Score: ${isNaN(score) || !isFinite(score) ? 'N/A' : score.toFixed(1) + '%'}</div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Based on analysis of your 3 shots</div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(card);
+    });
+}
+
+function backToPlayerSelection() {
+    // Hide all steps
+    document.querySelectorAll('.step').forEach(step => step.style.display = 'none');
+    
+    // Show player selection
+    document.getElementById('step0_5').style.display = 'block';
+    
+    // Stop any active recording
+    if (compCamera) {
+        compCamera.stop();
+        compCamera = null;
+    }
+    
+    // Stop video stream
+    if (compVideo && compVideo.srcObject) {
+        compVideo.srcObject.getTracks().forEach(track => track.stop());
+        compVideo.srcObject = null;
+    }
+    
+    // Reset state
+    compShots = [];
+    compCurrentShotIndex = 0;
+    compRecordingActive = false;
+}
+
+// ====================== JOINT ANIMATION SLIDER ======================
+
+let jointAnimationData = null;
+let animationPlaying = false;
+let animationInterval = null;
+let currentFrameIndex = 0;
+
+function initializeJointAnimation(data) {
+    // Check if we have the necessary data
+    if (!data.benchmarkData || !data.userPoseData || 
+        !data.benchmarkData.length || !data.userPoseData.length) {
+        console.log('Joint animation: Not enough data available');
+        return;
+    }
+    
+    // Show the animation section
+    const animationSection = document.getElementById('jointAnimationSection');
+    if (!animationSection) {
+        console.error('Joint animation section not found');
+        return;
+    }
+    
+    animationSection.style.display = 'block';
+    jointAnimationData = data;
+    currentFrameIndex = 0;
+    
+    // Setup slider
+    const slider = document.getElementById('animationSlider');
+    const frameCounter = document.getElementById('frameCounter');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    
+    if (!slider || !frameCounter || !timeDisplay || !playPauseBtn) {
+        console.error('Animation controls not found');
+        return;
+    }
+    
+    const maxFrames = Math.max(data.benchmarkData.length, data.userPoseData.length);
+    slider.max = maxFrames - 1;
+    slider.value = 0;
+    
+    // Update display
+    updateAnimationDisplay(0);
+    
+    // Setup event listeners
+    slider.addEventListener('input', (e) => {
+        currentFrameIndex = parseInt(e.target.value);
+        updateAnimationDisplay(currentFrameIndex);
+        drawJointAnimations(currentFrameIndex);
+    });
+    
+    playPauseBtn.addEventListener('click', () => {
+        toggleAnimation();
+    });
+    
+    // Initial draw
+    drawJointAnimations(0);
+}
+
+function updateAnimationDisplay(frameIndex) {
+    const frameCounter = document.getElementById('frameCounter');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const slider = document.getElementById('animationSlider');
+    
+    if (!jointAnimationData) return;
+    
+    const maxFrames = Math.max(
+        jointAnimationData.benchmarkData.length, 
+        jointAnimationData.userPoseData.length
+    );
+    
+    if (frameCounter) {
+        frameCounter.textContent = `${frameIndex + 1} / ${maxFrames}`;
+    }
+    
+    if (timeDisplay && jointAnimationData.userTimes && jointAnimationData.userTimes[frameIndex] !== undefined) {
+        timeDisplay.textContent = `${jointAnimationData.userTimes[frameIndex].toFixed(2)}s`;
+    }
+    
+    if (slider) {
+        slider.value = frameIndex;
+    }
+}
+
+function toggleAnimation() {
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    
+    if (animationPlaying) {
+        // Pause
+        if (animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+        }
+        animationPlaying = false;
+        if (playPauseBtn) playPauseBtn.textContent = 'Play';
+    } else {
+        // Play
+        animationPlaying = true;
+        if (playPauseBtn) playPauseBtn.textContent = 'Pause';
+        
+        const maxFrames = Math.max(
+            jointAnimationData.benchmarkData.length,
+            jointAnimationData.userPoseData.length
+        );
+        
+        animationInterval = setInterval(() => {
+            currentFrameIndex = (currentFrameIndex + 1) % maxFrames;
+            updateAnimationDisplay(currentFrameIndex);
+            drawJointAnimations(currentFrameIndex);
+        }, 100); // 10 fps
+    }
+}
+
+function drawJointAnimations(frameIndex) {
+    if (!jointAnimationData) return;
+    
+    const benchData = jointAnimationData.benchmarkData;
+    const userData = jointAnimationData.userPoseData;
+    
+    // Get frame data (handle different lengths)
+    const benchFrame = benchData[Math.min(frameIndex, benchData.length - 1)];
+    const userFrame = userData[Math.min(frameIndex, userData.length - 1)];
+    
+    if (!benchFrame || !userFrame) return;
+    
+    // Extract landmarks
+    const benchLandmarks = benchFrame.landmarks || [];
+    const userLandmarks = userFrame.landmarks || [];
+    
+    // MediaPipe Pose landmark indices (0-indexed)
+    // 11 = left_shoulder, 12 = right_shoulder
+    // 13 = left_elbow, 14 = right_elbow
+    // 15 = left_wrist, 16 = right_wrist
+    // We'll use right side (assuming right-handed shot)
+    const SHOULDER_IDX = 12; // Right shoulder
+    const ELBOW_IDX = 14;     // Right elbow
+    const WRIST_IDX = 16;     // Right wrist
+    
+    // Draw each joint
+    drawJointCanvas('elbowCanvas', benchLandmarks, userLandmarks, ELBOW_IDX, 'Elbow');
+    drawJointCanvas('shoulderCanvas', benchLandmarks, userLandmarks, SHOULDER_IDX, 'Shoulder');
+    drawJointCanvas('wristCanvas', benchLandmarks, userLandmarks, WRIST_IDX, 'Wrist');
+}
+
+function drawJointCanvas(canvasId, benchLandmarks, userLandmarks, jointIndex, jointName) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = 40;
+    const drawArea = {
+        x: padding,
+        y: padding,
+        width: width - 2 * padding,
+        height: height - 2 * padding
+    };
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Draw grid
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const y = drawArea.y + (drawArea.height / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(drawArea.x, y);
+        ctx.lineTo(drawArea.x + drawArea.width, y);
+        ctx.stroke();
+    }
+    for (let i = 0; i <= 4; i++) {
+        const x = drawArea.x + (drawArea.width / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, drawArea.y);
+        ctx.lineTo(x, drawArea.y + drawArea.height);
+        ctx.stroke();
+    }
+    
+    // Get joint positions - landmarks can be arrays or objects
+    let benchJoint = benchLandmarks[jointIndex];
+    let userJoint = userLandmarks[jointIndex];
+    
+    // Handle Firebase format where landmarks might be objects with x, y, z properties
+    const normalizeLandmark = (landmark) => {
+        if (!landmark) return null;
+        if (Array.isArray(landmark)) {
+            return [landmark[0] || 0, landmark[1] || 0, landmark[2] || 0];
+        }
+        if (typeof landmark === 'object') {
+            return [landmark.x || landmark[0] || 0, landmark.y || landmark[1] || 0, landmark.z || landmark[2] || 0];
+        }
+        return null;
+    };
+    
+    benchJoint = normalizeLandmark(benchJoint);
+    userJoint = normalizeLandmark(userJoint);
+    
+    if (!benchJoint || !userJoint) {
+        // Draw "No data" message
+        ctx.fillStyle = '#999';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data available', width / 2, height / 2);
+        return;
+    }
+    
+    // Convert 3D coordinates to 2D screen space
+    // We'll use x and y coordinates, with z as depth (smaller circles for further away)
+    const normalizeCoord = (coord, min, max) => {
+        return ((coord - min) / (max - min)) * drawArea.width + drawArea.x;
+    };
+    
+    // Find bounds for normalization - normalize all landmarks first
+    const normalizeAllLandmarks = (landmarks) => {
+        return landmarks.map(l => normalizeLandmark(l)).filter(l => l !== null);
+    };
+    
+    const benchNormalized = normalizeAllLandmarks(benchLandmarks);
+    const userNormalized = normalizeAllLandmarks(userLandmarks);
+    const allNormalized = [...benchNormalized, ...userNormalized];
+    
+    if (allNormalized.length === 0) {
+        ctx.fillStyle = '#999';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data available', width / 2, height / 2);
+        return;
+    }
+    
+    const allX = allNormalized.map(l => l[0]);
+    const allY = allNormalized.map(l => l[1]);
+    const minX = Math.min(...allX);
+    const maxX = Math.max(...allX);
+    const minY = Math.min(...allY);
+    const maxY = Math.max(...allY);
+    
+    // Add padding to bounds
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY || 1;
+    const paddedMinX = minX - rangeX * 0.1;
+    const paddedMaxX = maxX + rangeX * 0.1;
+    const paddedMinY = minY - rangeY * 0.1;
+    const paddedMaxY = maxY + rangeY * 0.1;
+    
+    // Draw connecting lines to show movement context
+    // Draw lines from shoulder to elbow to wrist for context
+    const drawSkeleton = (landmarks, color, alpha) => {
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.lineWidth = 2;
+        
+        // Shoulder to elbow
+        const shoulder = landmarks[SHOULDER_IDX];
+        const elbow = landmarks[ELBOW_IDX];
+        if (shoulder && elbow) {
+            const sx = normalizeCoord(shoulder[0], paddedMinX, paddedMaxX);
+            const sy = normalizeCoord(shoulder[1], paddedMinY, paddedMaxY);
+            const ex = normalizeCoord(elbow[0], paddedMinX, paddedMaxX);
+            const ey = normalizeCoord(elbow[1], paddedMinY, paddedMaxY);
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(ex, ey);
+            ctx.stroke();
+        }
+        
+        // Elbow to wrist
+        const wrist = landmarks[WRIST_IDX];
+        if (elbow && wrist) {
+            const ex = normalizeCoord(elbow[0], paddedMinX, paddedMaxX);
+            const ey = normalizeCoord(elbow[1], paddedMinY, paddedMaxY);
+            const wx = normalizeCoord(wrist[0], paddedMinX, paddedMaxX);
+            const wy = normalizeCoord(wrist[1], paddedMinY, paddedMaxY);
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(wx, wy);
+            ctx.stroke();
+        }
+    };
+    
+    // Draw skeleton for context (only for the joint being displayed)
+    if (jointIndex === ELBOW_IDX || jointIndex === WRIST_IDX) {
+        drawSkeleton(benchLandmarks, '#4a90e2', 0.3);
+        drawSkeleton(userLandmarks, '#ff6b7a', 0.3);
+    }
+    
+    ctx.globalAlpha = 1.0;
+    
+    // Draw benchmark joint
+    const benchX = normalizeCoord(benchJoint[0], paddedMinX, paddedMaxX);
+    const benchY = normalizeCoord(benchJoint[1], paddedMinY, paddedMaxY);
+    const benchZ = benchJoint[2] || 0;
+    const benchRadius = Math.max(8, 12 - Math.abs(benchZ) * 2);
+    
+    ctx.fillStyle = '#4a90e2';
+    ctx.beginPath();
+    ctx.arc(benchX, benchY, benchRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2c5aa0';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw user joint
+    const userX = normalizeCoord(userJoint[0], paddedMinX, paddedMaxX);
+    const userY = normalizeCoord(userJoint[1], paddedMinY, paddedMaxY);
+    const userZ = userJoint[2] || 0;
+    const userRadius = Math.max(8, 12 - Math.abs(userZ) * 2);
+    
+    ctx.fillStyle = '#ff6b7a';
+    ctx.beginPath();
+    ctx.arc(userX, userY, userRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#cc5566';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw line connecting the two joints to show difference
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(benchX, benchY);
+    ctx.lineTo(userX, userY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Draw distance label
+    const distance = Math.sqrt(
+        Math.pow(benchX - userX, 2) + 
+        Math.pow(benchY - userY, 2)
+    );
+    const midX = (benchX + userX) / 2;
+    const midY = (benchY + userY) / 2;
+    
+    ctx.fillStyle = '#333';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${distance.toFixed(1)}px`, midX, midY - 5);
+}
+
 // Process Curry benchmark video file - uses the same method as processVideoForBenchmark (like LeBron)
 async function processCurryBenchmarkVideo() {
     const playerNames = {
@@ -4839,7 +5925,11 @@ async function processCurryBenchmarkVideo() {
         }
         
         if (!videoFile) {
-            throw lastError || new Error(`Could not load video from any of the attempted paths: ${possiblePaths.join(', ')}`);
+            // Don't throw error - just log and return early to use default benchmark
+            console.log('ℹ️ Curry video file not found. This is normal - using default benchmark data instead.');
+            console.log('   Tried paths:', possiblePaths.join(', '));
+            // Return early - the catch block will handle fallback
+            throw new Error(`Video file not found (using default benchmark data)`);
         }
         
         // Show loading message
@@ -4850,13 +5940,36 @@ async function processCurryBenchmarkVideo() {
         document.getElementById('step2').classList.add('active');
         document.getElementById('step2').style.display = 'block';
         
-        // Use the same processVideoForBenchmark function that was used for LeBron
-        console.log('🔄 Processing video using processVideoForBenchmark (same method as LeBron)...');
-        const poseData = await processVideoForBenchmark(videoFile, 'curry');
+        // Use backend endpoint to process video with same Python code as live processing
+        console.log('🔄 Processing video using backend endpoint (same Python code as live processing)...');
+        
+        const formData = new FormData();
+        formData.append('video', videoFile);
+        
+        const response = await fetch('/api/process_benchmark_video', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || result.error || 'Failed to process video');
+        }
+        
+        // Convert backend format to frontend format
+        const poseData = result.shot_angles.map(angle => ({
+            state: angle.state,
+            time: angle.time,
+            elbow_angle: angle.elbow_angle,
+            wrist_angle: angle.wrist_angle,
+            arm_angle: angle.arm_angle,
+            landmarks: result.landmark_frames.find(lf => Math.abs(lf.time - angle.time) < 0.01)?.landmarks || []
+        }));
         
         console.log(`✅ Processed Curry benchmark: ${poseData.length} frames`);
         
-        // Store the benchmark data (poseData is returned from processVideoForBenchmark)
+        // Store the benchmark data
         if (poseData && poseData.length > 0) {
             console.log('✅ Benchmark data sample:', poseData[0]);
             

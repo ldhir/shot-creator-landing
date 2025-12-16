@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Coach - Shot Sync</title>
+    <link rel="stylesheet" href="/tool/style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-white);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-dark);
+        }
+
+        .coach-container {
+            background: var(--bg-surface);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 900px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .coach-header {
+            background: var(--bg-surface-light);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .coach-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-family: 'Nunito Sans', sans-serif;
+        }
+
+        .coach-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .insights-panel {
+            background: var(--bg-surface-light);
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+        }
+
+        .insight-item {
+            background: var(--bg-surface);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            border: 1px solid var(--border-color);
+        }
+
+        .insight-label {
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .insight-value {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: var(--bg-surface);
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+        }
+
+        .message.coach .message-avatar {
+            background: var(--bg-surface-light);
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.coach .message-content {
+            background: var(--bg-surface-light);
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-container {
+            padding: 20px 30px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-surface-light);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 120px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: var(--bg-surface);
+            color: var(--text-dark);
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-gray);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(255, 107, 122, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .quick-questions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-question-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dark);
+        }
+
+        .quick-question-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .loading {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            animation: bounce 1.4s infinite;
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-gray);
+        }
+
+        .welcome-message h2 {
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            font-family: 'Nunito Sans', sans-serif;
+        }
+
+        .welcome-message ul {
+            color: var(--text-gray);
+        }
+
+        .clear-button {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            font-family: 'Nunito Sans', sans-serif;
+        }
+
+        .clear-button:hover {
+            background: var(--bg-surface);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="coach-container">
+        <div class="coach-header">
+            <div>
+                <h1>🏀 AI Coach</h1>
+                <div class="coach-status">
+                    <span class="status-dot"></span>
+                    <span>Online</span>
+                </div>
+            </div>
+            <button class="clear-button" onclick="clearConversation()">Clear Chat</button>
+        </div>
+
+        <div class="insights-panel" id="insightsPanel">
+            <!-- Insights will be loaded here -->
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <h2>👋 Hey there!</h2>
+                <p>I'm your AI coach. I can help you with:</p>
+                <ul style="list-style: none; margin-top: 10px;">
+                    <li>📊 Analyzing your shot performance</li>
+                    <li>🍎 Nutrition planning and tracking</li>
+                    <li>💪 Workout program design</li>
+                    <li>📈 Progress tracking and motivation</li>
+                </ul>
+                <p style="margin-top: 15px;">Ask me anything or try one of the quick questions below!</p>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="quick-questions">
+                <button class="quick-question-btn" onclick="sendQuickQuestion('How can I improve my shooting form?')">
+                    Improve shooting form
+                </button>
+                <button class="quick-question-btn" onclick="sendQuickQuestion('What should I eat today?')">
+                    Nutrition advice
+                </button>
+                <button class="quick-question-btn" onclick="sendQuickQuestion('Create a workout plan for me')">
+                    Workout plan
+                </button>
+                <button class="quick-question-btn" onclick="sendQuickQuestion('How am I progressing?')">
+                    Progress check
+                </button>
+            </div>
+            <div class="chat-input-wrapper">
+                <textarea 
+                    id="chatInput" 
+                    class="chat-input" 
+                    placeholder="Ask your coach anything..."
+                    rows="1"
+                    onkeydown="handleKeyDown(event)"
+                ></textarea>
+                <button class="send-button" id="sendButton" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5001/api';
+        
+        // Get user ID from Firebase auth or localStorage
+        let currentUserId = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Try to get user ID from Firebase (check both current window and parent window if in iframe)
+            let firebaseAuth = window.firebaseAuth;
+            if (!firebaseAuth && window.parent && window.parent.firebaseAuth) {
+                firebaseAuth = window.parent.firebaseAuth;
+            }
+            
+            if (firebaseAuth && firebaseAuth.currentUser) {
+                currentUserId = firebaseAuth.currentUser.uid;
+            } else {
+                // Fallback: get from localStorage or generate test ID
+                currentUserId = localStorage.getItem('userId');
+                if (!currentUserId) {
+                    // Generate a test user ID for demo/testing purposes
+                    currentUserId = 'test_user_' + Date.now();
+                    localStorage.setItem('userId', currentUserId);
+                    showMessage('coach', '👋 Welcome! I\'m your AI coach. I\'m running in test mode - you can use me right away! For full features with your data, sign in with Firebase.', false);
+                }
+            }
+            
+            if (currentUserId) {
+                loadInsights();
+                loadConversation();
+            }
+        });
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function sendQuickQuestion(question) {
+            document.getElementById('chatInput').value = question;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) {
+                return;
+            }
+            
+            // Ensure we have a user ID
+            if (!currentUserId) {
+                currentUserId = 'test_user_' + Date.now();
+                localStorage.setItem('userId', currentUserId);
+            }
+            
+            // Clear input
+            input.value = '';
+            
+            // Show user message
+            showMessage('user', message);
+            
+            // Show loading
+            const loadingId = showLoading();
+            
+            try {
+                const response = await fetch(`${API_URL}/coach/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading
+                removeLoading(loadingId);
+                
+                if (data.success) {
+                    showMessage('coach', data.response);
+                    // Refresh insights
+                    loadInsights();
+                } else {
+                    showMessage('coach', `Error: ${data.error || 'Something went wrong'}`, true);
+                }
+            } catch (error) {
+                removeLoading(loadingId);
+                showMessage('coach', `Error: ${error.message}`, true);
+            }
+        }
+
+        function showMessage(sender, text, isError = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            
+            // Remove welcome message if it exists
+            const welcomeMsg = messagesContainer.querySelector('.welcome-message');
+            if (welcomeMsg) {
+                welcomeMsg.remove();
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? 'You' : '🏀';
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            if (isError) {
+                content.style.background = 'rgba(239, 68, 68, 0.1)';
+                content.style.color = '#ef4444';
+                content.style.borderColor = '#ef4444';
+            }
+            content.textContent = text;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showLoading() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message coach';
+            loadingDiv.id = 'loading-message';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = '🏀';
+            
+            const loading = document.createElement('div');
+            loading.className = 'loading';
+            loading.innerHTML = '<div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>';
+            
+            loadingDiv.appendChild(avatar);
+            loadingDiv.appendChild(loading);
+            messagesContainer.appendChild(loadingDiv);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return 'loading-message';
+        }
+
+        function removeLoading(loadingId) {
+            const loading = document.getElementById(loadingId);
+            if (loading) {
+                loading.remove();
+            }
+        }
+
+        async function loadInsights() {
+            if (!currentUserId) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/coach/insights?userId=${currentUserId}`);
+                const data = await response.json();
+                
+                if (data.success && data.insights) {
+                    displayInsights(data.insights);
+                }
+            } catch (error) {
+                console.error('Error loading insights:', error);
+            }
+        }
+
+        function displayInsights(insights) {
+            const panel = document.getElementById('insightsPanel');
+            panel.innerHTML = '';
+            
+            if (insights.shot_analysis) {
+                const item = document.createElement('div');
+                item.className = 'insight-item';
+                item.innerHTML = `
+                    <span class="insight-label">Shot Score:</span>
+                    <span class="insight-value">${insights.shot_analysis.average_score.toFixed(1)}%</span>
+                `;
+                panel.appendChild(item);
+            }
+            
+            if (insights.nutrition) {
+                const item = document.createElement('div');
+                item.className = 'insight-item';
+                const onTrack = insights.nutrition.on_track ? '✓' : '⚠';
+                item.innerHTML = `
+                    <span class="insight-label">Nutrition:</span>
+                    <span class="insight-value">${onTrack} ${insights.nutrition.calorie_actual.toFixed(0)}/${insights.nutrition.calorie_goal} cal</span>
+                `;
+                panel.appendChild(item);
+            }
+            
+            if (insights.workouts) {
+                const item = document.createElement('div');
+                item.className = 'insight-item';
+                item.innerHTML = `
+                    <span class="insight-label">Workouts:</span>
+                    <span class="insight-value">${insights.workouts.total_workouts} this month</span>
+                `;
+                panel.appendChild(item);
+            }
+        }
+
+        async function loadConversation() {
+            if (!currentUserId) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/coach/conversation?userId=${currentUserId}`);
+                const data = await response.json();
+                
+                if (data.success && data.conversation && data.conversation.length > 0) {
+                    const messagesContainer = document.getElementById('chatMessages');
+                    const welcomeMsg = messagesContainer.querySelector('.welcome-message');
+                    if (welcomeMsg) {
+                        welcomeMsg.remove();
+                    }
+                    
+                    // Display conversation history
+                    data.conversation.forEach(msg => {
+                        if (msg.role === 'user' || msg.role === 'assistant') {
+                            showMessage(msg.role === 'user' ? 'user' : 'coach', msg.content, false);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+            }
+        }
+
+        async function clearConversation() {
+            if (!currentUserId || !confirm('Clear conversation history?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/coach/clear`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const messagesContainer = document.getElementById('chatMessages');
+                    messagesContainer.innerHTML = `
+                        <div class="welcome-message">
+                            <h2>👋 Conversation cleared!</h2>
+                            <p>Start a new conversation with your coach.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error clearing conversation:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+
