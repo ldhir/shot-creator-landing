@@ -29,6 +29,14 @@ __pycache__/
 .Python
 venv/
 ENV/
+tool/AI-Basketball-Shot-Detection-Tracker/venv/
+tool/AI-Basketball-Shot-Detection-Tracker/__pycache__/
+tool/AI-Basketball-Shot-Detection-Tracker/uploads/
+tool/AI-Basketball-Shot-Detection-Tracker/*.mov
+tool/AI-Basketball-Shot-Detection-Tracker/*.mp4
+tool/AI-Basketball-Shot-Detection-Tracker/*.pt
+tool/AI-Basketball-Shot-Detection-Tracker/yolov8m.pt
+tool/AI-Basketball-Shot-Detection-Tracker/best.pt
 
 # Temporary files
 *.log
