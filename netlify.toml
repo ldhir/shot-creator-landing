@@ -2,7 +2,6 @@
   publish = "."
   command = "echo 'Static site - no build needed'"
 
-# Skip secrets scanning - these are intentionally public client-side API keys
-# Firebase and Google Calendar keys are restricted by domain/security rules
-[secrets-scanning]
-  skip = true
+[build.environment]
+  # Disable smart detection for client-side API keys (Firebase/Google Calendar)
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
