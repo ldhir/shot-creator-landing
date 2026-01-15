@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shot Sync - Overlay & 3D Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .form-group input[type="number"] {
+            width: 200px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .upload-label {
+            display: inline-block;
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+
+        .upload-label:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .video-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .video-3d-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .video-3d-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            height: auto;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            background: transparent;
+        }
+
+        .viewer-3d-wrapper {
+            background: #1a1a1a;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            min-height: 600px;
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+            min-height: 600px;
+        }
+
+        .view-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .view-btn {
+            padding: 8px 15px;
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+
+        .view-btn:hover {
+            background: rgba(102, 126, 234, 1);
+        }
+
+        .view-btn.active {
+            background: rgba(118, 75, 162, 1);
+        }
+
+        .viewer-3d-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info-panel {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .info-panel h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .info-value {
+            color: #666;
+        }
+
+        .section-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: bold;
+            z-index: 5;
+        }
+
+        .rotation-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-label {
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+            min-width: 80px;
+        }
+
+        .slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #444;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            background: #764ba2;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+
+        .slider::-moz-range-thumb:hover {
+            background: #764ba2;
+        }
+
+        .slider-value {
+            color: white;
+            font-size: 0.85em;
+            min-width: 50px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏀 Shot Sync Overlay & 3D Viewer</h1>
+            <p class="subtitle">Test and debug the shot sync model overlay implementation</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="form-group">
+                <label for="userHeight">Your Height (inches):</label>
+                <input type="number" id="userHeight" value="72" min="48" max="96">
+            </div>
+            <div class="form-group">
+                <label for="shoulderWidth">Shoulder Width (inches):</label>
+                <input type="number" id="shoulderWidth" value="18" min="12" max="30">
+            </div>
+            <div class="form-group">
+                <label for="poseMethod" style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: bold;">Pose Estimation Method:</span>
+                    <select id="poseMethod" style="padding: 8px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; background: white;">
+                        <option value="original">Original Shot Sync</option>
+                        <option value="ntu">NTU-RRIS Google-MediaPipe</option>
+                        <option value="videopose3d" selected>VideoPose3D (Facebook Research) - Best 3D</option>
+                    </select>
+                </label>
+                <div id="methodHint" style="margin-top: 5px; font-size: 0.9em; color: #667eea; font-weight: 500;">
+                    💡 VideoPose3D selected - Buffer will fill as video plays (needs 243 frames)
+                </div>
+            </div>
+            <label for="videoUpload" class="upload-label">
+                📹 Upload Video
+            </label>
+            <input type="file" id="videoUpload" accept="video/*">
+            <label for="imageUpload" class="upload-label" style="margin-top: 15px;">
+                🖼️ Upload Image (for 3D pose visualization)
+            </label>
+            <input type="file" id="imageUpload" accept="image/*">
+            <div id="uploadStatus" class="status"></div>
+            <div id="errorStatus" class="status" style="display: none;"></div>
+        </div>
+        
+        <!-- Animation Controls (hidden until sequence is ready) -->
+        <div id="animationControls" style="display: none; margin-top: 15px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+            <div style="font-weight: bold; margin-bottom: 10px; color: #667eea;">🎬 3D Animation Controls</div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button id="playAnimationBtn" class="btn" style="padding: 8px 20px; font-size: 0.9em;">▶️ Play Animation</button>
+                <button id="pauseAnimationBtn" class="btn" style="padding: 8px 20px; font-size: 0.9em; display: none;">⏸️ Pause</button>
+                <button id="resetAnimationBtn" class="btn" style="padding: 8px 20px; font-size: 0.9em;">⏮️ Reset</button>
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    Speed:
+                    <input type="range" id="animationSpeedSlider" min="0.5" max="3" step="0.1" value="1" style="width: 100px;">
+                    <span id="animationSpeedValue">1.0x</span>
+                </label>
+                <span id="animationFrameInfo" style="color: #666; font-size: 0.9em;">Frame: 0/0</span>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                💡 This animation shows the smoothed 3D poses from all 243 frames processed by VideoPose3D
+            </div>
+        </div>
+
+        <div class="video-section" id="videoSection">
+            <div class="video-3d-container">
+                <!-- 2D Overlay Section -->
+                <div class="video-wrapper">
+                    <div class="section-label">2D Overlay (Shot Sync Model) - Green skeleton overlay appears here</div>
+                    <video id="videoPlayer" controls style="width: 100%; height: auto;"></video>
+                    <canvas id="overlayCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+                </div>
+
+                <!-- 3D Visualization Section -->
+                <div class="viewer-3d-wrapper">
+                    <div class="viewer-3d-label">3D Pose Visualization</div>
+                    <div class="view-controls">
+                        <button class="view-btn active" onclick="setView('front')">Front</button>
+                        <button class="view-btn" onclick="setView('side')">Side</button>
+                        <button class="view-btn" onclick="setView('top')">Top</button>
+                    </div>
+                    <div class="rotation-controls">
+                        <div class="slider-group">
+                            <span class="slider-label">Horizontal:</span>
+                            <input type="range" class="slider" id="horizontalSlider" min="0" max="360" value="0" step="1">
+                            <span class="slider-value" id="horizontalValue">0°</span>
+                        </div>
+                        <div class="slider-group">
+                            <span class="slider-label">Vertical:</span>
+                            <input type="range" class="slider" id="verticalSlider" min="-90" max="90" value="0" step="1">
+                            <span class="slider-value" id="verticalValue">0°</span>
+                        </div>
+                    </div>
+                    <canvas id="canvas3d"></canvas>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn" id="playBtn">▶️ Play</button>
+                <button class="btn" id="pauseBtn">⏸️ Pause</button>
+                <button class="btn" id="resetBtn">🔄 Reset</button>
+            </div>
+
+            <div class="info-panel">
+                <h3>Detection Information</h3>
+                <div class="info-item">
+                    <span class="info-label">Method:</span>
+                    <span class="info-value" id="methodName">NTU-RRIS MediaPipe</span>
+                </div>
+                <div class="info-item" id="videopose3dStatus" style="display: none;">
+                    <span class="info-label">VideoPose3D Status:</span>
+                    <span class="info-value" id="videopose3dStatusValue" style="font-weight: bold; color: #667eea;">--</span>
+                </div>
+                <div class="info-item" id="videopose3dBuffer" style="display: none;">
+                    <span class="info-label">Buffer Progress:</span>
+                    <span class="info-value" id="videopose3dBufferValue">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Person Detected:</span>
+                    <span class="info-value" id="personDetected">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Confidence:</span>
+                    <span class="info-value" id="confidence">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Landmarks Visible:</span>
+                    <span class="info-value" id="landmarksVisible">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Eye to Feet:</span>
+                    <span class="info-value" id="eyeToFeet">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Shoulder Width:</span>
+                    <span class="info-value" id="shoulderWidthValue">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Distance:</span>
+                    <span class="info-value" id="distance">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize video and canvas elements
+        let videoElement = document.getElementById('videoPlayer');
+        let canvas = document.getElementById('overlayCanvas');
+        let ctx = canvas ? canvas.getContext('2d') : null;
+        let animationFrameId = null;
+        let poses3DSequence = null;  // Store full 3D pose sequence for animation
+        let animationPlaying = false;
+        let animationFrameIndex = 0;
+        let animationSpeed = 1.0;  // Frames per second
+        let lastAnimationTime = 0;
+        let isProcessing = false;
+        let frameCount = 0;
+        const PROCESS_EVERY_N_FRAMES = 2;  // Process every 2nd frame
+
+        // Initialize video and canvas when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            videoElement = document.getElementById('videoPlayer');
+            canvas = document.getElementById('overlayCanvas');
+            if (canvas) {
+                ctx = canvas.getContext('2d');
+            }
+            
+            // Verify elements exist
+            if (!videoElement) {
+                console.error('Video element not found!');
+            }
+            if (!canvas) {
+                console.error('Canvas element not found!');
+            }
+            if (!ctx) {
+                console.error('Canvas context not found!');
+            }
+            console.log('Initialized - Video:', !!videoElement, 'Canvas:', !!canvas, 'Context:', !!ctx);
+        });
+
+        // ========== THREE.JS 3D VIEWER SETUP ==========
+        let scene, camera, renderer;
+        let jointSpheres = [];
+        let connectionLines = [];
+        let currentView = 'front';
+        let cameraDistance = 5;
+        let cameraAngleX = 0;
+        let cameraAngleY = 0;
+
+        // Update camera position based on angles (global function)
+        function updateCameraFromAngles() {
+            if (!camera) return;
+            const x = Math.sin(cameraAngleY) * Math.cos(cameraAngleX) * cameraDistance;
+            const y = Math.sin(cameraAngleX) * cameraDistance;
+            const z = Math.cos(cameraAngleY) * Math.cos(cameraAngleX) * cameraDistance;
+            camera.position.set(x, y, z);
+            camera.lookAt(0, 0, 0);
+        }
+
+        // Update camera from slider values
+        function updateCameraFromSliders() {
+            const horizontalSlider = document.getElementById('horizontalSlider');
+            const verticalSlider = document.getElementById('verticalSlider');
+            
+            if (horizontalSlider && verticalSlider) {
+                // Convert slider values to radians
+                const horizontalDeg = parseFloat(horizontalSlider.value);
+                const verticalDeg = parseFloat(verticalSlider.value);
+                
+                cameraAngleY = (horizontalDeg * Math.PI) / 180;
+                cameraAngleX = (verticalDeg * Math.PI) / 180;
+                
+                // Update display values
+                document.getElementById('horizontalValue').textContent = horizontalDeg.toFixed(0) + '°';
+                document.getElementById('verticalValue').textContent = verticalDeg.toFixed(0) + '°';
+                
+                updateCameraFromAngles();
+            }
+        }
+
+        function init3DViewer() {
+            const container = document.getElementById('canvas3d');
+            const width = container.clientWidth;
+            const height = container.clientHeight || 600;
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a1a);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            updateCameraPosition();
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: container, antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+
+            // Add a second light from the opposite side for better visibility
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            directionalLight2.position.set(-5, 5, -5);
+            scene.add(directionalLight2);
+
+            // Enhanced Grid - larger and more visible
+            // Main grid (horizontal plane at feet level)
+            const gridHelper = new THREE.GridHelper(12, 24, 0x888888, 0x444444);
+            gridHelper.rotation.x = Math.PI / 2;
+            gridHelper.position.y = -2;
+            gridHelper.material.opacity = 0.8;
+            gridHelper.material.transparent = true;
+            scene.add(gridHelper);
+
+            // Add a ground plane for better depth perception
+            const planeGeometry = new THREE.PlaneGeometry(12, 12);
+            const planeMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x333333, 
+                opacity: 0.3, 
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            groundPlane.rotation.x = Math.PI / 2;
+            groundPlane.position.y = -2;
+            scene.add(groundPlane);
+
+            // Add axis helpers for orientation
+            const axesHelper = new THREE.AxesHelper(3);
+            scene.add(axesHelper);
+
+            // Enhanced mouse controls for smooth rotation
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            // Initialize camera angles
+            cameraDistance = 5;
+            cameraAngleX = 0;
+            cameraAngleY = 0;
+
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+                container.style.cursor = 'grabbing';
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                if (!isDragging) {
+                    container.style.cursor = 'grab';
+                    return;
+                }
+                
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                // Rotate camera around the scene (orbit controls)
+                cameraAngleY -= deltaX * 0.01;
+                cameraAngleX -= deltaY * 0.01;
+                
+                // Limit vertical rotation to prevent flipping
+                cameraAngleX = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, cameraAngleX));
+                
+                updateCameraFromAngles();
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            container.addEventListener('mouseup', () => {
+                isDragging = false;
+                container.style.cursor = 'grab';
+            });
+
+            container.addEventListener('mouseleave', () => {
+                isDragging = false;
+                container.style.cursor = 'default';
+            });
+
+            // Zoom with wheel (smooth zoom)
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomSpeed = 0.1;
+                const delta = e.deltaY > 0 ? 1 + zoomSpeed : 1 - zoomSpeed;
+                cameraDistance *= delta;
+                cameraDistance = Math.max(2, Math.min(20, cameraDistance));
+                updateCameraFromAngles();
+            });
+
+            // Set initial cursor style
+            container.style.cursor = 'grab';
+
+            animate3D();
+        }
+
+        function updateCameraPosition() {
+            // Reset camera distance and angles when switching views
+            cameraDistance = 5;
+            
+            let horizontalDeg = 0;
+            let verticalDeg = 0;
+            
+            switch(currentView) {
+                case 'front':
+                    cameraAngleX = 0;
+                    cameraAngleY = 0;
+                    horizontalDeg = 0;
+                    verticalDeg = 0;
+                    break;
+                case 'side':
+                    cameraAngleX = 0;
+                    cameraAngleY = Math.PI / 2;
+                    horizontalDeg = 90;
+                    verticalDeg = 0;
+                    break;
+                case 'top':
+                    cameraAngleX = Math.PI / 2 - 0.1;
+                    cameraAngleY = 0;
+                    horizontalDeg = 0;
+                    verticalDeg = 89;
+                    break;
+            }
+            
+            // Update sliders to match view
+            const horizontalSlider = document.getElementById('horizontalSlider');
+            const verticalSlider = document.getElementById('verticalSlider');
+            if (horizontalSlider) horizontalSlider.value = horizontalDeg;
+            if (verticalSlider) verticalSlider.value = verticalDeg;
+            
+            // Update camera position using the angle system
+            updateCameraFromAngles();
+            updateCameraFromSliders(); // This will also update the display values
+        }
+
+        function setView(view) {
+            currentView = view;
+            updateCameraPosition();
+            
+            // Update button states
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            renderer.render(scene, camera);
+        }
+
+        function update3DSkeleton(landmarks) {
+            if (!landmarks || landmarks.length === 0) return;
+
+            // Clear previous skeleton
+            jointSpheres.forEach(sphere => scene.remove(sphere));
+            connectionLines.forEach(line => scene.remove(line));
+            jointSpheres = [];
+            connectionLines = [];
+
+            // Complete MediaPipe Pose connections (all main body connections)
+            const connections = [
+                // Torso (core skeleton)
+                [11, 12],  // Shoulders
+                [11, 23],  // Left shoulder to left hip
+                [12, 24],  // Right shoulder to right hip
+                [23, 24],  // Hips
+                // Left arm (complete chain)
+                [11, 13],  // Left shoulder to left elbow
+                [13, 15],  // Left elbow to left wrist
+                // Right arm (complete chain)
+                [12, 14],  // Right shoulder to right elbow
+                [14, 16],  // Right elbow to right wrist
+                // Left leg (complete chain)
+                [23, 25],  // Left hip to left knee
+                [25, 27],  // Left knee to left ankle
+                // Right leg (complete chain)
+                [24, 26],  // Right hip to right knee
+                [26, 28]   // Right knee to right ankle
+            ];
+
+            // First pass: calculate center for better normalization
+            let centerX = 0, centerY = 0, centerZ = 0;
+            let validCount = 0;
+            
+            landmarks.forEach((lm) => {
+                if (lm.visibility >= 0.3) {
+                    centerX += lm.x;
+                    centerY += lm.y;
+                    centerZ += (lm.z || 0);
+                    validCount++;
+                }
+            });
+            
+            if (validCount === 0) return;
+            
+            centerX /= validCount;
+            centerY /= validCount;
+            centerZ /= validCount;
+            
+            // Calculate scale based on shoulder width (more stable)
+            let scale = 4.0;
+            if (landmarks[11] && landmarks[12] && 
+                landmarks[11].visibility > 0.5 && landmarks[12].visibility > 0.5) {
+                const shoulderWidth = Math.abs(landmarks[11].x - landmarks[12].x);
+                scale = Math.max(3.0, Math.min(6.0, 1.0 / (shoulderWidth + 0.1)));
+            }
+
+            // Helper function to calculate 3D position from landmark
+            const calculatePos3D = (lm) => {
+                const x = (lm.x - centerX) * scale * 2;
+                const y = -(lm.y - centerY) * scale * 2;  // Flip Y for 3D
+                const zOffset = (lm.z || 0) - centerZ;
+                const z = zOffset * scale * 0.5;  // Reduced Z scale
+                return { x, y, z };
+            };
+
+            // Create joints (spheres) with improved coordinate transformation
+            landmarks.forEach((lm, index) => {
+                // Calculate position for all landmarks (even low visibility ones for connections)
+                const pos3d = calculatePos3D(lm);
+                landmarks[index].pos3d = pos3d;
+                
+                // Only create visible spheres for landmarks with good visibility
+                if (lm.visibility < 0.3) {
+                    return;  // Don't show sphere, but keep pos3d for connections
+                }
+
+                const geometry = new THREE.SphereGeometry(0.04, 12, 12);
+                const color = lm.visibility > 0.8 ? 0x00ff00 : lm.visibility > 0.6 ? 0xffff00 : 0xff6600;
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: color, 
+                    emissive: color, 
+                    emissiveIntensity: 0.4,
+                    shininess: 30
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos3d.x, pos3d.y, pos3d.z);
+                scene.add(sphere);
+                jointSpheres.push(sphere);
+            });
+
+            // Create connections (lines) - draw if both landmarks exist and have reasonable visibility
+            connections.forEach(([startIdx, endIdx]) => {
+                if (startIdx >= landmarks.length || endIdx >= landmarks.length) {
+                    return;
+                }
+                
+                const start = landmarks[startIdx];
+                const end = landmarks[endIdx];
+                
+                if (!start || !end) {
+                    return;
+                }
+                
+                // Draw connection if both landmarks have at least minimal visibility
+                // Lower threshold for connections (0.2) so we see more of the skeleton
+                if (start.visibility < 0.2 || end.visibility < 0.2) {
+                    return;  // Too low visibility, skip connection
+                }
+                
+                // pos3d should already be set from the joint creation loop above
+                if (!start.pos3d || !end.pos3d) {
+                    return;  // Safety check
+                }
+
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(start.pos3d.x, start.pos3d.y, start.pos3d.z),
+                    new THREE.Vector3(end.pos3d.x, end.pos3d.y, end.pos3d.z)
+                ]);
+
+                // Make connections more visible
+                const material = new THREE.LineBasicMaterial({ 
+                    color: 0x00ffff, 
+                    linewidth: 3,
+                    opacity: 0.95,
+                    transparent: true
+                });
+                const line = new THREE.Line(geometry, material);
+                scene.add(line);
+                connectionLines.push(line);
+            });
+        }
+
+        // ========== VIDEO PROCESSING ==========
+
+        async function processFrame() {
+            if (!videoElement) {
+                console.warn('No video element');
+                return;
+            }
+            
+            if (videoElement.paused || videoElement.ended) {
+                animationFrameId = requestAnimationFrame(processFrame);
+                return;
+            }
+
+            frameCount++;
+            if (frameCount % PROCESS_EVERY_N_FRAMES !== 0) {
+                animationFrameId = requestAnimationFrame(processFrame);
+                return;
+            }
+
+            if (isProcessing) {
+                animationFrameId = requestAnimationFrame(processFrame);
+                return;
+            }
+
+            isProcessing = true;
+
+            try {
+                // Capture frame from video
+                if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+                    console.warn('Video dimensions not ready');
+                    isProcessing = false;
+                    animationFrameId = requestAnimationFrame(processFrame);
+                    return;
+                }
+                
+                // Set canvas size to match video
+                if (canvas.width !== videoElement.videoWidth || canvas.height !== videoElement.videoHeight) {
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                }
+                
+                // Draw current video frame to canvas (temporary, will be replaced by overlay_frame from backend)
+                ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+                // Convert to base64 for sending to backend
+                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+
+                // Determine which API endpoint to use
+                const poseMethod = document.getElementById('poseMethod').value;
+                let apiEndpoint;
+                if (poseMethod === 'videopose3d') {
+                    apiEndpoint = '/api/process_frame_overlay_videopose3d';
+                } else if (poseMethod === 'ntu') {
+                    apiEndpoint = '/api/process_frame_overlay_ntu';
+                } else {
+                    apiEndpoint = '/api/process_frame_overlay';
+                }
+                
+                console.log(`Processing frame ${frameCount} with method: ${poseMethod}`);
+                console.log(`API endpoint: ${apiEndpoint}`);
+                
+                // Send to API
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        frame: frameData,
+                        user_height: parseFloat(document.getElementById('userHeight').value),
+                        shoulder_width: parseFloat(document.getElementById('shoulderWidth').value),
+                        mode: 'body',
+                        sequence_id: 'video_' + (videoElement.src || 'default')  // Unique ID for this video
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`API error ${response.status}:`, errorText);
+                    throw new Error(`API error: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`);
+                }
+
+                const result = await response.json();
+                console.log('API response:', { 
+                    success: result.success, 
+                    person_detected: result.person_detected,
+                    buffer_size: result.buffer_size,
+                    method: result.method 
+                });
+                
+                if (!result.success) {
+                    console.error('API returned error:', result.error);
+                    if (result.traceback) {
+                        console.error('Traceback:', result.traceback);
+                    }
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                if (result.success && result.overlay_frame) {
+                    // Draw the overlay frame (with Shot Sync joints) onto canvas
+                    // The overlay_frame from backend already includes the video frame + pose overlay
+                    const img = new Image();
+                    img.onload = () => {
+                        if (ctx && canvas) {
+                            // Make sure canvas size matches video
+                            if (canvas.width !== videoElement.videoWidth || canvas.height !== videoElement.videoHeight) {
+                                canvas.width = videoElement.videoWidth;
+                                canvas.height = videoElement.videoHeight;
+                            }
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            console.log(`Frame ${frameCount} overlay rendered: ${canvas.width}x${canvas.height}`);
+                        } else {
+                            console.error('Canvas or context not available', {ctx: !!ctx, canvas: !!canvas});
+                        }
+                    };
+                    img.onerror = (e) => {
+                        console.error('Error loading overlay image:', e);
+                    };
+                    img.src = 'data:image/jpeg;base64,' + result.overlay_frame;
+
+                    // Update 3D skeleton
+                    if (result.landmarks && scene) {
+                        update3DSkeleton(result.landmarks);
+                    }
+
+                    // Update info panel
+                    const poseMethod = document.getElementById('poseMethod').value;
+                    
+                    if (result.method) {
+                        document.getElementById('methodName').textContent = result.method;
+                    } else {
+                        let methodText = 'Original Shot Sync';
+                        if (poseMethod === 'videopose3d') {
+                            methodText = 'VideoPose3D (Facebook Research)';
+                        } else if (poseMethod === 'ntu') {
+                            methodText = 'NTU-RRIS MediaPipe';
+                        }
+                        document.getElementById('methodName').textContent = methodText;
+                    }
+                    
+                    // Show VideoPose3D status if using that method
+                    if (poseMethod === 'videopose3d') {
+                        const statusDiv = document.getElementById('videopose3dStatus');
+                        const bufferDiv = document.getElementById('videopose3dBuffer');
+                        const statusValue = document.getElementById('videopose3dStatusValue');
+                        const bufferValue = document.getElementById('videopose3dBufferValue');
+                        
+                        // Always show these fields when VideoPose3D is selected
+                        statusDiv.style.display = 'flex';
+                        bufferDiv.style.display = 'flex';
+                        
+                        // Update hint
+                        document.getElementById('methodHint').textContent = '💡 VideoPose3D selected - Buffer will fill as video plays';
+                        
+                        if (result.buffer_status !== undefined) {
+                            const bufferSize = result.buffer_size || 0;
+                            const totalFrames = 243; // VIDEOPOSE3D_WINDOW_SIZE
+                            const percentage = Math.round((bufferSize / totalFrames) * 100);
+                            
+                            if (result.buffer_status) {
+                                statusValue.textContent = '✓ Ready - Using VideoPose3D 3D';
+                                statusValue.style.color = '#00ff00';
+                                bufferValue.textContent = `${bufferSize}/${totalFrames} frames (100%)`;
+                                bufferValue.style.color = '#00ff00';
+                            } else {
+                                statusValue.textContent = '⏳ Buffering...';
+                                statusValue.style.color = '#ffaa00';
+                                bufferValue.textContent = `${bufferSize}/${totalFrames} frames (${percentage}%)`;
+                                bufferValue.style.color = '#ffaa00';
+                                
+                                // Add progress bar visual
+                                bufferValue.innerHTML = `
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span>${bufferSize}/${totalFrames} frames</span>
+                                        <div style="flex: 1; background: #ddd; height: 8px; border-radius: 4px; overflow: hidden;">
+                                            <div style="background: #667eea; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
+                                        </div>
+                                        <span>${percentage}%</span>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            statusValue.textContent = 'MediaPipe Only (VideoPose3D not loaded)';
+                            statusValue.style.color = '#ffaa00';
+                            bufferValue.textContent = 'Clone VideoPose3D repo to enable';
+                        }
+                    } else {
+                        document.getElementById('videopose3dStatus').style.display = 'none';
+                        document.getElementById('videopose3dBuffer').style.display = 'none';
+                        document.getElementById('methodHint').textContent = '💡 Select VideoPose3D to see buffer progress (243 frames needed)';
+                    }
+                    
+                    document.getElementById('personDetected').textContent = result.person_detected ? 'Yes' : 'No';
+                    document.getElementById('confidence').textContent = result.confidence ? (result.confidence * 100).toFixed(1) + '%' : '--';
+                    
+                    if (result.measurements) {
+                        const m = result.measurements;
+                        document.getElementById('landmarksVisible').textContent = m.landmarks_visible || '--';
+                        document.getElementById('eyeToFeet').textContent = m.eye_to_feet_inches ? m.eye_to_feet_inches.toFixed(1) + '"' : '--';
+                        document.getElementById('shoulderWidthValue').textContent = m.shoulder_width_inches ? m.shoulder_width_inches.toFixed(1) + '"' : '--';
+                        document.getElementById('distance').textContent = m.distance_feet ? m.distance_feet.toFixed(1) + ' ft' : '--';
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing frame:', error);
+                // Show error to user
+                const errorMsg = document.getElementById('errorStatus');
+                if (errorMsg) {
+                    errorMsg.textContent = `Error: ${error.message}`;
+                    errorMsg.className = 'status error';
+                    errorMsg.style.display = 'block';
+                }
+            } finally {
+                isProcessing = false;
+                animationFrameId = requestAnimationFrame(processFrame);
+            }
+        }
+
+        function startProcessing() {
+            console.log('Starting frame processing...');
+            if (!animationFrameId) {
+                frameCount = 0; // Reset frame count
+                animationFrameId = requestAnimationFrame(processFrame);
+            }
+        }
+
+        function stopProcessing() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        // ========== EVENT LISTENERS ==========
+        
+        // Wait for DOM to be ready before attaching event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoUploadInput = document.getElementById('videoUpload');
+            if (!videoUploadInput) {
+                console.error('videoUpload input not found!');
+                return;
+            }
+            
+            videoUploadInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) {
+                    console.log('No file selected');
+                    return;
+                }
+                
+                console.log('Video file selected:', file.name, file.type);
+                
+                // Create object URL for video
+                const videoURL = URL.createObjectURL(file);
+                if (!videoElement) {
+                    console.error('Video element not found!');
+                    return;
+                }
+                videoElement.src = videoURL;
+                
+                // Show status
+                const uploadStatus = document.getElementById('uploadStatus');
+                if (uploadStatus) {
+                    uploadStatus.textContent = `✓ Loaded: ${file.name}`;
+                    uploadStatus.className = 'status success';
+                    uploadStatus.style.display = 'block';
+                }
+                
+                // Show video section if it exists
+                const videoSection = document.getElementById('videoSection');
+                if (videoSection) {
+                    console.log('Showing video section');
+                    videoSection.style.display = 'block';
+                } else {
+                    console.error('Video section not found!');
+                }
+                
+                // Set up video metadata handler
+                videoElement.onloadedmetadata = () => {
+                    console.log('Video metadata loaded:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                    if (canvas) {
+                        canvas.width = videoElement.videoWidth;
+                        canvas.height = videoElement.videoHeight;
+                        console.log('Canvas size set to:', canvas.width, 'x', canvas.height);
+                        // Make canvas visible
+                        canvas.style.display = 'block';
+                        canvas.style.visibility = 'visible';
+                    }
+                    if (!scene) {
+                        console.log('Initializing 3D viewer...');
+                        init3DViewer();
+                    }
+                };
+                
+                // Handle video load errors
+                videoElement.onerror = (err) => {
+                    console.error('Video load error:', err);
+                    const uploadStatus = document.getElementById('uploadStatus');
+                    if (uploadStatus) {
+                        uploadStatus.textContent = `✗ Error loading video: ${file.name}`;
+                        uploadStatus.className = 'status error';
+                        uploadStatus.style.display = 'block';
+                    }
+                };
+                
+                // Handle video can play
+                videoElement.oncanplay = () => {
+                    console.log('Video can play');
+                };
+                
+                // Load the video
+                videoElement.load();
+            });
+        });
+
+        // Image upload handler
+        document.getElementById('imageUpload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Show image in video element (for display)
+            const imageUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = async () => {
+                // Set canvas size to image size
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Initialize 3D viewer if not already
+                if (!scene) init3DViewer();
+                
+                // Process the image
+                await processImage(img);
+                
+                document.getElementById('uploadStatus').textContent = `✓ Loaded image: ${file.name}`;
+                document.getElementById('uploadStatus').className = 'status success';
+                document.getElementById('uploadStatus').style.display = 'block';
+                document.getElementById('videoSection').style.display = 'block';
+            };
+            img.src = imageUrl;
+        });
+
+        // Process a single image
+        async function processImage(img) {
+            try {
+                // Convert image to base64
+                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Determine which API endpoint to use
+                const poseMethod = document.getElementById('poseMethod').value;
+                let apiEndpoint;
+                if (poseMethod === 'videopose3d') {
+                    apiEndpoint = '/api/process_frame_overlay_videopose3d';
+                } else if (poseMethod === 'ntu') {
+                    apiEndpoint = '/api/process_frame_overlay_ntu';
+                } else {
+                    apiEndpoint = '/api/process_frame_overlay';
+                }
+                
+                console.log(`Processing image with method: ${poseMethod}`);
+                
+                // Send to API
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        frame: frameData,
+                        user_height: parseFloat(document.getElementById('userHeight').value),
+                        shoulder_width: parseFloat(document.getElementById('shoulderWidth').value),
+                        mode: 'body',
+                        sequence_id: 'image_' + Date.now()  // Unique ID for image
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`API error ${response.status}:`, errorText);
+                    throw new Error(`API error: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`);
+                }
+
+                const result = await response.json();
+                console.log('API response:', { 
+                    success: result.success, 
+                    person_detected: result.person_detected,
+                    buffer_size: result.buffer_size,
+                    method: result.method 
+                });
+                
+                if (!result.success) {
+                    console.error('API returned error:', result.error);
+                    if (result.traceback) {
+                        console.error('Traceback:', result.traceback);
+                    }
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                if (result.success && result.overlay_frame) {
+                    // Draw the overlay frame onto canvas
+                    const overlayImg = new Image();
+                    overlayImg.onload = () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
+                        console.log('Image overlay rendered successfully');
+                    };
+                    overlayImg.onerror = (e) => {
+                        console.error('Error loading overlay image:', e);
+                    };
+                    overlayImg.src = 'data:image/jpeg;base64,' + result.overlay_frame;
+
+                    // Store 3D pose sequence for animation if available
+                    if (result.poses_3d_sequence && result.poses_3d_sequence.length > 0) {
+                        poses3DSequence = result.poses_3d_sequence;
+                        console.log(`✓ Received ${poses3DSequence.length} frames of smoothed 3D poses`);
+                        // Show animation controls
+                        const animControls = document.getElementById('animationControls');
+                        if (animControls) animControls.style.display = 'block';
+                    }
+                    
+                    // Store 3D pose sequence for animation if available
+                    if (result.poses_3d_sequence && result.poses_3d_sequence.length > 0) {
+                        poses3DSequence = result.poses_3d_sequence;
+                        console.log(`✓ Received ${poses3DSequence.length} frames of smoothed 3D poses`);
+                        // Show animation controls
+                        const animControls = document.getElementById('animationControls');
+                        if (animControls) animControls.style.display = 'block';
+                    }
+                    
+                    // Update 3D skeleton
+                    if (result.landmarks && scene) {
+                        update3DSkeleton(result.landmarks);
+                    }
+
+                    // Update info panel
+                    updateInfoPanel(result);
+                }
+            } catch (error) {
+                console.error('Error processing image:', error);
+                const errorMsg = document.getElementById('errorStatus');
+                if (errorMsg) {
+                    errorMsg.textContent = `Error: ${error.message}`;
+                    errorMsg.className = 'status error';
+                    errorMsg.style.display = 'block';
+                }
+            }
+        }
+
+        // Helper function to update info panel
+        function updateInfoPanel(result) {
+            const poseMethod = document.getElementById('poseMethod').value;
+            
+            if (result.method) {
+                document.getElementById('methodName').textContent = result.method;
+            } else {
+                let methodText = 'Original Shot Sync';
+                if (poseMethod === 'videopose3d') {
+                    methodText = 'VideoPose3D (Facebook Research)';
+                } else if (poseMethod === 'ntu') {
+                    methodText = 'NTU-RRIS MediaPipe';
+                }
+                document.getElementById('methodName').textContent = methodText;
+            }
+            
+            // Show VideoPose3D status if using that method
+            if (poseMethod === 'videopose3d') {
+                const statusDiv = document.getElementById('videopose3dStatus');
+                const bufferDiv = document.getElementById('videopose3dBuffer');
+                const statusValue = document.getElementById('videopose3dStatusValue');
+                const bufferValue = document.getElementById('videopose3dBufferValue');
+                
+                statusDiv.style.display = 'flex';
+                bufferDiv.style.display = 'flex';
+                
+                if (result.buffer_status !== undefined) {
+                    const bufferSize = result.buffer_size || 0;
+                    const totalFrames = result.window_size || 243;
+                    const percentage = Math.round((bufferSize / totalFrames) * 100);
+                    
+                    if (result.buffer_status) {
+                        statusValue.textContent = '✓ Ready - Using VideoPose3D 3D';
+                        statusValue.style.color = '#00ff00';
+                        bufferValue.textContent = `${bufferSize}/${totalFrames} frames (100%)`;
+                        bufferValue.style.color = '#00ff00';
+                    } else {
+                        statusValue.textContent = '⏳ Buffering...';
+                        statusValue.style.color = '#ffaa00';
+                        bufferValue.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span>${bufferSize}/${totalFrames} frames</span>
+                                <div style="flex: 1; background: #ddd; height: 8px; border-radius: 4px; overflow: hidden;">
+                                    <div style="background: #667eea; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
+                                </div>
+                                <span>${percentage}%</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    statusValue.textContent = 'MediaPipe Only (VideoPose3D not loaded)';
+                    statusValue.style.color = '#ffaa00';
+                    bufferValue.textContent = 'Clone VideoPose3D repo to enable';
+                }
+            } else {
+                document.getElementById('videopose3dStatus').style.display = 'none';
+                document.getElementById('videopose3dBuffer').style.display = 'none';
+            }
+            
+            document.getElementById('personDetected').textContent = result.person_detected ? 'Yes' : 'No';
+            document.getElementById('confidence').textContent = result.confidence ? (result.confidence * 100).toFixed(1) + '%' : '--';
+            
+            if (result.measurements) {
+                const m = result.measurements;
+                document.getElementById('landmarksVisible').textContent = m.landmarks_visible || '--';
+                document.getElementById('eyeToFeet').textContent = m.eye_to_feet_inches ? m.eye_to_feet_inches.toFixed(1) + '"' : '--';
+                document.getElementById('shoulderWidthValue').textContent = m.shoulder_width_inches ? m.shoulder_width_inches.toFixed(1) + '"' : '--';
+                document.getElementById('distance').textContent = m.distance_feet ? m.distance_feet.toFixed(1) + ' ft' : '--';
+            }
+        }
+
+        document.getElementById('playBtn').addEventListener('click', function() {
+            console.log('Play button clicked');
+            videoElement.play().then(() => {
+                console.log('Video playing, starting processing...');
+                startProcessing();
+            }).catch(err => {
+                console.error('Error playing video:', err);
+                alert('Error playing video. Make sure you have uploaded a video file.');
+            });
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', function() {
+            videoElement.pause();
+            stopProcessing();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            videoElement.currentTime = 0;
+            stopProcessing();
+            // Clear overlays
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Clear 3D skeleton
+            jointSpheres.forEach(sphere => scene.remove(sphere));
+            connectionLines.forEach(line => scene.remove(line));
+            jointSpheres = [];
+            connectionLines = [];
+            
+            // Reset animation
+            animationPlaying = false;
+            animationFrameIndex = 0;
+            poses3DSequence = null;
+            document.getElementById('animationControls').style.display = 'none';
+            document.getElementById('playAnimationBtn').style.display = 'inline-block';
+            document.getElementById('pauseAnimationBtn').style.display = 'none';
+            
+            // Reset animation
+            animationPlaying = false;
+            animationFrameIndex = 0;
+            poses3DSequence = null;
+            const animControls = document.getElementById('animationControls');
+            if (animControls) animControls.style.display = 'none';
+            const playBtn = document.getElementById('playAnimationBtn');
+            const pauseBtn = document.getElementById('pauseAnimationBtn');
+            if (playBtn) playBtn.style.display = 'inline-block';
+            if (pauseBtn) pauseBtn.style.display = 'none';
+            
+            // Reset VideoPose3D buffer if using that method
+            const poseMethod = document.getElementById('poseMethod').value;
+            if (poseMethod === 'videopose3d') {
+                fetch('/api/reset_videopose3d', { method: 'POST' })
+                    .then(() => console.log('VideoPose3D buffer reset'))
+                    .catch(err => console.error('Reset error:', err));
+            }
+        });
+        
+        // ========== 3D ANIMATION CONTROLS ==========
+        
+        // Animation speed slider
+        const animationSpeedSlider = document.getElementById('animationSpeedSlider');
+        const animationSpeedValue = document.getElementById('animationSpeedValue');
+        if (animationSpeedSlider && animationSpeedValue) {
+            animationSpeedSlider.addEventListener('input', function(e) {
+                animationSpeed = parseFloat(e.target.value);
+                animationSpeedValue.textContent = animationSpeed.toFixed(1) + 'x';
+            });
+        }
+        
+        // Play animation
+        const playAnimationBtn = document.getElementById('playAnimationBtn');
+        if (playAnimationBtn) {
+            playAnimationBtn.addEventListener('click', function() {
+                if (!poses3DSequence || poses3DSequence.length === 0) {
+                    alert('No 3D pose sequence available. Wait for buffer to fill (243 frames).');
+                    return;
+                }
+                animationPlaying = true;
+                this.style.display = 'none';
+                const pauseBtn = document.getElementById('pauseAnimationBtn');
+                if (pauseBtn) pauseBtn.style.display = 'inline-block';
+                lastAnimationTime = performance.now();
+                animate3DPose();
+            });
+        }
+        
+        // Pause animation
+        const pauseAnimationBtn = document.getElementById('pauseAnimationBtn');
+        if (pauseAnimationBtn) {
+            pauseAnimationBtn.addEventListener('click', function() {
+                animationPlaying = false;
+                this.style.display = 'none';
+                const playBtn = document.getElementById('playAnimationBtn');
+                if (playBtn) playBtn.style.display = 'inline-block';
+            });
+        }
+        
+        // Reset animation
+        const resetAnimationBtn = document.getElementById('resetAnimationBtn');
+        if (resetAnimationBtn) {
+            resetAnimationBtn.addEventListener('click', function() {
+                animationFrameIndex = 0;
+                animationPlaying = false;
+                const playBtn = document.getElementById('playAnimationBtn');
+                const pauseBtn = document.getElementById('pauseAnimationBtn');
+                if (playBtn) playBtn.style.display = 'inline-block';
+                if (pauseBtn) pauseBtn.style.display = 'none';
+                if (poses3DSequence && poses3DSequence.length > 0) {
+                    update3DSkeletonFromSequence(poses3DSequence[0]);
+                }
+            });
+        }
+        
+        // Animation loop for 3D poses
+        function animate3DPose() {
+            if (!animationPlaying || !poses3DSequence || poses3DSequence.length === 0) {
+                return;
+            }
+            
+            const now = performance.now();
+            const frameInterval = 1000 / (30 * animationSpeed);  // 30 FPS base
+            
+            if (now - lastAnimationTime >= frameInterval) {
+                // Update frame
+                update3DSkeletonFromSequence(poses3DSequence[animationFrameIndex]);
+                
+                // Update frame info
+                const frameInfo = document.getElementById('animationFrameInfo');
+                if (frameInfo) {
+                    frameInfo.textContent = `Frame: ${animationFrameIndex + 1}/${poses3DSequence.length}`;
+                }
+                
+                // Advance to next frame
+                animationFrameIndex = (animationFrameIndex + 1) % poses3DSequence.length;
+                lastAnimationTime = now;
+            }
+            
+            requestAnimationFrame(animate3DPose);
+        }
+        
+        // Update 3D skeleton from VideoPose3D sequence data
+        function update3DSkeletonFromSequence(poseData) {
+            if (!poseData || !scene) return;
+            
+            // Clear previous skeleton
+            jointSpheres.forEach(sphere => scene.remove(sphere));
+            connectionLines.forEach(line => scene.remove(line));
+            jointSpheres = [];
+            connectionLines = [];
+            
+            // poseData is array of {x, y, z} objects (17 keypoints from VideoPose3D)
+            // We need to map these to MediaPipe's 33 landmarks for display
+            
+            // Map VideoPose3D keypoints to MediaPipe landmarks (same mapping as backend)
+            const vp3d_to_mp = {
+                0: [23, 24],  // Hip -> both hips
+                1: 24,        // Right hip
+                2: 26,        // Right knee
+                3: 28,        // Right ankle
+                4: 23,        // Left hip
+                5: 25,        // Left knee
+                6: 27,        // Left ankle
+                7: [11, 12],  // Spine -> shoulders
+                8: [11, 12],  // Thorax -> shoulders
+                9: 0,         // Neck/Nose
+                10: 0,        // Head
+                11: 0,        // HeadTop
+                12: 11,       // Left shoulder
+                13: 13,       // Left elbow
+                14: 15,       // Left wrist
+                15: 12,       // Right shoulder
+                16: 14,       // Right elbow
+            };
+            
+            // Create MediaPipe-style landmarks array (33 elements)
+            const landmarks = new Array(33).fill(null).map(() => ({
+                x: 0.5, y: 0.5, z: 0, visibility: 0
+            }));
+            
+            // Map VideoPose3D poses to MediaPipe landmarks
+            for (let vp3d_idx = 0; vp3d_idx < poseData.length && vp3d_idx < 17; vp3d_idx++) {
+                const pose = poseData[vp3d_idx];
+                const mp_target = vp3d_to_mp[vp3d_idx];
+                
+                if (Array.isArray(mp_target)) {
+                    // Map to multiple MediaPipe landmarks
+                    mp_target.forEach(mp_idx => {
+                        if (mp_idx < landmarks.length) {
+                            // Convert VideoPose3D coordinates to MediaPipe format
+                            // VideoPose3D uses normalized coordinates centered at hip
+                            landmarks[mp_idx] = {
+                                x: 0.5 + pose.x * 0.5,  // Scale and center
+                                y: 0.5 + pose.y * 0.5,
+                                z: pose.z * 0.5,  // Scale depth
+                                visibility: 1.0
+                            };
+                        }
+                    });
+                } else if (mp_target < landmarks.length) {
+                    landmarks[mp_target] = {
+                        x: 0.5 + pose.x * 0.5,
+                        y: 0.5 + pose.y * 0.5,
+                        z: pose.z * 0.5,
+                        visibility: 1.0
+                    };
+                }
+            }
+            
+            // Use existing update3DSkeleton function with mapped landmarks
+            update3DSkeleton(landmarks);
+        }
+        
+        // Update 3D skeleton from VideoPose3D sequence data
+        function update3DSkeletonFromSequence(poseData) {
+            if (!poseData || !scene) return;
+            
+            // Clear previous skeleton
+            jointSpheres.forEach(sphere => scene.remove(sphere));
+            connectionLines.forEach(line => scene.remove(line));
+            jointSpheres = [];
+            connectionLines = [];
+            
+            // poseData is array of {x, y, z} objects (17 keypoints from VideoPose3D)
+            // We need to map these to MediaPipe's 33 landmarks for display
+            
+            // Map VideoPose3D keypoints to MediaPipe landmarks (same mapping as backend)
+            const vp3d_to_mp = {
+                0: [23, 24],  // Hip -> both hips
+                1: 24,        // Right hip
+                2: 26,        // Right knee
+                3: 28,        // Right ankle
+                4: 23,        // Left hip
+                5: 25,        // Left knee
+                6: 27,        // Left ankle
+                7: [11, 12],  // Spine -> shoulders
+                8: [11, 12],  // Thorax -> shoulders
+                9: 0,         // Neck/Nose
+                10: 0,        // Head
+                11: 0,        // HeadTop
+                12: 11,       // Left shoulder
+                13: 13,       // Left elbow
+                14: 15,       // Left wrist
+                15: 12,       // Right shoulder
+                16: 14,       // Right elbow
+            };
+            
+            // Create MediaPipe-style landmarks array (33 elements)
+            const landmarks = new Array(33).fill(null).map(() => ({
+                x: 0.5, y: 0.5, z: 0, visibility: 0
+            }));
+            
+            // Map VideoPose3D poses to MediaPipe landmarks
+            for (let vp3d_idx = 0; vp3d_idx < poseData.length && vp3d_idx < 17; vp3d_idx++) {
+                const pose = poseData[vp3d_idx];
+                const mp_target = vp3d_to_mp[vp3d_idx];
+                
+                if (Array.isArray(mp_target)) {
+                    // Map to multiple MediaPipe landmarks
+                    mp_target.forEach(mp_idx => {
+                        if (mp_idx < landmarks.length) {
+                            // Convert VideoPose3D coordinates to MediaPipe format
+                            // VideoPose3D uses normalized coordinates centered at hip
+                            landmarks[mp_idx] = {
+                                x: 0.5 + pose.x * 0.5,  // Scale and center
+                                y: 0.5 + pose.y * 0.5,
+                                z: pose.z * 0.5,  // Scale depth
+                                visibility: 1.0
+                            };
+                        }
+                    });
+                } else if (mp_target < landmarks.length) {
+                    landmarks[mp_target] = {
+                        x: 0.5 + pose.x * 0.5,
+                        y: 0.5 + pose.y * 0.5,
+                        z: pose.z * 0.5,
+                        visibility: 1.0
+                    };
+                }
+            }
+            
+            // Use existing update3DSkeleton function with mapped landmarks
+            update3DSkeleton(landmarks);
+        }
+
+        // Handle video events
+        videoElement.addEventListener('play', startProcessing);
+        videoElement.addEventListener('pause', stopProcessing);
+        videoElement.addEventListener('ended', stopProcessing);
+
+        // ========== SLIDER EVENT LISTENERS ==========
+        
+        // Initialize sliders after page loads
+        window.addEventListener('load', function() {
+            const horizontalSlider = document.getElementById('horizontalSlider');
+            const verticalSlider = document.getElementById('verticalSlider');
+            
+            if (horizontalSlider) {
+                horizontalSlider.addEventListener('input', function() {
+                    updateCameraFromSliders();
+                });
+            }
+            
+            if (verticalSlider) {
+                verticalSlider.addEventListener('input', function() {
+                    updateCameraFromSliders();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

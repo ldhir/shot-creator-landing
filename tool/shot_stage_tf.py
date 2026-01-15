@@ -876,6 +876,25 @@
 # if __name__ == "__main__":
 #     main()
 
+# =============================================================================
+# SHOT STAGE TF - Basketball Shot Analysis with Ghost Overlay
+# =============================================================================
+# 
+# This script uses the EXACT SAME joint detection code as Shot Sync for consistency:
+# - MediaPipe Pose with model_complexity=2 (highest quality model)
+# - Same get_3d_point() function with 0.5 visibility threshold
+# - Same get_arm_state() logic (pre_shot, follow_through, neutral detection)
+# - Same calculate_3d_angle() for joint angles
+#
+# Features:
+#   1. Record benchmark shot (reference form)
+#   2. Record user shot (your attempt)
+#   3. DTW-based comparison with closeness scoring
+#   4. Ghost overlay visualization with time slider
+#   5. Detailed feedback on form differences
+#
+# =============================================================================
+
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -899,6 +918,7 @@ POSE_CONNECTIONS = list(mp_pose.POSE_CONNECTIONS)
 RIGHT_LANDMARKS = [12, 14, 16]
 LEFT_LANDMARKS  = [11, 13, 15]
 
+# EXACT same settings as Shot Sync (app.py line 129-135)
 pose = mp_pose.Pose(
     model_complexity=2,
     static_image_mode=False,
