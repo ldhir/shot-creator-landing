@@ -157,6 +157,23 @@
             display: block;
             min-height: 600px;
         }
+        
+        #loopCanvas3d {
+            width: 100%;
+            height: 800px;
+            display: block;
+            background: #1a1a1a;
+            border-radius: 10px;
+            min-height: 800px;
+        }
+        
+        #loop3DSection {
+            width: 100%;
+        }
+        
+        #loop3DSection .video-wrapper {
+            min-height: 800px;
+        }
 
         .view-controls {
             position: absolute;
@@ -446,6 +463,14 @@
                     <div class="section-label">2D Overlay (Shot Sync Model) - Green skeleton overlay appears here</div>
                     <video id="videoPlayer" controls style="width: 100%; height: auto;"></video>
                     <canvas id="overlayCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+                    <!-- Video Timeline Slider -->
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 10px; z-index: 10;">
+                        <input type="range" id="videoTimelineSlider" min="0" max="100" value="0" step="0.1" style="width: 100%; cursor: pointer;">
+                        <div style="display: flex; justify-content: space-between; color: white; font-size: 0.8em; margin-top: 5px;">
+                            <span id="currentTime">0:00</span>
+                            <span id="totalTime">0:00</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 3D Visualization Section -->
@@ -476,6 +501,24 @@
                 <button class="btn" id="playBtn">▶️ Play</button>
                 <button class="btn" id="pauseBtn">⏸️ Pause</button>
                 <button class="btn" id="resetBtn">🔄 Reset</button>
+                <button class="btn" id="generateLoopBtn" style="background: #667eea;">🔄 Generate Loop</button>
+            </div>
+            
+            <!-- Loop 3D Visualization Section -->
+            <div id="loop3DSection" style="display: none; margin-top: 30px; padding: 20px; background: #1a1a1a; border-radius: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: white; margin: 0;">3D Pose Loop Animation</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button id="playLoopBtn" class="btn" style="padding: 8px 15px; font-size: 0.9em;">▶️ Play</button>
+                        <button id="pauseLoopBtn" class="btn" style="padding: 8px 15px; font-size: 0.9em; display: none;">⏸️ Pause</button>
+                        <span id="loopFrameInfo" style="color: #667eea; font-size: 0.9em; margin-left: 10px;">Frame: 0/0</span>
+                    </div>
+                </div>
+                <div class="video-wrapper">
+                    <div class="section-label">Frame-by-Frame 3D Pose Loop</div>
+                    <canvas id="loopCanvas3d"></canvas>
+                </div>
+                <div id="loopGenerationStatus" style="color: #667eea; margin-top: 10px; font-size: 0.9em;"></div>
             </div>
 
             <div class="info-panel">
@@ -1192,6 +1235,15 @@
                         canvas.style.display = 'block';
                         canvas.style.visibility = 'visible';
                     }
+                    
+                    // Initialize timeline slider
+                    if (videoTimelineSlider && videoElement.duration) {
+                        videoTimelineSlider.max = 100;
+                        if (totalTimeDisplay) {
+                            totalTimeDisplay.textContent = formatTime(videoElement.duration);
+                        }
+                    }
+                    
                     if (!scene) {
                         console.log('Initializing 3D viewer...');
                         init3DViewer();
@@ -1424,6 +1476,104 @@
             }
         }
 
+        // Video timeline slider setup
+        const videoTimelineSlider = document.getElementById('videoTimelineSlider');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        const totalTimeDisplay = document.getElementById('totalTime');
+        let isSeeking = false;
+        
+        // Format time as MM:SS
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Update timeline slider as video plays
+        function updateTimeline() {
+            if (!videoElement || isSeeking) return;
+            
+            if (videoElement.duration && videoElement.duration > 0) {
+                const percent = (videoElement.currentTime / videoElement.duration) * 100;
+                if (videoTimelineSlider) {
+                    videoTimelineSlider.value = percent;
+                }
+                
+                // Update time displays
+                if (currentTimeDisplay) {
+                    currentTimeDisplay.textContent = formatTime(videoElement.currentTime);
+                }
+                if (totalTimeDisplay && videoElement.duration) {
+                    totalTimeDisplay.textContent = formatTime(videoElement.duration);
+                }
+            }
+        }
+        
+        // Update 3D overlay when video time changes (scrubbing or playing)
+        async function update3DForCurrentFrame() {
+            if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight || !canvas || !ctx) return;
+            
+            // Capture current frame
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            
+            // Process frame to get 3D pose
+            const frameData = canvas.toDataURL('image/jpeg', 0.8);
+            if (!frameData) return;
+            
+            const poseMethod = document.getElementById('poseMethod').value;
+            const apiEndpoint = poseMethod === 'videopose3d' 
+                ? '/api/process_frame_overlay_videopose3d'
+                : poseMethod === 'ntu'
+                ? '/api/process_frame_overlay_ntu'
+                : '/api/process_frame_overlay';
+            
+            try {
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        frame: frameData,
+                        user_height: parseFloat(document.getElementById('userHeight').value),
+                        shoulder_width: parseFloat(document.getElementById('shoulderWidth').value),
+                        sequence_id: 'video_' + (videoElement.src || 'default')
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success && result.landmarks && scene) {
+                    update3DSkeleton(result.landmarks);
+                }
+            } catch (error) {
+                console.error('Error updating 3D for frame:', error);
+            }
+        }
+        
+        // Handle timeline slider scrubbing
+        if (videoTimelineSlider) {
+            videoTimelineSlider.addEventListener('input', function(e) {
+                if (!videoElement || !videoElement.duration) return;
+                
+                isSeeking = true;
+                const percent = parseFloat(e.target.value);
+                const newTime = (percent / 100) * videoElement.duration;
+                videoElement.currentTime = newTime;
+                
+                // Update time display
+                if (currentTimeDisplay) {
+                    currentTimeDisplay.textContent = formatTime(newTime);
+                }
+            });
+            
+            videoTimelineSlider.addEventListener('change', function() {
+                isSeeking = false;
+                // Update 3D overlay for this frame when scrubbing stops
+                update3DForCurrentFrame();
+            });
+        }
+        
         document.getElementById('playBtn').addEventListener('click', function() {
             console.log('Play button clicked');
             videoElement.play().then(() => {
@@ -1710,7 +1860,464 @@
         videoElement.addEventListener('play', startProcessing);
         videoElement.addEventListener('pause', stopProcessing);
         videoElement.addEventListener('ended', stopProcessing);
+        
+        // Update timeline slider as video plays
+        videoElement.addEventListener('timeupdate', updateTimeline);
+        
+        // Update 3D overlay when video time changes (for scrubbing)
+        videoElement.addEventListener('seeked', function() {
+            if (isSeeking) {
+                update3DForCurrentFrame();
+            }
+        });
 
+        // ========== GENERATE LOOP FUNCTIONALITY ==========
+        let loop3DPoses = []; // Store all 3D poses for loop animation
+        let isGeneratingLoop = false;
+        let isLoopPlaying = false;
+        let loopAnimationFrameId = null;
+        let currentLoopFrameIndex = 0;
+        let loopScene = null;
+        let loopCamera = null;
+        let loopRenderer = null;
+        let loopSkeletonObjects = [];
+        
+        // Interpolate frames to create smoother animation
+        function interpolateFrames(originalFrames, factor) {
+            if (originalFrames.length < 2) return originalFrames;
+            
+            const interpolated = [];
+            
+            // For each pair of consecutive frames
+            for (let i = 0; i < originalFrames.length; i++) {
+                const currentFrame = originalFrames[i];
+                const nextFrame = originalFrames[(i + 1) % originalFrames.length]; // Wrap around for loop
+                
+                // Add the original frame
+                interpolated.push(currentFrame);
+                
+                // Create (factor - 1) interpolated frames between current and next
+                for (let interpStep = 1; interpStep < factor; interpStep++) {
+                    const t = interpStep / factor; // Interpolation factor (0 to 1)
+                    const interpolatedFrame = [];
+                    
+                    // Interpolate each landmark
+                    for (let landmarkIdx = 0; landmarkIdx < Math.max(currentFrame.length, nextFrame.length); landmarkIdx++) {
+                        const currentLandmark = currentFrame[landmarkIdx];
+                        const nextLandmark = nextFrame[landmarkIdx];
+                        
+                        if (currentLandmark && nextLandmark) {
+                            // Linear interpolation for x, y, z, and visibility
+                            const interpolatedLandmark = {
+                                x: currentLandmark.x + (nextLandmark.x - currentLandmark.x) * t,
+                                y: currentLandmark.y + (nextLandmark.y - currentLandmark.y) * t,
+                                z: (currentLandmark.z || 0) + ((nextLandmark.z || 0) - (currentLandmark.z || 0)) * t,
+                                visibility: currentLandmark.visibility + (nextLandmark.visibility - currentLandmark.visibility) * t,
+                                index: currentLandmark.index !== undefined ? currentLandmark.index : landmarkIdx
+                            };
+                            interpolatedFrame.push(interpolatedLandmark);
+                        } else if (currentLandmark) {
+                            // If next frame doesn't have this landmark, use current
+                            interpolatedFrame.push(currentLandmark);
+                        } else if (nextLandmark) {
+                            // If current frame doesn't have this landmark, use next
+                            interpolatedFrame.push(nextLandmark);
+                        } else {
+                            // Neither frame has this landmark, create a default
+                            interpolatedFrame.push({
+                                x: 0.5,
+                                y: 0.5,
+                                z: 0,
+                                visibility: 0,
+                                index: landmarkIdx
+                            });
+                        }
+                    }
+                    
+                    interpolated.push(interpolatedFrame);
+                }
+            }
+            
+            return interpolated;
+        }
+        
+        const generateLoopBtn = document.getElementById('generateLoopBtn');
+        const loop3DSection = document.getElementById('loop3DSection');
+        const playLoopBtn = document.getElementById('playLoopBtn');
+        const pauseLoopBtn = document.getElementById('pauseLoopBtn');
+        const loopFrameInfo = document.getElementById('loopFrameInfo');
+        const loopGenerationStatus = document.getElementById('loopGenerationStatus');
+        const loopCanvas3d = document.getElementById('loopCanvas3d');
+        
+        // Initialize loop 3D viewer
+        function initLoop3DViewer() {
+            if (!loopCanvas3d) return;
+            
+            // Get actual canvas dimensions
+            const container = loopCanvas3d.parentElement;
+            const width = container ? container.clientWidth : 800;
+            const height = 800; // Fixed height for consistency
+            
+            // Scene
+            loopScene = new THREE.Scene();
+            loopScene.background = new THREE.Color(0x1a1a1a);
+            
+            // Camera
+            loopCamera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            loopCamera.position.set(0, 0, 5);
+            
+            // Renderer
+            loopRenderer = new THREE.WebGLRenderer({ canvas: loopCanvas3d, antialias: true });
+            loopRenderer.setSize(width, height, false);
+            loopRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+            
+            // Set canvas size explicitly
+            loopCanvas3d.width = width;
+            loopCanvas3d.height = height;
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+            loopScene.add(gridHelper);
+            
+            // Axes
+            const axesHelper = new THREE.AxesHelper(2);
+            loopScene.add(axesHelper);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            loopScene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            loopScene.add(directionalLight);
+            
+            // Render initial empty scene
+            loopRenderer.render(loopScene, loopCamera);
+            
+            console.log('Loop 3D viewer initialized:', width, 'x', height);
+        }
+        
+        // Update loop 3D skeleton - use EXACT same logic as main 3D viewer (update3DSkeleton)
+        function updateLoop3DSkeleton(landmarks) {
+            if (!loopScene || !landmarks || landmarks.length === 0) return;
+
+            // Clear previous skeleton
+            loopSkeletonObjects.forEach(obj => loopScene.remove(obj));
+            loopSkeletonObjects = [];
+
+            // Complete MediaPipe Pose connections (all main body connections) - SAME AS MAIN VIEWER
+            const connections = [
+                // Torso (core skeleton)
+                [11, 12],  // Shoulders
+                [11, 23],  // Left shoulder to left hip
+                [12, 24],  // Right shoulder to right hip
+                [23, 24],  // Hips
+                // Left arm (complete chain)
+                [11, 13],  // Left shoulder to left elbow
+                [13, 15],  // Left elbow to left wrist
+                // Right arm (complete chain)
+                [12, 14],  // Right shoulder to right elbow
+                [14, 16],  // Right elbow to right wrist
+                // Left leg (complete chain)
+                [23, 25],  // Left hip to left knee
+                [25, 27],  // Left knee to left ankle
+                // Right leg (complete chain)
+                [24, 26],  // Right hip to right knee
+                [26, 28]   // Right knee to right ankle
+            ];
+
+            // First pass: calculate center for better normalization - SAME AS MAIN VIEWER
+            let centerX = 0, centerY = 0, centerZ = 0;
+            let validCount = 0;
+            
+            landmarks.forEach((lm) => {
+                if (lm.visibility >= 0.3) {
+                    centerX += lm.x;
+                    centerY += lm.y;
+                    centerZ += (lm.z || 0);
+                    validCount++;
+                }
+            });
+            
+            if (validCount === 0) return;
+            
+            centerX /= validCount;
+            centerY /= validCount;
+            centerZ /= validCount;
+            
+            // Calculate scale based on shoulder width (more stable) - SAME AS MAIN VIEWER
+            let scale = 4.0;
+            if (landmarks[11] && landmarks[12] && 
+                landmarks[11].visibility > 0.5 && landmarks[12].visibility > 0.5) {
+                const shoulderWidth = Math.abs(landmarks[11].x - landmarks[12].x);
+                scale = Math.max(3.0, Math.min(6.0, 1.0 / (shoulderWidth + 0.1)));
+            }
+
+            // Helper function to calculate 3D position from landmark - SAME AS MAIN VIEWER
+            const calculatePos3D = (lm) => {
+                const x = (lm.x - centerX) * scale * 2;
+                const y = -(lm.y - centerY) * scale * 2;  // Flip Y for 3D
+                const zOffset = (lm.z || 0) - centerZ;
+                const z = zOffset * scale * 0.5;  // Reduced Z scale
+                return { x, y, z };
+            };
+
+            // Create joints (spheres) with improved coordinate transformation - SAME AS MAIN VIEWER
+            landmarks.forEach((lm, index) => {
+                // Calculate position for all landmarks (even low visibility ones for connections)
+                const pos3d = calculatePos3D(lm);
+                landmarks[index].pos3d = pos3d;
+                
+                // Only create visible spheres for landmarks with good visibility
+                if (lm.visibility < 0.3) {
+                    return;  // Don't show sphere, but keep pos3d for connections
+                }
+
+                const geometry = new THREE.SphereGeometry(0.04, 12, 12);
+                const color = lm.visibility > 0.8 ? 0x00ff00 : lm.visibility > 0.6 ? 0xffff00 : 0xff6600;
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: color, 
+                    emissive: color, 
+                    emissiveIntensity: 0.4,
+                    shininess: 30
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos3d.x, pos3d.y, pos3d.z);
+                loopScene.add(sphere);
+                loopSkeletonObjects.push(sphere);
+            });
+
+            // Create connections (lines) - draw if both landmarks exist and have reasonable visibility - SAME AS MAIN VIEWER
+            connections.forEach(([startIdx, endIdx]) => {
+                if (startIdx >= landmarks.length || endIdx >= landmarks.length) {
+                    return;
+                }
+                
+                const start = landmarks[startIdx];
+                const end = landmarks[endIdx];
+                
+                if (!start || !end) {
+                    return;
+                }
+                
+                // Draw connection if both landmarks have at least minimal visibility
+                if (start.visibility < 0.2 || end.visibility < 0.2) {
+                    return;  // Too low visibility, skip connection
+                }
+                
+                // pos3d should already be set from the joint creation loop above
+                if (!start.pos3d || !end.pos3d) {
+                    return;  // Safety check
+                }
+
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(start.pos3d.x, start.pos3d.y, start.pos3d.z),
+                    new THREE.Vector3(end.pos3d.x, end.pos3d.y, end.pos3d.z)
+                ]);
+
+                // Make connections more visible - SAME AS MAIN VIEWER
+                const material = new THREE.LineBasicMaterial({ 
+                    color: 0x00ffff, 
+                    linewidth: 3,
+                    opacity: 0.95,
+                    transparent: true
+                });
+                const line = new THREE.Line(geometry, material);
+                loopScene.add(line);
+                loopSkeletonObjects.push(line);
+            });
+            
+            // Update camera aspect ratio in case canvas size changed
+            if (loopCamera && loopRenderer) {
+                const width = loopCanvas3d.clientWidth || 800;
+                const height = loopCanvas3d.clientHeight || 800;
+                loopCamera.aspect = width / height;
+                loopCamera.updateProjectionMatrix();
+                loopRenderer.setSize(width, height, false);
+            }
+            
+            loopRenderer.render(loopScene, loopCamera);
+        }
+        
+        // Animate loop
+        function animateLoop() {
+            if (!isLoopPlaying || loop3DPoses.length === 0) return;
+            
+            // Update to current frame
+            if (currentLoopFrameIndex < loop3DPoses.length) {
+                updateLoop3DSkeleton(loop3DPoses[currentLoopFrameIndex]);
+                if (loopFrameInfo) {
+                    loopFrameInfo.textContent = `Frame: ${currentLoopFrameIndex + 1}/${loop3DPoses.length}`;
+                }
+                
+                // Move to next frame
+                currentLoopFrameIndex = (currentLoopFrameIndex + 1) % loop3DPoses.length;
+            }
+            
+            // Continue animation (ultra-fast frame-by-frame: ~256 fps for extremely smooth playback)
+            loopAnimationFrameId = setTimeout(() => {
+                requestAnimationFrame(animateLoop);
+            }, 3.90625); // 3.90625ms = ~256 fps (1/128 of original 500ms)
+        }
+        
+        // Generate loop from video
+        async function generateLoop() {
+            if (!videoElement || !videoElement.src || isGeneratingLoop) {
+                return;
+            }
+            
+            isGeneratingLoop = true;
+            generateLoopBtn.disabled = true;
+            generateLoopBtn.textContent = '⏳ Processing...';
+            loop3DPoses = [];
+            currentLoopFrameIndex = 0;
+            
+            // Show loop section
+            loop3DSection.style.display = 'block';
+            loopGenerationStatus.textContent = 'Processing frames... 0%';
+            
+            // Initialize loop 3D viewer if not already done
+            if (!loopScene || !loopRenderer) {
+                initLoop3DViewer();
+                // Wait a bit for canvas to be ready
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            try {
+                const originalTime = videoElement.currentTime;
+                const originalPaused = videoElement.paused;
+                
+                if (!videoElement.paused) {
+                    videoElement.pause();
+                }
+                
+                const duration = videoElement.duration;
+                const fps = 30;
+                const frameInterval = 1 / fps;
+                const totalFrames = Math.ceil(duration * fps);
+                
+                console.log(`Generating loop: ${totalFrames} frames`);
+                
+                // Process each frame
+                for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+                    const targetTime = frameIndex * frameInterval;
+                    if (targetTime >= duration) break;
+                    
+                    // Seek to frame
+                    videoElement.currentTime = targetTime;
+                    
+                    // Wait for seek
+                    await new Promise((resolve) => {
+                        const onSeeked = () => {
+                            videoElement.removeEventListener('seeked', onSeeked);
+                            resolve();
+                        };
+                        videoElement.addEventListener('seeked', onSeeked);
+                        setTimeout(() => {
+                            videoElement.removeEventListener('seeked', onSeeked);
+                            resolve();
+                        }, 500);
+                    });
+                    
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // Capture and process frame
+                    if (canvas && ctx && videoElement.videoWidth > 0 && videoElement.videoHeight > 0) {
+                        canvas.width = videoElement.videoWidth;
+                        canvas.height = videoElement.videoHeight;
+                        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                        
+                        const frameData = canvas.toDataURL('image/jpeg', 0.9);
+                        const poseMethod = document.getElementById('poseMethod').value;
+                        const apiEndpoint = poseMethod === 'videopose3d' 
+                            ? '/api/process_frame_overlay_videopose3d'
+                            : poseMethod === 'ntu'
+                            ? '/api/process_frame_overlay_ntu'
+                            : '/api/process_frame_overlay';
+                        
+                        try {
+                            const response = await fetch(apiEndpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    frame: frameData,
+                                    user_height: parseFloat(document.getElementById('userHeight').value),
+                                    shoulder_width: parseFloat(document.getElementById('shoulderWidth').value),
+                                    sequence_id: 'loop_generation_' + Date.now()
+                                })
+                            });
+                            
+                            const result = await response.json();
+                            if (result.success && result.landmarks && result.landmarks.length > 0) {
+                                loop3DPoses.push(result.landmarks);
+                            }
+                        } catch (error) {
+                            console.error(`Error processing frame ${frameIndex}:`, error);
+                        }
+                    }
+                    
+                    // Update progress
+                    const progress = Math.round((frameIndex + 1) / totalFrames * 100);
+                    loopGenerationStatus.textContent = `Processing frames... ${progress}% (${frameIndex + 1}/${totalFrames})`;
+                }
+                
+                // Restore original state
+                videoElement.currentTime = originalTime;
+                
+                if (loop3DPoses.length > 0) {
+                    // Interpolate frames to make animation smoother (16x frames)
+                    const interpolationFactor = 16; // Create 16x as many frames
+                    const originalFrameCount = loop3DPoses.length;
+                    const interpolatedPoses = interpolateFrames(loop3DPoses, interpolationFactor);
+                    loop3DPoses = interpolatedPoses;
+                    
+                    loopGenerationStatus.textContent = `✓ Loop generated! ${loop3DPoses.length} frames (${originalFrameCount} original, ${loop3DPoses.length - originalFrameCount} interpolated)`;
+                    // Start playing automatically
+                    isLoopPlaying = true;
+                    if (playLoopBtn) playLoopBtn.style.display = 'none';
+                    if (pauseLoopBtn) pauseLoopBtn.style.display = 'inline-block';
+                    animateLoop();
+                } else {
+                    loopGenerationStatus.textContent = '✗ No frames processed. Please try again.';
+                }
+                
+            } catch (error) {
+                console.error('Error generating loop:', error);
+                loopGenerationStatus.textContent = '✗ Error: ' + error.message;
+            } finally {
+                isGeneratingLoop = false;
+                generateLoopBtn.disabled = false;
+                generateLoopBtn.textContent = '🔄 Generate Loop';
+            }
+        }
+        
+        // Loop play/pause controls
+        if (generateLoopBtn) {
+            generateLoopBtn.addEventListener('click', generateLoop);
+        }
+        
+        if (playLoopBtn) {
+            playLoopBtn.addEventListener('click', function() {
+                if (loop3DPoses.length > 0) {
+                    isLoopPlaying = true;
+                    playLoopBtn.style.display = 'none';
+                    pauseLoopBtn.style.display = 'inline-block';
+                    animateLoop();
+                }
+            });
+        }
+        
+        if (pauseLoopBtn) {
+            pauseLoopBtn.addEventListener('click', function() {
+                isLoopPlaying = false;
+                if (loopAnimationFrameId) {
+                    clearTimeout(loopAnimationFrameId);
+                    loopAnimationFrameId = null;
+                }
+                playLoopBtn.style.display = 'inline-block';
+                pauseLoopBtn.style.display = 'none';
+            });
+        }
+        
         // ========== SLIDER EVENT LISTENERS ==========
         
         // Initialize sliders after page loads

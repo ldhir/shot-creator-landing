@@ -1616,6 +1616,88 @@ def process_frame_overlay_videopose3d():
         # This is the 2D overlay that shows on the video - works even without VideoPose3D
         if results.pose_landmarks:
             try:
+                # AUTO-ROTATE: Calculate rotation angle to make shoulder line horizontal (0 degrees)
+                landmarks = results.pose_landmarks.landmark
+                rotation_angle = 0.0
+                
+                # Get shoulder landmarks (11 = left, 12 = right)
+                if len(landmarks) > 12 and landmarks[11].visibility > 0.5 and landmarks[12].visibility > 0.5:
+                    left_shoulder = landmarks[11]
+                    right_shoulder = landmarks[12]
+                    
+                    # Calculate angle of shoulder line in pixel coordinates
+                    # Note: In image coordinates, y increases downward
+                    dx = (right_shoulder.x - left_shoulder.x) * w
+                    dy = (right_shoulder.y - left_shoulder.y) * h
+                    
+                    # Calculate angle in degrees (atan2 gives angle from horizontal)
+                    # Negative because we want to rotate the frame to align shoulders horizontally
+                    rotation_angle = -np.degrees(np.arctan2(dy, dx))
+                    
+                    # Normalize angle to [-90, 90] to avoid flipping upside down
+                    # If angle is > 90 or < -90, we can rotate the other way
+                    if rotation_angle > 90:
+                        rotation_angle = rotation_angle - 180
+                    elif rotation_angle < -90:
+                        rotation_angle = rotation_angle + 180
+                    
+                    # Rotate frame to make shoulder line horizontal
+                    if abs(rotation_angle) > 0.5:  # Only rotate if angle is significant
+                        h_frame, w_frame = frame.shape[:2]
+                        center = (w_frame // 2, h_frame // 2)
+                        
+                        # Calculate bounding box of pose to ensure it stays in frame after rotation
+                        # Get all visible landmark positions in pixel coordinates
+                        visible_landmarks = []
+                        for lm in landmarks:
+                            if lm.visibility > 0.5:
+                                visible_landmarks.append((lm.x * w_frame, lm.y * h_frame))
+                        
+                        if visible_landmarks:
+                            # Calculate bounding box of current pose
+                            xs = [x for x, y in visible_landmarks]
+                            ys = [y for x, y in visible_landmarks]
+                            min_x, max_x = min(xs), max(xs)
+                            min_y, max_y = min(ys), max(ys)
+                            
+                            bbox_width = max_x - min_x
+                            bbox_height = max_y - min_y
+                            
+                            # Calculate how large the bounding box will be after rotation
+                            angle_rad = np.radians(abs(rotation_angle))
+                            # Rotated bounding box dimensions
+                            rotated_width = abs(bbox_width * np.cos(angle_rad)) + abs(bbox_height * np.sin(angle_rad))
+                            rotated_height = abs(bbox_width * np.sin(angle_rad)) + abs(bbox_height * np.cos(angle_rad))
+                            
+                            # Add padding (20% of frame size) to ensure pose stays in frame
+                            padding = min(w_frame, h_frame) * 0.2
+                            
+                            # Calculate scale needed to fit rotated bounding box in frame
+                            available_width = w_frame - 2 * padding
+                            available_height = h_frame - 2 * padding
+                            
+                            scale_x = available_width / rotated_width if rotated_width > 0 else 1.0
+                            scale_y = available_height / rotated_height if rotated_height > 0 else 1.0
+                            scale = min(scale_x, scale_y, 1.0)  # Don't scale up, only down if needed
+                            
+                            # Ensure scale is reasonable (not too small)
+                            scale = max(scale, 0.5)  # Minimum 50% scale
+                        else:
+                            scale = 1.0
+                        
+                        # Create rotation matrix with scale to keep pose in frame
+                        rotation_matrix = cv2.getRotationMatrix2D(center, rotation_angle, scale)
+                        frame = cv2.warpAffine(frame, rotation_matrix, (w_frame, h_frame), 
+                                              flags=cv2.INTER_LINEAR, 
+                                              borderMode=cv2.BORDER_CONSTANT, 
+                                              borderValue=(0, 0, 0))
+                        
+                        # Re-process pose on rotated frame to get updated landmarks
+                        rgb_frame_rotated = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        results_rotated = pose.process(rgb_frame_rotated)
+                        if results_rotated.pose_landmarks:
+                            results = results_rotated
+                
                 mp_drawing = mp.solutions.drawing_utils
                 mp_drawing.draw_landmarks(
                     frame,
@@ -2142,18 +2224,101 @@ def process_frame_overlay():
                 if avg_confidence > 0.6:
                     person_detected = True
                     
+                    # AUTO-ROTATE: Calculate rotation angle to make shoulder line horizontal (0 degrees)
+                    rotation_angle = 0.0
+                    
+                    # Get shoulder landmarks (11 = left, 12 = right)
+                    if len(landmarks) > 12 and landmarks[11].visibility > 0.7 and landmarks[12].visibility > 0.7:
+                        left_shoulder = landmarks[11]
+                        right_shoulder = landmarks[12]
+                        
+                        # Calculate angle of shoulder line in pixel coordinates
+                        # Note: In image coordinates, y increases downward, so we need to account for that
+                        dx = (right_shoulder.x - left_shoulder.x) * w
+                        dy = (right_shoulder.y - left_shoulder.y) * h
+                        
+                        # Calculate angle in degrees (atan2 gives angle from horizontal)
+                        # Negative because we want to rotate the frame to align shoulders horizontally
+                        rotation_angle = -np.degrees(np.arctan2(dy, dx))
+                        
+                        # Normalize angle to [-90, 90] to avoid flipping upside down
+                        # If angle is > 90 or < -90, we can rotate the other way
+                        if rotation_angle > 90:
+                            rotation_angle = rotation_angle - 180
+                        elif rotation_angle < -90:
+                            rotation_angle = rotation_angle + 180
+                        
+                        # Rotate frame to make shoulder line horizontal
+                        if abs(rotation_angle) > 0.5:  # Only rotate if angle is significant
+                            h_frame, w_frame = frame.shape[:2]
+                            center = (w_frame // 2, h_frame // 2)
+                            
+                            # Calculate bounding box of pose to ensure it stays in frame after rotation
+                            # Get all visible landmark positions in pixel coordinates
+                            visible_landmarks = []
+                            for lm in landmarks:
+                                if lm.visibility > 0.5:
+                                    visible_landmarks.append((lm.x * w_frame, lm.y * h_frame))
+                            
+                            if visible_landmarks:
+                                # Calculate bounding box of current pose
+                                xs = [x for x, y in visible_landmarks]
+                                ys = [y for x, y in visible_landmarks]
+                                min_x, max_x = min(xs), max(xs)
+                                min_y, max_y = min(ys), max(ys)
+                                
+                                bbox_width = max_x - min_x
+                                bbox_height = max_y - min_y
+                                
+                                # Calculate how large the bounding box will be after rotation
+                                angle_rad = np.radians(abs(rotation_angle))
+                                # Rotated bounding box dimensions
+                                rotated_width = abs(bbox_width * np.cos(angle_rad)) + abs(bbox_height * np.sin(angle_rad))
+                                rotated_height = abs(bbox_width * np.sin(angle_rad)) + abs(bbox_height * np.cos(angle_rad))
+                                
+                                # Add padding (20% of frame size) to ensure pose stays in frame
+                                padding = min(w_frame, h_frame) * 0.2
+                                
+                                # Calculate scale needed to fit rotated bounding box in frame
+                                available_width = w_frame - 2 * padding
+                                available_height = h_frame - 2 * padding
+                                
+                                scale_x = available_width / rotated_width if rotated_width > 0 else 1.0
+                                scale_y = available_height / rotated_height if rotated_height > 0 else 1.0
+                                scale = min(scale_x, scale_y, 1.0)  # Don't scale up, only down if needed
+                                
+                                # Ensure scale is reasonable (not too small)
+                                scale = max(scale, 0.5)  # Minimum 50% scale
+                            else:
+                                scale = 1.0
+                            
+                            # Create rotation matrix with scale to keep pose in frame
+                            rotation_matrix = cv2.getRotationMatrix2D(center, rotation_angle, scale)
+                            frame = cv2.warpAffine(frame, rotation_matrix, (w_frame, h_frame), 
+                                                  flags=cv2.INTER_LINEAR, 
+                                                  borderMode=cv2.BORDER_CONSTANT, 
+                                                  borderValue=(0, 0, 0))
+                            
+                            # Re-process pose on rotated frame to get updated landmarks
+                            rgb_frame_rotated = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            results_rotated = pose.process(rgb_frame_rotated)
+                            if results_rotated.pose_landmarks:
+                                results = results_rotated
+                                landmarks = results.pose_landmarks.landmark
+                    
                     # Filter landmarks - only draw high-confidence ones
                     filtered_landmarks = mp_pose.PoseLandmark
                     custom_connections = []
                     
                     for connection in mp_pose.POSE_CONNECTIONS:
                         start_idx, end_idx = connection
-                        start_landmark = landmarks[start_idx]
-                        end_landmark = landmarks[end_idx]
-                        
-                        # Only draw connection if BOTH endpoints are confident (>0.7)
-                        if start_landmark.visibility > 0.7 and end_landmark.visibility > 0.7:
-                            custom_connections.append(connection)
+                        if start_idx < len(landmarks) and end_idx < len(landmarks):
+                            start_landmark = landmarks[start_idx]
+                            end_landmark = landmarks[end_idx]
+                            
+                            # Only draw connection if BOTH endpoints are confident (>0.7)
+                            if start_landmark.visibility > 0.7 and end_landmark.visibility > 0.7:
+                                custom_connections.append(connection)
                     
                     # Draw filtered landmarks
                     mp_drawing = mp.solutions.drawing_utils
