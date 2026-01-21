@@ -14,6 +14,7 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 import requests
+from datetime import datetime
 
 try:
     import mediapipe as mp
@@ -195,6 +196,7 @@ if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and not BREVO_API_KEY:
 
 if MEDIAPIPE_AVAILABLE:
     mp_pose = mp.solutions.pose
+    mp_drawing = mp.solutions.drawing_utils
     POSE_CONNECTIONS = list(mp_pose.POSE_CONNECTIONS)
     # Optimized MediaPipe settings for better accuracy
     pose = mp_pose.Pose(
@@ -207,6 +209,7 @@ if MEDIAPIPE_AVAILABLE:
     )
 else:
     mp_pose = None
+    mp_drawing = None
     POSE_CONNECTIONS = []
     pose = None
 
@@ -1315,6 +1318,412 @@ def shot_sync_overlay_viewer():
         return send_from_directory(str(tool_dir), 'shot_sync_overlay_viewer.html')
     except Exception as e:
         return f"Error serving page: {str(e)}", 500
+
+@app.route('/tool/mri_comparison')
+@app.route('/tool/mri_comparison/')
+def mri_comparison_viewer():
+    """Serve the mRI comparison viewer page"""
+    try:
+        tool_dir = Path(__file__).parent
+        html_file = tool_dir / 'mri_comparison_viewer.html'
+        if not html_file.exists():
+            return f"Error: File not found at {html_file}", 404
+        return send_from_directory(str(tool_dir), 'mri_comparison_viewer.html')
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Error serving page: {str(e)}", 500
+
+# Global storage for mRI comparison ground truth
+mri_ground_truth_data = {}
+
+@app.route('/api/upload_ground_truth', methods=['POST'])
+def upload_ground_truth():
+    """Upload ground truth file (pkl, json, npz, npy)"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'}), 400
+        
+        # Save uploaded file
+        upload_dir = 'uploads'
+        os.makedirs(upload_dir, exist_ok=True)
+        filepath = os.path.join(upload_dir, file.filename)
+        file.save(filepath)
+        
+        # Load ground truth using compare_mri_single_video
+        try:
+            from compare_mri_single_video import load_ground_truth
+            gt_data = load_ground_truth(filepath)
+        except ImportError:
+            # Fallback: try to load directly
+            import pickle
+            import json
+            import numpy as np
+            
+            file_ext = os.path.splitext(filepath)[1].lower()
+            if file_ext == '.pkl':
+                with open(filepath, 'rb') as f:
+                    data = pickle.load(f)
+            elif file_ext == '.json':
+                with open(filepath, 'r') as f:
+                    data = json.load(f)
+            else:
+                return jsonify({'success': False, 'error': f'Unsupported file format: {file_ext}'}), 400
+            
+            # Extract landmarks
+            if isinstance(data, dict):
+                if 'refined_gt_kps' in data:
+                    landmarks = np.array(data['refined_gt_kps'])
+                elif 'landmarks' in data:
+                    landmarks = np.array(data['landmarks'])
+                else:
+                    return jsonify({'success': False, 'error': 'Could not find landmarks in file'}), 400
+                
+                available_frames = data.get('gt_avail_frames', data.get('available_frames', list(range(len(landmarks)))))
+                joint_names = data.get('joint_names', [])
+            else:
+                landmarks = np.array(data)
+                available_frames = list(range(len(landmarks)))
+                joint_names = []
+            
+            gt_data = {
+                'landmarks': landmarks,
+                'available_frames': available_frames,
+                'joint_names': joint_names
+            }
+        
+        # Store globally (FormData sends session_id as form field)
+        session_id = request.form.get('session_id', 'default')
+        mri_ground_truth_data[session_id] = gt_data
+        
+        return jsonify({
+            'success': True,
+            'message': 'Ground truth loaded successfully',
+            'frames': len(gt_data['landmarks']),
+            'available_frames': len(gt_data['available_frames']),
+            'joint_names': gt_data['joint_names']
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/process_frame_comparison', methods=['POST'])
+def process_frame_comparison():
+    """Process a frame and compare MediaPipe vs Ground Truth"""
+    try:
+        if not MEDIAPIPE_AVAILABLE or mp_drawing is None:
+            return jsonify({'success': False, 'error': 'MediaPipe not available'}), 500
+        
+        data = request.json
+        frame_data = data.get('frame')
+        frame_idx = data.get('frame_idx', 0)
+        session_id = data.get('session_id', 'default')
+        
+        if not frame_data:
+            return jsonify({'success': False, 'error': 'No frame data'}), 400
+        
+        # Import comparison functions
+        try:
+            from compare_mri_single_video import (
+                get_3d_point,
+                calculate_3d_angle,
+                COMMON_JOINT_INDICES_MP,
+                COMMON_JOINT_NAMES,
+                map_gt_to_common_joints,
+                align_coordinate_systems,
+                compute_mpjpe,
+                compute_per_joint_error
+            )
+        except ImportError:
+            # Fallback functions
+            def get_3d_point(landmarks, index, width, height):
+                if index >= len(landmarks) or landmarks[index].visibility < 0.5:
+                    return None
+                return np.array([
+                    landmarks[index].x * width,
+                    landmarks[index].y * height,
+                    landmarks[index].z
+                ])
+            
+            def calculate_3d_angle(a, b, c):
+                if a is None or b is None or c is None:
+                    return None
+                a, b, c = np.array(a), np.array(b), np.array(c)
+                ba = a - b
+                bc = c - b
+                denom = (np.linalg.norm(ba) * np.linalg.norm(bc))
+                if denom < 1e-5:
+                    return None
+                cosine_angle = np.dot(ba, bc) / denom
+                return np.degrees(np.arccos(np.clip(cosine_angle, -1.0, 1.0)))
+            
+            COMMON_JOINT_INDICES_MP = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
+            COMMON_JOINT_NAMES = ['nose', 'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
+                                 'left_wrist', 'right_wrist', 'left_hip', 'right_hip', 'left_knee',
+                                 'right_knee', 'left_ankle', 'right_ankle']
+            
+            def map_gt_to_common_joints(gt_landmarks, gt_joint_names):
+                return np.array(gt_landmarks[:len(COMMON_JOINT_NAMES)])
+            
+            def align_coordinate_systems(pred, gt, method='hip_center'):
+                hip_indices = [7, 8]
+                pred_hips = pred[hip_indices]
+                gt_hips = gt[hip_indices]
+                if not (np.isnan(pred_hips).any() or np.isnan(gt_hips).any()):
+                    pred_center = pred_hips.mean(axis=0)
+                    gt_center = gt_hips.mean(axis=0)
+                    return pred - pred_center + gt_center
+                return pred
+            
+            def compute_mpjpe(predicted, ground_truth):
+                valid_mask = ~(np.isnan(predicted).any(axis=1) | np.isnan(ground_truth).any(axis=1))
+                if not np.any(valid_mask):
+                    return np.nan
+                errors = np.linalg.norm(predicted[valid_mask] - ground_truth[valid_mask], axis=1)
+                return np.mean(errors)
+            
+            def compute_per_joint_error(predicted, ground_truth):
+                errors = np.full(len(predicted), np.nan)
+                for i in range(len(predicted)):
+                    if not (np.isnan(predicted[i]).any() or np.isnan(ground_truth[i]).any()):
+                        errors[i] = np.linalg.norm(predicted[i] - ground_truth[i])
+                return errors
+        
+        # Decode frame
+        frame_bytes = base64.b64decode(frame_data.split(',')[1])
+        nparr = np.frombuffer(frame_bytes, dtype=np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return jsonify({'success': False, 'error': 'Failed to decode frame'}), 400
+        
+        h, w, _ = frame.shape
+        print(f"Processing frame {frame_idx}: {w}x{h}")
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Process with MediaPipe
+        results = pose.process(rgb_frame)
+        
+        mp_landmarks_3d = None
+        mp_angles = {}
+        mp_overlay = frame.copy()  # Always start with original frame
+        
+        if results.pose_landmarks:
+            print(f"MediaPipe detected pose in frame {frame_idx}")
+            landmarks = results.pose_landmarks.landmark
+            
+            # Extract common joints
+            mp_landmarks_3d = np.full((len(COMMON_JOINT_INDICES_MP), 3), np.nan, dtype=np.float32)
+            for i, mp_idx in enumerate(COMMON_JOINT_INDICES_MP):
+                p = get_3d_point(landmarks, mp_idx, w, h)
+                if p is not None:
+                    mp_landmarks_3d[i] = p
+            
+            # Calculate angles
+            right_shoulder = get_3d_point(landmarks, 12, w, h)
+            right_elbow = get_3d_point(landmarks, 14, w, h)
+            right_wrist = get_3d_point(landmarks, 16, w, h)
+            left_shoulder = get_3d_point(landmarks, 11, w, h)
+            left_elbow = get_3d_point(landmarks, 13, w, h)
+            left_wrist = get_3d_point(landmarks, 15, w, h)
+            
+            mp_angles = {
+                'right_elbow': calculate_3d_angle(right_shoulder, right_elbow, right_wrist),
+                'right_wrist': calculate_3d_angle(right_elbow, right_wrist, get_3d_point(landmarks, 20, w, h)),
+                'right_arm': calculate_3d_angle(left_shoulder, right_shoulder, right_elbow),
+                'left_elbow': calculate_3d_angle(left_shoulder, left_elbow, left_wrist),
+                'left_wrist': calculate_3d_angle(left_elbow, left_wrist, get_3d_point(landmarks, 19, w, h)),
+                'left_arm': calculate_3d_angle(right_shoulder, left_shoulder, left_elbow),
+            }
+            
+            # Draw MediaPipe overlay
+            mp_drawing.draw_landmarks(
+                mp_overlay,
+                results.pose_landmarks,
+                mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing.DrawingSpec(
+                    color=(0, 255, 0), thickness=2, circle_radius=3
+                ),
+                connection_drawing_spec=mp_drawing.DrawingSpec(
+                    color=(0, 255, 0), thickness=2
+                )
+            )
+        
+        # Get ground truth for this frame
+        gt_landmarks_3d = None
+        gt_angles = {}
+        gt_overlay = frame.copy()
+        comparison_metrics = {}
+        
+        if session_id in mri_ground_truth_data:
+            gt_data = mri_ground_truth_data[session_id]
+            print(f"Found GT data for session {session_id}, available frames: {len(gt_data['available_frames'])}")
+            
+            if frame_idx in gt_data['available_frames']:
+                print(f"Frame {frame_idx} found in GT available frames")
+                gt_idx = gt_data['available_frames'].index(frame_idx)
+                gt_landmarks_raw = gt_data['landmarks'][gt_idx]
+                
+                # Map to common format
+                gt_landmarks_3d = map_gt_to_common_joints(
+                    gt_landmarks_raw,
+                    gt_data['joint_names']
+                )
+                
+                # Calculate GT angles
+                if not np.isnan(gt_landmarks_3d).all():
+                    try:
+                        right_shoulder_gt = gt_landmarks_3d[2]
+                        right_elbow_gt = gt_landmarks_3d[4]
+                        right_wrist_gt = gt_landmarks_3d[6]
+                        left_shoulder_gt = gt_landmarks_3d[1]
+                        left_elbow_gt = gt_landmarks_3d[3]
+                        left_wrist_gt = gt_landmarks_3d[5]
+                        
+                        if not (np.isnan(right_shoulder_gt).any() or np.isnan(right_elbow_gt).any() or np.isnan(right_wrist_gt).any()):
+                            gt_angles['right_elbow'] = calculate_3d_angle(right_shoulder_gt, right_elbow_gt, right_wrist_gt)
+                        
+                        if not (np.isnan(right_elbow_gt).any() or np.isnan(right_wrist_gt).any()):
+                            right_index_gt = right_wrist_gt + np.array([0, -10, 0])
+                            gt_angles['right_wrist'] = calculate_3d_angle(right_elbow_gt, right_wrist_gt, right_index_gt)
+                        
+                        if not (np.isnan(left_shoulder_gt).any() or np.isnan(right_shoulder_gt).any() or np.isnan(right_elbow_gt).any()):
+                            gt_angles['right_arm'] = calculate_3d_angle(left_shoulder_gt, right_shoulder_gt, right_elbow_gt)
+                        
+                        if not (np.isnan(left_shoulder_gt).any() or np.isnan(left_elbow_gt).any() or np.isnan(left_wrist_gt).any()):
+                            gt_angles['left_elbow'] = calculate_3d_angle(left_shoulder_gt, left_elbow_gt, left_wrist_gt)
+                    except (IndexError, ValueError) as e:
+                        print(f"Warning: Could not calculate GT angles: {e}")
+                
+                # Draw GT overlay (simplified projection from 3D to 2D)
+                # GT coordinates are in 3D space, need to project to 2D
+                # For now, use a simple orthographic projection
+                if not np.isnan(gt_landmarks_3d).all():
+                    # Find bounding box of GT landmarks to scale them
+                    valid_landmarks = gt_landmarks_3d[~np.isnan(gt_landmarks_3d).any(axis=1)]
+                    if len(valid_landmarks) > 0:
+                        x_min, x_max = valid_landmarks[:, 0].min(), valid_landmarks[:, 0].max()
+                        y_min, y_max = valid_landmarks[:, 1].min(), valid_landmarks[:, 1].max()
+                        z_min, z_max = valid_landmarks[:, 2].min(), valid_landmarks[:, 2].max()
+                        
+                        # Scale to fit frame (assuming GT is in mm or similar units)
+                        x_range = x_max - x_min if x_max > x_min else 1
+                        y_range = y_max - y_min if y_max > y_min else 1
+                        
+                        for i, joint_3d in enumerate(gt_landmarks_3d):
+                            if not np.isnan(joint_3d).any():
+                                # Project 3D to 2D (orthographic projection)
+                                # Scale X and Y to fit frame, ignore Z for now
+                                if x_range > 0:
+                                    x_norm = (joint_3d[0] - x_min) / x_range
+                                else:
+                                    x_norm = 0.5
+                                if y_range > 0:
+                                    y_norm = (joint_3d[1] - y_min) / y_range
+                                else:
+                                    y_norm = 0.5
+                                
+                                x = int(x_norm * w * 0.8 + w * 0.1)  # Center with 10% margin
+                                y = int(y_norm * h * 0.8 + h * 0.1)
+                                
+                                if 0 <= x < w and 0 <= y < h:
+                                    cv2.circle(gt_overlay, (x, y), 5, (255, 0, 0), -1)
+                                    # Label joint
+                                    cv2.putText(gt_overlay, str(i), (x+8, y), 
+                                              cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), 1)
+                        
+                        # Draw connections using same projection
+                        connections = [(1, 2), (1, 3), (3, 5), (2, 4), (4, 6), (7, 8), (7, 9), (9, 11), (8, 10), (10, 12)]
+                        for start_idx, end_idx in connections:
+                            if start_idx < len(gt_landmarks_3d) and end_idx < len(gt_landmarks_3d):
+                                start = gt_landmarks_3d[start_idx]
+                                end = gt_landmarks_3d[end_idx]
+                                if not (np.isnan(start).any() or np.isnan(end).any()):
+                                    # Use same projection as above
+                                    if x_range > 0:
+                                        x1_norm = (start[0] - x_min) / x_range
+                                        x2_norm = (end[0] - x_min) / x_range
+                                    else:
+                                        x1_norm = x2_norm = 0.5
+                                    if y_range > 0:
+                                        y1_norm = (start[1] - y_min) / y_range
+                                        y2_norm = (end[1] - y_min) / y_range
+                                    else:
+                                        y1_norm = y2_norm = 0.5
+                                    
+                                    x1 = int(x1_norm * w * 0.8 + w * 0.1)
+                                    y1 = int(y1_norm * h * 0.8 + h * 0.1)
+                                    x2 = int(x2_norm * w * 0.8 + w * 0.1)
+                                    y2 = int(y2_norm * h * 0.8 + h * 0.1)
+                                    
+                                    if all(0 <= coord < dim for coord, dim in [(x1, w), (y1, h), (x2, w), (y2, h)]):
+                                        cv2.line(gt_overlay, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                
+                # Compare if both available
+                if mp_landmarks_3d is not None and gt_landmarks_3d is not None:
+                    mp_aligned = align_coordinate_systems(mp_landmarks_3d, gt_landmarks_3d, method='hip_center')
+                    mpjpe = compute_mpjpe(mp_aligned, gt_landmarks_3d)
+                    per_joint = compute_per_joint_error(mp_aligned, gt_landmarks_3d)
+                    
+                    comparison_metrics = {
+                        'mpjpe': float(mpjpe) if not np.isnan(mpjpe) else None,
+                        'per_joint_errors': {
+                            name: float(err) if not np.isnan(err) else None
+                            for name, err in zip(COMMON_JOINT_NAMES, per_joint)
+                        }
+                    }
+        
+        # Ensure overlays are valid (not empty)
+        if mp_overlay is None or mp_overlay.size == 0:
+            mp_overlay = frame.copy()
+        if gt_overlay is None or gt_overlay.size == 0:
+            gt_overlay = frame.copy()
+        
+        # Encode overlays
+        try:
+            _, mp_buffer = cv2.imencode('.jpg', mp_overlay, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            if mp_buffer is None:
+                raise ValueError("Failed to encode MediaPipe overlay")
+            mp_overlay_b64 = base64.b64encode(mp_buffer).decode('utf-8')
+            
+            _, gt_buffer = cv2.imencode('.jpg', gt_overlay, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            if gt_buffer is None:
+                raise ValueError("Failed to encode Ground Truth overlay")
+            gt_overlay_b64 = base64.b64encode(gt_buffer).decode('utf-8')
+        except Exception as e:
+            print(f"Error encoding overlays: {e}")
+            # Fallback: encode original frame
+            _, fallback_buffer = cv2.imencode('.jpg', frame)
+            fallback_b64 = base64.b64encode(fallback_buffer).decode('utf-8')
+            mp_overlay_b64 = fallback_b64
+            gt_overlay_b64 = fallback_b64
+        
+        return jsonify({
+            'success': True,
+            'mediapipe': {
+                'overlay': f'data:image/jpeg;base64,{mp_overlay_b64}',
+                'landmarks': mp_landmarks_3d.tolist() if mp_landmarks_3d is not None else None,
+                'angles': {k: float(v) if v is not None else None for k, v in mp_angles.items()}
+            },
+            'ground_truth': {
+                'overlay': f'data:image/jpeg;base64,{gt_overlay_b64}',
+                'landmarks': gt_landmarks_3d.tolist() if gt_landmarks_3d is not None else None,
+                'angles': {k: float(v) if v is not None else None for k, v in gt_angles.items()}
+            },
+            'comparison': comparison_metrics,
+            'frame_idx': frame_idx
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/process_frame_overlay_videopose3d', methods=['POST'])
 def process_frame_overlay_videopose3d():
@@ -2932,11 +3341,154 @@ def clear_conversation():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/save_nba_benchmark', methods=['POST'])
+def save_nba_benchmark():
+    """Save NBA player benchmark data"""
+    try:
+        data = request.json
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        benchmark_data = data.get('benchmark_data', [])
+        
+        if not first_name or not last_name:
+            return jsonify({'success': False, 'error': 'First name and last name are required'}), 400
+        
+        if not benchmark_data or len(benchmark_data) == 0:
+            return jsonify({'success': False, 'error': 'No benchmark data provided'}), 400
+        
+        # Create player_data directory if it doesn't exist
+        player_data_dir = Path(__file__).parent / 'player_data'
+        player_data_dir.mkdir(exist_ok=True)
+        
+        # Create a safe filename from player name
+        player_key = f"{first_name.lower()}_{last_name.lower()}"
+        filename = f"{player_key}_benchmark.js"
+        filepath = player_data_dir / filename
+        
+        # Format benchmark data as JavaScript file (similar to lebron_benchmark.js format)
+        js_content = f"// Benchmark data for {first_name} {last_name}\n"
+        js_content += f"// Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        js_content += f"// Total frames: {len(benchmark_data)}\n\n"
+        js_content += f"const {player_key}_data = [\n"
+        
+        for i, frame in enumerate(benchmark_data):
+            js_content += "    {\n"
+            js_content += f"        state: \"{frame.get('state', 'neutral')}\",\n"
+            js_content += f"        time: {frame.get('time', 0)},\n"
+            js_content += f"        frame: {frame.get('frame', i)},\n"
+            
+            # Handle landmarks
+            landmarks = frame.get('landmarks', [])
+            if landmarks:
+                js_content += "        landmarks: [\n"
+                for landmark in landmarks:
+                    if isinstance(landmark, (list, tuple)) and len(landmark) >= 3:
+                        js_content += f"            [{landmark[0]}, {landmark[1]}, {landmark[2]}],\n"
+                    elif isinstance(landmark, dict):
+                        js_content += f"            [{landmark.get('x', 0)}, {landmark.get('y', 0)}, {landmark.get('z', 0)}],\n"
+                js_content += "        ],\n"
+            
+            # Add angles if available (new format with angles object)
+            if 'angles' in frame and isinstance(frame['angles'], dict):
+                js_content += "        angles: {\n"
+                for angle_key, angle_value in frame['angles'].items():
+                    js_content += f"            {angle_key}: {angle_value if angle_value is not None else 'null'},\n"
+                js_content += "        },\n"
+            # Legacy format support
+            elif 'elbow_angle' in frame:
+                js_content += f"        elbow_angle: {frame['elbow_angle']},\n"
+            if 'wrist_angle' in frame:
+                js_content += f"        wrist_angle: {frame['wrist_angle']},\n"
+            if 'arm_angle' in frame:
+                js_content += f"        arm_angle: {frame['arm_angle']},\n"
+            
+            js_content += "    }"
+            if i < len(benchmark_data) - 1:
+                js_content += ","
+            js_content += "\n"
+        
+        js_content += "];\n"
+        
+        # Write to file
+        with open(filepath, 'w') as f:
+            f.write(js_content)
+        
+        # Also save as JSON for easier loading
+        json_filename = f"{player_key}_benchmark.json"
+        json_filepath = player_data_dir / json_filename
+        with open(json_filepath, 'w') as f:
+            import json
+            json.dump({
+                'first_name': first_name,
+                'last_name': last_name,
+                'player_key': player_key,
+                'created_at': datetime.now().isoformat(),
+                'frame_count': len(benchmark_data),
+                'benchmark_data': benchmark_data
+            }, f, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Benchmark data saved for {first_name} {last_name}',
+            'filename': filename,
+            'frame_count': len(benchmark_data),
+            'player_key': player_key
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/list_benchmarks', methods=['GET'])
+def list_benchmarks():
+    """List all available benchmark files"""
+    try:
+        player_data_dir = Path(__file__).parent / 'player_data'
+        player_data_dir.mkdir(exist_ok=True)
+        
+        # Find all benchmark JSON files
+        json_files = list(player_data_dir.glob('*_benchmark.json'))
+        
+        benchmarks = []
+        for json_file in json_files:
+            try:
+                with open(json_file, 'r') as f:
+                    import json
+                    data = json.load(f)
+                    benchmarks.append({
+                        'player_key': data.get('player_key', json_file.stem.replace('_benchmark', '')),
+                        'first_name': data.get('first_name', ''),
+                        'last_name': data.get('last_name', ''),
+                        'display_name': f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
+                        'frame_count': data.get('frame_count', 0),
+                        'created_at': data.get('created_at', '')
+                    })
+            except Exception as e:
+                # Skip files that can't be read
+                print(f"Error reading {json_file}: {e}")
+                continue
+        
+        # Sort by display name
+        benchmarks.sort(key=lambda x: x['display_name'])
+        
+        return jsonify({
+            'success': True,
+            'benchmarks': benchmarks
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     print("=" * 60)
     print("Starting Flask Server...")
     print(f"Server will run on: http://localhost:{port}")
+    # mRI comparison routes are registered directly in app.py above
+    print(f"✓ mRI Comparison Viewer: http://localhost:{port}/tool/mri_comparison/")
+    print(f"  Note: API routes need to be registered separately if using comparison features")
+    
     print(f"Overlay viewer: http://localhost:{port}/tool/shot_sync_overlay/")
     print("=" * 60)
     print("Press Ctrl+C to stop the server")

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shot Sync - Overlay & 3D Viewer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
     <style>
         * {
             margin: 0;
@@ -167,11 +171,24 @@
             min-height: 800px;
         }
         
+        #nbaLoopCanvas3d {
+            width: 100%;
+            height: 800px;
+            display: block !important;
+            background: #1a1a1a;
+            border-radius: 10px;
+            min-height: 800px;
+        }
+        
         #loop3DSection {
             width: 100%;
         }
         
         #loop3DSection .video-wrapper {
+            min-height: 800px;
+        }
+        
+        #nbaLoop3DSection .video-wrapper {
             min-height: 800px;
         }
 
@@ -394,6 +411,120 @@
             min-width: 50px;
             text-align: right;
         }
+
+        /* Tab Navigation Styles */
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            padding: 12px 30px;
+            background: transparent;
+            color: #666;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s;
+            position: relative;
+            top: 2px;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* NBA Benchmark Upload Styles */
+        .nba-benchmark-form {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .nba-benchmark-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .nba-benchmark-form .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .nba-benchmark-form .form-group input[type="text"] {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .nba-benchmark-form .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .nba-benchmark-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .nba-benchmark-form .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .processing-status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .processing-status.active {
+            display: block;
+        }
+
+        .processing-status.processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .processing-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .processing-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -403,6 +534,15 @@
             <p class="subtitle">Test and debug the shot sync model overlay implementation</p>
         </header>
 
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="overlay-viewer">Overlay Viewer</button>
+            <button class="tab-btn" data-tab="nba-benchmark">NBA Benchmark Upload</button>
+            <button class="tab-btn" data-tab="shot-comparison">Shot Comparison</button>
+        </div>
+
+        <!-- Overlay Viewer Tab -->
+        <div class="tab-content active" id="overlay-viewer-tab">
         <div class="upload-section">
             <div class="form-group">
                 <label for="userHeight">Your Height (inches):</label>
@@ -561,6 +701,302 @@
                 </div>
             </div>
         </div>
+        </div> <!-- End overlay-viewer-tab -->
+
+        <!-- NBA Benchmark Upload Tab -->
+        <div class="tab-content" id="nba-benchmark-tab">
+            <div class="nba-benchmark-form">
+                <h2 style="color: #667eea; margin-bottom: 20px;">🏀 NBA Player Benchmark Upload</h2>
+                <p style="color: #666; margin-bottom: 30px;">Upload a video of an NBA player's shot to create benchmark data. The video will be processed frame by frame to extract pose landmarks. Rotate the 3D view to inspect the pose, then save the benchmark.</p>
+                
+                <form id="nbaBenchmarkForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nbaFirstName">First Name *</label>
+                            <input type="text" id="nbaFirstName" required placeholder="Enter player's first name">
+                        </div>
+                        <div class="form-group">
+                            <label for="nbaLastName">Last Name *</label>
+                            <input type="text" id="nbaLastName" required placeholder="Enter player's last name">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nbaVideoUpload">Video File *</label>
+                        <input type="file" id="nbaVideoUpload" accept="video/*" required style="display: block; margin-top: 10px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; width: 100%; max-width: 500px;">
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Select a video file showing the player's shooting motion</p>
+                    </div>
+                    
+                    <button type="button" id="nbaProcessBtn" class="btn" style="margin-top: 20px; padding: 15px 40px; font-size: 1.1em;" disabled>
+                        🚀 Process Video
+                    </button>
+                    
+                    <div id="nbaStatus" class="processing-status"></div>
+                </form>
+            </div>
+
+            <!-- 3D Loop Animation Section for NBA Benchmark -->
+            <div id="nbaLoop3DSection" style="display: none; margin-top: 30px; padding: 20px; background: #1a1a1a; border-radius: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: white; margin: 0;">3D Pose Loop Animation</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button id="nbaPlayLoopBtn" class="btn" style="padding: 8px 15px; font-size: 0.9em;">▶️ Play</button>
+                        <button id="nbaPauseLoopBtn" class="btn" style="padding: 8px 15px; font-size: 0.9em; display: none;">⏸️ Pause</button>
+                        <span id="nbaLoopFrameInfo" style="color: #667eea; font-size: 0.9em; margin-left: 10px;">Frame: 0/0</span>
+                    </div>
+                </div>
+                <div class="video-wrapper">
+                    <div class="section-label">Frame-by-Frame 3D Pose Loop</div>
+                    <div class="rotation-controls">
+                        <div class="slider-group">
+                            <span class="slider-label">Horizontal:</span>
+                            <input type="range" class="slider" id="nbaLoopHorizontalSlider" min="0" max="360" value="0" step="1">
+                            <span class="slider-value" id="nbaLoopHorizontalValue">0°</span>
+                        </div>
+                        <div class="slider-group">
+                            <span class="slider-label">Vertical:</span>
+                            <input type="range" class="slider" id="nbaLoopVerticalSlider" min="-90" max="90" value="0" step="1">
+                            <span class="slider-value" id="nbaLoopVerticalValue">0°</span>
+                        </div>
+                    </div>
+                    <canvas id="nbaLoopCanvas3d"></canvas>
+                </div>
+                <div id="nbaLoopGenerationStatus" style="color: #667eea; margin-top: 10px; font-size: 0.9em;"></div>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <button type="button" id="nbaSaveBenchmarkBtn" class="btn" style="padding: 15px 40px; font-size: 1.1em; display: none;">
+                        💾 Save Benchmark Data
+                    </button>
+                </div>
+            </div>
+        </div> <!-- End nba-benchmark-tab -->
+
+        <!-- Shot Comparison Tab -->
+        <div class="tab-content" id="shot-comparison-tab">
+        <div class="upload-section">
+            <div class="form-group">
+                <label for="userHeight">Your Height (inches):</label>
+                <input type="number" id="userHeight" value="72" min="48" max="96">
+                    </div>
+            <div class="form-group">
+                <label for="shoulderWidth">Shoulder Width (inches):</label>
+                <input type="number" id="shoulderWidth" value="18" min="12" max="30">
+            </div>
+            <div class="form-group">
+                <label for="poseMethod" style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: bold;">Pose Estimation Method:</span>
+                    <select id="poseMethod" style="padding: 8px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; background: white;">
+                        <option value="original">Original Shot Sync</option>
+                        <option value="ntu">NTU-RRIS Google-MediaPipe</option>
+                        <option value="videopose3d" selected>VideoPose3D (Facebook Research) - Best 3D</option>
+                    </select>
+                </label>
+                <div id="methodHint" style="margin-top: 5px; font-size: 0.9em; color: #667eea; font-weight: 500;">
+                    💡 VideoPose3D selected - Buffer will fill as video plays (needs 243 frames)
+                </div>
+            </div>
+            <label for="videoUpload" class="upload-label">
+                📹 Upload Video
+            </label>
+            <input type="file" id="videoUpload" accept="video/*">
+            <label for="imageUpload" class="upload-label" style="margin-top: 15px;">
+                🖼️ Upload Image (for 3D pose visualization)
+            </label>
+            <input type="file" id="imageUpload" accept="image/*">
+            <div id="uploadStatus" class="status"></div>
+            <div id="errorStatus" class="status" style="display: none;"></div>
+                </div>
+                
+        <!-- Animation Controls (hidden until sequence is ready) -->
+        <div id="animationControls" style="display: none; margin-top: 15px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+            <div style="font-weight: bold; margin-bottom: 10px; color: #667eea;">🎬 3D Animation Controls</div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button id="playAnimationBtn" class="btn" style="padding: 8px 20px; font-size: 0.9em;">▶️ Play Animation</button>
+                <button id="pauseAnimationBtn" class="btn" style="padding: 8px 20px; font-size: 0.9em; display: none;">⏸️ Pause</button>
+                <button id="resetAnimationBtn" class="btn" style="padding: 8px 20px; font-size: 0.9em;">⏮️ Reset</button>
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    Speed:
+                    <input type="range" id="animationSpeedSlider" min="0.5" max="3" step="0.1" value="1" style="width: 100px;">
+                    <span id="animationSpeedValue">1.0x</span>
+                    </label>
+                <span id="animationFrameInfo" style="color: #666; font-size: 0.9em;">Frame: 0/0</span>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                💡 This animation shows the smoothed 3D poses from all 243 frames processed by VideoPose3D
+            </div>
+                </div>
+                
+        <div class="video-section" id="videoSection">
+            <div class="video-3d-container">
+                <!-- 2D Overlay Section -->
+                <div class="video-wrapper">
+                    <div class="section-label">2D Overlay (Shot Sync Model) - Green skeleton overlay appears here</div>
+                    <video id="videoPlayer" controls style="width: 100%; height: auto;"></video>
+                    <canvas id="overlayCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+                    <!-- Video Timeline Slider -->
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 10px; z-index: 10;">
+                        <input type="range" id="videoTimelineSlider" min="0" max="100" value="0" step="0.1" style="width: 100%; cursor: pointer;">
+                        <div style="display: flex; justify-content: space-between; color: white; font-size: 0.8em; margin-top: 5px;">
+                            <span id="currentTime">0:00</span>
+                            <span id="totalTime">0:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D Visualization Section -->
+                <div class="viewer-3d-wrapper">
+                    <div class="viewer-3d-label">3D Pose Visualization</div>
+                    <div class="view-controls">
+                        <button class="view-btn active" onclick="setView('front')">Front</button>
+                        <button class="view-btn" onclick="setView('side')">Side</button>
+                        <button class="view-btn" onclick="setView('top')">Top</button>
+                            </div>
+                    <div class="rotation-controls">
+                        <div class="slider-group">
+                            <span class="slider-label">Horizontal:</span>
+                            <input type="range" class="slider" id="horizontalSlider" min="0" max="360" value="0" step="1">
+                            <span class="slider-value" id="horizontalValue">0°</span>
+                            </div>
+                        <div class="slider-group">
+                            <span class="slider-label">Vertical:</span>
+                            <input type="range" class="slider" id="verticalSlider" min="-90" max="90" value="0" step="1">
+                            <span class="slider-value" id="verticalValue">0°</span>
+                            </div>
+                        </div>
+                    <canvas id="canvas3d"></canvas>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn" id="playBtn">▶️ Play</button>
+                <button class="btn" id="pauseBtn">⏸️ Pause</button>
+                <button class="btn" id="resetBtn">🔄 Reset</button>
+                <button class="btn" id="generateLoopBtn" style="background: #667eea;">🔄 Generate Loop</button>
+            </div>
+            
+            <!-- Loop 3D Visualization Section -->
+            <div id="loop3DSection" style="display: none; margin-top: 30px; padding: 20px; background: #1a1a1a; border-radius: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: white; margin: 0;">3D Pose Loop Animation</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button id="playLoopBtn" class="btn" style="padding: 8px 15px; font-size: 0.9em;">▶️ Play</button>
+                        <button id="pauseLoopBtn" class="btn" style="padding: 8px 15px; font-size: 0.9em; display: none;">⏸️ Pause</button>
+                        <span id="loopFrameInfo" style="color: #667eea; font-size: 0.9em; margin-left: 10px;">Frame: 0/0</span>
+                    </div>
+                </div>
+                <div class="video-wrapper">
+                    <div class="section-label">Frame-by-Frame 3D Pose Loop</div>
+                    <canvas id="loopCanvas3d"></canvas>
+                </div>
+                <div id="loopGenerationStatus" style="color: #667eea; margin-top: 10px; font-size: 0.9em;"></div>
+            </div>
+            
+            <!-- Player Selection (Shot Comparison Tab Only) -->
+            <div id="playerSelectionPanel" style="display: none; margin-top: 20px; padding: 20px; background: #ffffff; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 2px solid #667eea;">
+                <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 1.3em;">🏀 Compare Your Shot To</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <label for="benchmarkPlayerSelect" style="font-weight: bold; color: #333; font-size: 1.1em;">Select Player:</label>
+                    <select id="benchmarkPlayerSelect" style="padding: 10px 20px; font-size: 1em; border: 2px solid #667eea; border-radius: 8px; background: white; color: #333; cursor: pointer; min-width: 200px;">
+                        <option value="steph_curry">Steph Curry</option>
+                        <option value="lebron_james">LeBron James</option>
+                    </select>
+                    <div id="playerSelectionStatus" style="color: #667eea; font-size: 0.9em; font-style: italic;"></div>
+                </div>
+            </div>
+            
+            <!-- Live Angles Panel (Shot Comparison Tab Only) -->
+            <div id="anglesPanel" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 1.3em;">📐 Live Joint Angles</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 10px; font-size: 1.1em;">Left Elbow</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #333;" id="leftElbowAngle">--°</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Angle between upper arm and forearm</div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 10px; font-size: 1.1em;">Right Elbow</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #333;" id="rightElbowAngle">--°</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Angle between upper arm and forearm</div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 10px; font-size: 1.1em;">Left Knee</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #333;" id="leftKneeAngle">--°</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Angle between thigh and shin</div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 10px; font-size: 1.1em;">Right Knee</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #333;" id="rightKneeAngle">--°</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Angle between thigh and shin</div>
+                    </div>
+                </div>
+                
+                <!-- Similarity Score Display -->
+                <div id="similarityScorePanel" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                    <h3 style="color: white; margin: 0 0 10px 0; font-size: 1.3em;">🎯 Similarity Score</h3>
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 3em; font-weight: bold; color: white;" id="similarityScore">--</div>
+                            <div style="font-size: 1em; color: rgba(255,255,255,0.9); margin-top: 5px;" id="similarityScorePlayer">vs Steph Curry Benchmark</div>
+                        </div>
+                        <div style="flex: 2; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px;">
+                            <div style="color: white; font-size: 0.9em; margin-bottom: 8px;">Angle Comparisons:</div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.85em;">
+                                <div style="color: rgba(255,255,255,0.9);">Left Elbow: <span id="leftElbowSimilarity" style="font-weight: bold;">--</span></div>
+                                <div style="color: rgba(255,255,255,0.9);">Right Elbow: <span id="rightElbowSimilarity" style="font-weight: bold;">--</span></div>
+                                <div style="color: rgba(255,255,255,0.9);">Left Knee: <span id="leftKneeSimilarity" style="font-weight: bold;">--</span></div>
+                                <div style="color: rgba(255,255,255,0.9);">Right Knee: <span id="rightKneeSimilarity" style="font-weight: bold;">--</span></div>
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.3);">
+                                <div style="color: rgba(255,255,255,0.9); font-size: 0.85em;">
+                                    Frames with non-identical angles: <span id="nonIdenticalFramesCount" style="font-weight: bold; color: #ffd700;">--</span> / <span id="totalFramesCount" style="font-weight: bold;">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <h3>Detection Information</h3>
+                <div class="info-item">
+                    <span class="info-label">Method:</span>
+                    <span class="info-value" id="methodName">NTU-RRIS MediaPipe</span>
+                </div>
+                <div class="info-item" id="videopose3dStatus" style="display: none;">
+                    <span class="info-label">VideoPose3D Status:</span>
+                    <span class="info-value" id="videopose3dStatusValue" style="font-weight: bold; color: #667eea;">--</span>
+                </div>
+                <div class="info-item" id="videopose3dBuffer" style="display: none;">
+                    <span class="info-label">Buffer Progress:</span>
+                    <span class="info-value" id="videopose3dBufferValue">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Person Detected:</span>
+                    <span class="info-value" id="personDetected">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Confidence:</span>
+                    <span class="info-value" id="confidence">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Landmarks Visible:</span>
+                    <span class="info-value" id="landmarksVisible">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Eye to Feet:</span>
+                    <span class="info-value" id="eyeToFeet">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Shoulder Width:</span>
+                    <span class="info-value" id="shoulderWidthValue">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Distance:</span>
+                    <span class="info-value" id="distance">--</span>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End shot-comparison-tab -->
     </div>
 
     <script>
@@ -639,12 +1075,48 @@
             }
         }
 
-        function init3DViewer() {
-            const container = document.getElementById('canvas3d');
-            const width = container.clientWidth;
-            const height = container.clientHeight || 600;
-
-            // Scene
+        function init3DViewer(canvasElement) {
+            // If canvas element is provided, use it; otherwise find the first one
+            const container = canvasElement || document.getElementById('canvas3d');
+            if (!container) {
+                console.error('Canvas3d container not found!');
+                return;
+            }
+            
+            // Check if this specific canvas already has a renderer
+            // We'll store renderer reference on the canvas element itself
+            if (container.renderer && container.scene && container.camera) {
+                console.log('3D viewer already initialized for this canvas, skipping...');
+                // Use the existing renderer/scene/camera for this canvas
+                renderer = container.renderer;
+                scene = container.scene;
+                camera = container.camera;
+                return;
+            }
+            
+            // Prevent multiple initializations if using global (fallback)
+            if (!canvasElement && renderer && scene && camera) {
+                console.log('3D viewer already initialized (global), skipping...');
+                return;
+            }
+            
+            // Ensure container is visible and has dimensions
+            const width = Math.max(container.clientWidth || 800, 800);
+            const height = Math.max(container.clientHeight || 600, 600);
+            
+            // Set explicit dimensions on canvas element
+            if (container.tagName === 'CANVAS') {
+                container.width = width;
+                container.height = height;
+            }
+            
+            // Ensure container is visible
+            container.style.display = 'block';
+            container.style.visibility = 'visible';
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+            
+            // Create scene first (before renderer)
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x1a1a1a);
 
@@ -652,49 +1124,109 @@
             camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
             updateCameraPosition();
 
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ canvas: container, antialias: true });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-            directionalLight.position.set(5, 5, 5);
-            scene.add(directionalLight);
-
-            // Add a second light from the opposite side for better visibility
-            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
-            directionalLight2.position.set(-5, 5, -5);
-            scene.add(directionalLight2);
-
-            // Enhanced Grid - larger and more visible
-            // Main grid (horizontal plane at feet level)
-            const gridHelper = new THREE.GridHelper(12, 24, 0x888888, 0x444444);
-            gridHelper.rotation.x = Math.PI / 2;
-            gridHelper.position.y = -2;
-            gridHelper.material.opacity = 0.8;
-            gridHelper.material.transparent = true;
-            scene.add(gridHelper);
-
-            // Add a ground plane for better depth perception
-            const planeGeometry = new THREE.PlaneGeometry(12, 12);
-            const planeMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x333333, 
-                opacity: 0.3, 
-                transparent: true,
-                side: THREE.DoubleSide
+            // Check WebGL availability first (more lenient check)
+            let webglSupported = false;
+            try {
+                const testCanvas = document.createElement('canvas');
+                const testContext = testCanvas.getContext('webgl') || 
+                                   testCanvas.getContext('experimental-webgl') || 
+                                   testCanvas.getContext('webgl2');
+                webglSupported = !!testContext;
+                
+                if (testContext) {
+                    console.log('✓ WebGL is available');
+                }
+            } catch (e) {
+                console.warn('WebGL test failed:', e);
+            }
+            
+            if (!webglSupported) {
+                console.warn('⚠️ WebGL test failed, but attempting to create renderer anyway...');
+                console.warn('If this fails, try:');
+                console.warn('1. Restart your browser completely');
+                console.warn('2. Close Zoom and other video apps');
+                console.warn('3. Enable hardware acceleration in browser settings');
+                // Don't return - try anyway, sometimes the test fails but WebGL still works
+            }
+            
+            // Wait a frame to ensure DOM is ready before creating WebGL context
+            requestAnimationFrame(() => {
+                try {
+                    // Create renderer with the existing canvas element
+                    const newRenderer = new THREE.WebGLRenderer({ 
+                        canvas: container,
+                        antialias: true,
+                        preserveDrawingBuffer: false
+                    });
+                    newRenderer.setSize(width, height);
+                    newRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                    
+                    // Store renderer, scene, camera on the canvas element for this specific tab
+                    container.renderer = newRenderer;
+                    container.scene = scene;
+                    container.camera = camera;
+                    
+                    // Also update global variables (for backward compatibility)
+                    renderer = newRenderer;
+                    
+                    console.log('✓ WebGL renderer created successfully for canvas:', container.id || 'canvas3d');
+                    
+                    // Now add lighting and scene elements
+                    setupSceneElements();
+                    
+                } catch (error) {
+                    console.error('❌ Failed to create WebGL renderer:', error);
+                    console.error('This often happens when:');
+                    console.error('1. Another app (like Zoom) is using WebGL - Close Zoom completely');
+                    console.error('2. Browser needs restart - Close and reopen browser');
+                    console.error('3. WebGL is disabled - Check browser settings');
+                    console.error('4. Too many WebGL contexts - Close other tabs with 3D content');
+                    
+                    // Don't try fallback - if WebGL context creation fails, fallback will also fail
+                }
             });
-            const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-            groundPlane.rotation.x = Math.PI / 2;
-            groundPlane.position.y = -2;
-            scene.add(groundPlane);
 
-            // Add axis helpers for orientation
-            const axesHelper = new THREE.AxesHelper(3);
-            scene.add(axesHelper);
+            // Function to set up scene elements (called after renderer is created)
+            function setupSceneElements() {
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(5, 5, 5);
+                scene.add(directionalLight);
+
+                // Add a second light from the opposite side for better visibility
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+                directionalLight2.position.set(-5, 5, -5);
+                scene.add(directionalLight2);
+
+                // Enhanced Grid - larger and more visible
+                // Main grid (horizontal plane at feet level)
+                const gridHelper = new THREE.GridHelper(12, 24, 0x888888, 0x444444);
+                gridHelper.rotation.x = Math.PI / 2;
+                gridHelper.position.y = -2;
+                gridHelper.material.opacity = 0.8;
+                gridHelper.material.transparent = true;
+                scene.add(gridHelper);
+
+                // Add a ground plane for better depth perception
+                const planeGeometry = new THREE.PlaneGeometry(12, 12);
+                const planeMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x333333, 
+                    opacity: 0.3, 
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+                groundPlane.rotation.x = Math.PI / 2;
+                groundPlane.position.y = -2;
+                scene.add(groundPlane);
+
+                // Add axis helpers for orientation
+                const axesHelper = new THREE.AxesHelper(3);
+                scene.add(axesHelper);
+            }
 
             // Enhanced mouse controls for smooth rotation
             let isDragging = false;
@@ -809,6 +1341,11 @@
         }
 
         function animate3D() {
+            if (!renderer || !scene || !camera) {
+                console.warn('animate3D called but renderer/scene/camera not ready yet');
+                requestAnimationFrame(animate3D);
+                return;
+            }
             requestAnimationFrame(animate3D);
             renderer.render(scene, camera);
         }
@@ -1182,108 +1719,169 @@
 
         // ========== EVENT LISTENERS ==========
         
+        // Helper function to find elements within a specific tab context
+        function findInTab(tabId, elementId) {
+            const tab = document.getElementById(tabId);
+            if (!tab) return null;
+            return tab.querySelector(`#${elementId}`) || tab.querySelector(`[id="${elementId}"]`);
+        }
+        
+        // Helper function to get the active tab ID
+        function getActiveTabId() {
+            const activeTab = document.querySelector('.tab-content.active');
+            return activeTab ? activeTab.id : null;
+        }
+        
         // Wait for DOM to be ready before attaching event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            const videoUploadInput = document.getElementById('videoUpload');
-            if (!videoUploadInput) {
-                console.error('videoUpload input not found!');
-                return;
+            console.log('DOMContentLoaded - Setting up video upload listeners');
+            
+            // Attach event listeners to all videoUpload inputs (both tabs)
+            // Try multiple selectors to ensure we find the inputs
+            let videoUploadInputs = document.querySelectorAll('.tab-content input[type="file"][accept="video/*"]');
+            
+            // Fallback: if not found, try by ID within tab-content
+            if (videoUploadInputs.length === 0) {
+                videoUploadInputs = document.querySelectorAll('.tab-content input#videoUpload');
             }
+            
+            // Another fallback: try all inputs with id="videoUpload"
+            if (videoUploadInputs.length === 0) {
+                videoUploadInputs = document.querySelectorAll('input#videoUpload');
+            }
+            
+            console.log('Found video upload inputs:', videoUploadInputs.length);
+            
+            if (videoUploadInputs.length === 0) {
+                console.error('No video upload inputs found! Trying one more time...');
+                // Last resort: query all file inputs
+                const allFileInputs = document.querySelectorAll('input[type="file"]');
+                console.log('All file inputs found:', allFileInputs.length);
+                videoUploadInputs = Array.from(allFileInputs).filter(input => {
+                    const accept = input.getAttribute('accept');
+                    return accept && accept.includes('video');
+                });
+                console.log('Filtered video inputs:', videoUploadInputs.length);
+            }
+            
+            videoUploadInputs.forEach(function(videoUploadInput, index) {
+                console.log('Attaching listener to input', index, videoUploadInput);
+                
+                // Store the tab reference when attaching the listener (more reliable)
+                let parentTab = videoUploadInput;
+                while (parentTab && !parentTab.classList.contains('tab-content')) {
+                    parentTab = parentTab.parentElement;
+            }
+                const tabForThisInput = parentTab;
+                const tabIdForThisInput = tabForThisInput ? tabForThisInput.id : 'unknown';
+                console.log('Input', index, 'belongs to tab:', tabIdForThisInput);
             
             videoUploadInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
-                if (!file) {
-                    console.log('No file selected');
+                    if (!file) return;
+                    
+                    // SIMPLE: Use the ACTIVE tab (the tab the user is currently viewing)
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (!activeTab) {
+                        alert('Please select a tab first');
                     return;
                 }
                 
-                console.log('Video file selected:', file.name, file.type);
-                
-                // Create object URL for video
-                const videoURL = URL.createObjectURL(file);
-                if (!videoElement) {
-                    console.error('Video element not found!');
+                    // Find elements in the ACTIVE tab
+                    const tabVideoElement = activeTab.querySelector('video');
+                    const tabCanvas = activeTab.querySelector('canvas');
+                    const tabUploadStatus = activeTab.querySelector('#uploadStatus');
+                    const tabVideoSection = activeTab.querySelector('#videoSection');
+                    const tabVideoTimelineSlider = activeTab.querySelector('#videoTimelineSlider');
+                    const tabTotalTimeDisplay = activeTab.querySelector('#totalTime');
+                    const tabCanvas3d = activeTab.querySelector('#canvas3d');
+                    
+                    if (!tabVideoElement) {
+                        alert('Video element not found in ' + activeTab.id);
                     return;
                 }
-                videoElement.src = videoURL;
                 
                 // Show status
-                const uploadStatus = document.getElementById('uploadStatus');
-                if (uploadStatus) {
-                    uploadStatus.textContent = `✓ Loaded: ${file.name}`;
-                    uploadStatus.className = 'status success';
-                    uploadStatus.style.display = 'block';
+                    if (tabUploadStatus) {
+                        tabUploadStatus.textContent = `⏳ Loading ${file.name}...`;
+                        tabUploadStatus.className = 'status';
+                        tabUploadStatus.style.display = 'block';
                 }
                 
-                // Show video section if it exists
-                const videoSection = document.getElementById('videoSection');
-                if (videoSection) {
-                    console.log('Showing video section');
-                    videoSection.style.display = 'block';
-                } else {
-                    console.error('Video section not found!');
-                }
-                
-                // Set up video metadata handler
-                videoElement.onloadedmetadata = () => {
-                    console.log('Video metadata loaded:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-                    if (canvas) {
-                        canvas.width = videoElement.videoWidth;
-                        canvas.height = videoElement.videoHeight;
-                        console.log('Canvas size set to:', canvas.width, 'x', canvas.height);
-                        // Make canvas visible
-                        canvas.style.display = 'block';
-                        canvas.style.visibility = 'visible';
+                    // Show video section
+                    if (tabVideoSection) {
+                        tabVideoSection.style.display = 'block';
                     }
                     
-                    // Initialize timeline slider
-                    if (videoTimelineSlider && videoElement.duration) {
-                        videoTimelineSlider.max = 100;
-                        if (totalTimeDisplay) {
-                            totalTimeDisplay.textContent = formatTime(videoElement.duration);
+                    // Load video
+                    const videoURL = URL.createObjectURL(file);
+                    tabVideoElement.src = videoURL;
+                    
+                    // Update status
+                    if (tabUploadStatus) {
+                        tabUploadStatus.textContent = `✓ Loaded: ${file.name}`;
+                        tabUploadStatus.className = 'status success';
+                }
+                
+                    // Set up handlers
+                    tabVideoElement.onloadedmetadata = () => {
+                        if (tabCanvas) {
+                            tabCanvas.width = tabVideoElement.videoWidth;
+                            tabCanvas.height = tabVideoElement.videoHeight;
+                        }
+                        if (tabVideoTimelineSlider && tabVideoElement.duration) {
+                            tabVideoTimelineSlider.max = 100;
+                            if (tabTotalTimeDisplay) {
+                                tabTotalTimeDisplay.textContent = formatTime(tabVideoElement.duration);
                         }
                     }
-                    
-                    if (!scene) {
-                        console.log('Initializing 3D viewer...');
-                        init3DViewer();
+                        if (tabCanvas3d) {
+                            init3DViewer(tabCanvas3d);
                     }
                 };
                 
-                // Handle video load errors
-                videoElement.onerror = (err) => {
-                    console.error('Video load error:', err);
-                    const uploadStatus = document.getElementById('uploadStatus');
-                    if (uploadStatus) {
-                        uploadStatus.textContent = `✗ Error loading video: ${file.name}`;
-                        uploadStatus.className = 'status error';
-                        uploadStatus.style.display = 'block';
+                    tabVideoElement.onerror = () => {
+                        if (tabUploadStatus) {
+                            tabUploadStatus.textContent = `✗ Error loading video`;
+                            tabUploadStatus.className = 'status error';
                     }
                 };
                 
-                // Handle video can play
-                videoElement.oncanplay = () => {
-                    console.log('Video can play');
-                };
-                
-                // Load the video
-                videoElement.load();
+                    tabVideoElement.load();
+                });
             });
         });
 
-        // Image upload handler
-        document.getElementById('imageUpload').addEventListener('change', async function(e) {
+        // Image upload handler - attach to all imageUpload inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageUploadInputs = document.querySelectorAll('input[id="imageUpload"]');
+            
+            imageUploadInputs.forEach(function(imageUploadInput) {
+                imageUploadInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
             
-            // Show image in video element (for display)
+                    // Find the tab containing this input
+                    const tab = e.target.closest('.tab-content');
+                    
+                    // Find elements within this tab's context
+                    const tabCanvas = tab ? tab.querySelector('#overlayCanvas') : canvas;
+                    const tabCtx = tabCanvas ? tabCanvas.getContext('2d') : ctx;
+                    const tabUploadStatus = tab ? tab.querySelector('#uploadStatus') : document.getElementById('uploadStatus');
+                    const tabVideoSection = tab ? tab.querySelector('#videoSection') : document.getElementById('videoSection');
+                    
+                    // Show image in canvas (for display)
             const imageUrl = URL.createObjectURL(file);
             const img = new Image();
             img.onload = async () => {
                 // Set canvas size to image size
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        if (tabCanvas) {
+                            tabCanvas.width = img.width;
+                            tabCanvas.height = img.height;
+                            if (tabCtx) {
+                                tabCtx.drawImage(img, 0, 0, tabCanvas.width, tabCanvas.height);
+                            }
+                        }
                 
                 // Initialize 3D viewer if not already
                 if (!scene) init3DViewer();
@@ -1291,12 +1889,18 @@
                 // Process the image
                 await processImage(img);
                 
-                document.getElementById('uploadStatus').textContent = `✓ Loaded image: ${file.name}`;
-                document.getElementById('uploadStatus').className = 'status success';
-                document.getElementById('uploadStatus').style.display = 'block';
-                document.getElementById('videoSection').style.display = 'block';
+                        if (tabUploadStatus) {
+                            tabUploadStatus.textContent = `✓ Loaded image: ${file.name}`;
+                            tabUploadStatus.className = 'status success';
+                            tabUploadStatus.style.display = 'block';
+                        }
+                        if (tabVideoSection) {
+                            tabVideoSection.style.display = 'block';
+                        }
             };
             img.src = imageUrl;
+                });
+            });
         });
 
         // Process a single image
@@ -1941,13 +2545,23 @@
             return interpolated;
         }
         
-        const generateLoopBtn = document.getElementById('generateLoopBtn');
-        const loop3DSection = document.getElementById('loop3DSection');
-        const playLoopBtn = document.getElementById('playLoopBtn');
-        const pauseLoopBtn = document.getElementById('pauseLoopBtn');
-        const loopFrameInfo = document.getElementById('loopFrameInfo');
-        const loopGenerationStatus = document.getElementById('loopGenerationStatus');
-        const loopCanvas3d = document.getElementById('loopCanvas3d');
+        // Find all loop-related elements in all tabs
+        const generateLoopBtns = document.querySelectorAll('#generateLoopBtn');
+        const loop3DSections = document.querySelectorAll('#loop3DSection');
+        const playLoopBtns = document.querySelectorAll('#playLoopBtn');
+        const pauseLoopBtns = document.querySelectorAll('#pauseLoopBtn');
+        const loopFrameInfos = document.querySelectorAll('#loopFrameInfo');
+        const loopGenerationStatuses = document.querySelectorAll('#loopGenerationStatus');
+        const loopCanvas3ds = document.querySelectorAll('#loopCanvas3d');
+        
+        // Keep global references for backward compatibility (first tab)
+        const generateLoopBtn = generateLoopBtns[0];
+        const loop3DSection = loop3DSections[0];
+        const playLoopBtn = playLoopBtns[0];
+        const pauseLoopBtn = pauseLoopBtns[0];
+        const loopFrameInfo = loopFrameInfos[0];
+        const loopGenerationStatus = loopGenerationStatuses[0];
+        const loopCanvas3d = loopCanvas3ds[0];
         
         // Initialize loop 3D viewer
         function initLoop3DViewer() {
@@ -2290,33 +2904,800 @@
             }
         }
         
-        // Loop play/pause controls
-        if (generateLoopBtn) {
-            generateLoopBtn.addEventListener('click', generateLoop);
+        // Tab-scoped generateLoop function
+        async function generateLoopForTab(tab, tabVideoElement, tabCanvas, tabGenerateLoopBtn, tabLoop3DSection, tabLoopGenerationStatus, tabLoopCanvas3d, tabPoseMethod, tabUserHeight, tabShoulderWidth) {
+            if (!tabVideoElement || !tabVideoElement.src || isGeneratingLoop) {
+                return;
+            }
+            
+            isGeneratingLoop = true;
+            tabGenerateLoopBtn.disabled = true;
+            tabGenerateLoopBtn.textContent = '⏳ Processing...';
+            
+            // Use tab-specific storage for loop poses (store on tab element)
+            if (!tab.loop3DPoses) tab.loop3DPoses = [];
+            if (!tab.currentLoopFrameIndex) tab.currentLoopFrameIndex = 0;
+            if (!tab.loopScene) tab.loopScene = null;
+            if (!tab.loopRenderer) tab.loopRenderer = null;
+            if (!tab.loopCamera) tab.loopCamera = null;
+            if (!tab.loopSkeletonObjects) tab.loopSkeletonObjects = [];
+            
+            tab.loop3DPoses = [];
+            tab.currentLoopFrameIndex = 0;
+            
+            // Show loop section
+            if (tabLoop3DSection) {
+                tabLoop3DSection.style.display = 'block';
+            }
+            if (tabLoopGenerationStatus) {
+                tabLoopGenerationStatus.textContent = 'Processing frames... 0%';
+            }
+            
+            // Initialize loop 3D viewer for this tab
+            if (!tab.loopScene || !tab.loopRenderer) {
+                if (tabLoopCanvas3d) {
+                    initLoop3DViewerForTab(tab, tabLoopCanvas3d);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            
+            try {
+                const originalTime = tabVideoElement.currentTime;
+                const originalPaused = tabVideoElement.paused;
+                
+                if (!tabVideoElement.paused) {
+                    tabVideoElement.pause();
+                }
+                
+                const duration = tabVideoElement.duration;
+                const fps = 30;
+                const frameInterval = 1 / fps;
+                const totalFrames = Math.ceil(duration * fps);
+                
+                const tabCtx = tabCanvas ? tabCanvas.getContext('2d') : null;
+                
+                // Process each frame
+                for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+                    const targetTime = frameIndex * frameInterval;
+                    if (targetTime >= duration) break;
+                    
+                    tabVideoElement.currentTime = targetTime;
+                    
+                    await new Promise((resolve) => {
+                        const onSeeked = () => {
+                            tabVideoElement.removeEventListener('seeked', onSeeked);
+                            resolve();
+                        };
+                        tabVideoElement.addEventListener('seeked', onSeeked);
+                        setTimeout(() => {
+                            tabVideoElement.removeEventListener('seeked', onSeeked);
+                            resolve();
+                        }, 500);
+                    });
+                    
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    if (tabCanvas && tabCtx && tabVideoElement.videoWidth > 0 && tabVideoElement.videoHeight > 0) {
+                        tabCanvas.width = tabVideoElement.videoWidth;
+                        tabCanvas.height = tabVideoElement.videoHeight;
+                        tabCtx.drawImage(tabVideoElement, 0, 0, tabCanvas.width, tabCanvas.height);
+                        
+                        const frameData = tabCanvas.toDataURL('image/jpeg', 0.9);
+                        const poseMethod = tabPoseMethod ? tabPoseMethod.value : 'videopose3d';
+                        const apiEndpoint = poseMethod === 'videopose3d' 
+                            ? '/api/process_frame_overlay_videopose3d'
+                            : poseMethod === 'ntu'
+                            ? '/api/process_frame_overlay_ntu'
+                            : '/api/process_frame_overlay';
+                        
+                        try {
+                            const response = await fetch(apiEndpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    frame: frameData,
+                                    user_height: parseFloat(tabUserHeight ? tabUserHeight.value : 72),
+                                    shoulder_width: parseFloat(tabShoulderWidth ? tabShoulderWidth.value : 18),
+                                    sequence_id: 'loop_generation_' + tab.id + '_' + Date.now()
+                                })
+                            });
+                            
+                            const result = await response.json();
+                            if (result.success && result.landmarks && result.landmarks.length > 0) {
+                                tab.loop3DPoses.push(result.landmarks);
+                            }
+                        } catch (error) {
+                            console.error(`Error processing frame ${frameIndex}:`, error);
+                        }
+                    }
+                    
+                    const progress = Math.round((frameIndex + 1) / totalFrames * 100);
+                    if (tabLoopGenerationStatus) {
+                        tabLoopGenerationStatus.textContent = `Processing frames... ${progress}% (${frameIndex + 1}/${totalFrames})`;
+        }
+                }
+                
+                tabVideoElement.currentTime = originalTime;
+                
+                if (tab.loop3DPoses.length > 0) {
+                    const interpolationFactor = 16;
+                    const originalFrameCount = tab.loop3DPoses.length;
+                    const interpolatedPoses = interpolateFrames(tab.loop3DPoses, interpolationFactor);
+                    tab.loop3DPoses = interpolatedPoses;
+                    
+                    if (tabLoopGenerationStatus) {
+                        tabLoopGenerationStatus.textContent = `✓ Loop generated! ${tab.loop3DPoses.length} frames (${originalFrameCount} original, ${tab.loop3DPoses.length - originalFrameCount} interpolated)`;
+                    }
+                    
+                    // Show angles panel and player selection if this is Shot Comparison tab
+                    if (tab.id === 'shot-comparison-tab') {
+                        const anglesPanel = tab.querySelector('#anglesPanel');
+                        const playerSelectionPanel = tab.querySelector('#playerSelectionPanel');
+                        if (anglesPanel) {
+                            anglesPanel.style.display = 'block';
+                        }
+                        if (playerSelectionPanel) {
+                            playerSelectionPanel.style.display = 'block';
+                        }
+                        // Load default player if not already loaded
+                        if (!tab.selectedPlayer) {
+                            const defaultPlayer = 'steph_curry';
+                            tab.selectedPlayer = defaultPlayer;
+                            loadBenchmarkAnglesForTab(tab, defaultPlayer);
+                        }
+                    }
+                    
+                    // Start playing
+                    tab.isLoopPlaying = true;
+                    const tabPlayLoopBtn = tab.querySelector('#playLoopBtn');
+                    const tabPauseLoopBtn = tab.querySelector('#pauseLoopBtn');
+                    if (tabPlayLoopBtn) tabPlayLoopBtn.style.display = 'none';
+                    if (tabPauseLoopBtn) tabPauseLoopBtn.style.display = 'inline-block';
+                    
+                    animateLoopForTab(tab, tabLoopCanvas3d);
+                } else {
+                    if (tabLoopGenerationStatus) {
+                        tabLoopGenerationStatus.textContent = '✗ No frames processed. Please try again.';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error generating loop:', error);
+                if (tabLoopGenerationStatus) {
+                    tabLoopGenerationStatus.textContent = '✗ Error: ' + error.message;
+                }
+            } finally {
+                isGeneratingLoop = false;
+                tabGenerateLoopBtn.disabled = false;
+                tabGenerateLoopBtn.textContent = '🔄 Generate Loop';
+            }
         }
         
-        if (playLoopBtn) {
-            playLoopBtn.addEventListener('click', function() {
-                if (loop3DPoses.length > 0) {
-                    isLoopPlaying = true;
-                    playLoopBtn.style.display = 'none';
-                    pauseLoopBtn.style.display = 'inline-block';
-                    animateLoop();
-                }
-            });
+        // Initialize loop 3D viewer for a specific tab
+        function initLoop3DViewerForTab(tab, canvas3d) {
+            if (!canvas3d) return;
+            
+            // Get actual canvas dimensions
+            const container = canvas3d.parentElement;
+            const width = container ? container.clientWidth : 800;
+            const height = 800; // Fixed height for consistency
+            
+            tab.loopScene = new THREE.Scene();
+            tab.loopScene.background = new THREE.Color(0x1a1a1a);
+            
+            tab.loopCamera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            tab.loopCamera.position.set(0, 0, 5);
+            tab.loopCamera.lookAt(0, 0, 0); // IMPORTANT: Look at origin
+            
+            tab.loopRenderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+            tab.loopRenderer.setSize(width, height, false);
+            tab.loopRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // Set canvas size explicitly
+            canvas3d.width = width;
+            canvas3d.height = height;
+            
+            const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+            tab.loopScene.add(gridHelper);
+            
+            const axesHelper = new THREE.AxesHelper(2);
+            tab.loopScene.add(axesHelper);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            tab.loopScene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            tab.loopScene.add(directionalLight);
+            
+            // Render initial empty scene
+            tab.loopRenderer.render(tab.loopScene, tab.loopCamera);
         }
         
-        if (pauseLoopBtn) {
-            pauseLoopBtn.addEventListener('click', function() {
-                isLoopPlaying = false;
-                if (loopAnimationFrameId) {
-                    clearTimeout(loopAnimationFrameId);
-                    loopAnimationFrameId = null;
+        // Animate loop for a specific tab
+        function animateLoopForTab(tab, canvas3d) {
+            if (!tab.isLoopPlaying || !tab.loop3DPoses || tab.loop3DPoses.length === 0) return;
+            
+            const previousFrameIndex = tab.currentLoopFrameIndex;
+            const lastFrameIndex = tab.loop3DPoses.length - 1;
+            
+            if (tab.currentLoopFrameIndex < tab.loop3DPoses.length) {
+                updateLoop3DSkeletonForTab(tab, tab.loop3DPoses[tab.currentLoopFrameIndex]);
+                tab.currentLoopFrameIndex = (tab.currentLoopFrameIndex + 1) % tab.loop3DPoses.length;
+                
+                // Check if loop completed one full cycle (was at last frame, now wrapped to 0)
+                if (tab.id === 'shot-comparison-tab' && previousFrameIndex === lastFrameIndex && tab.currentLoopFrameIndex === 0) {
+                    // Loop completed one cycle - calculate similarity score
+                    console.log('Loop completed one cycle, calculating similarity score...');
+                    calculateSimilarityScore(tab);
                 }
-                playLoopBtn.style.display = 'inline-block';
-                pauseLoopBtn.style.display = 'none';
-            });
+            }
+            
+            if (tab.isLoopPlaying) {
+                tab.loopAnimationFrameId = setTimeout(() => {
+                    requestAnimationFrame(() => animateLoopForTab(tab, canvas3d));
+                }, 3.90625);
+            }
         }
+        
+        // Load available benchmarks and populate dropdown
+        async function loadAvailableBenchmarks() {
+            try {
+                const response = await fetch('/api/list_benchmarks');
+                if (!response.ok) {
+                    console.warn('Could not load available benchmarks');
+                    return [];
+                }
+                const data = await response.json();
+                if (data.success && data.benchmarks) {
+                    return data.benchmarks;
+                }
+                return [];
+            } catch (error) {
+                console.error('Error loading available benchmarks:', error);
+                return [];
+            }
+        }
+        
+        // Populate benchmark dropdown with available benchmarks
+        async function populateBenchmarkDropdown(tab) {
+            const selectEl = tab.querySelector('#benchmarkPlayerSelect');
+            if (!selectEl) return;
+            
+            const benchmarks = await loadAvailableBenchmarks();
+            
+            // Clear existing options
+            selectEl.innerHTML = '';
+            
+            // Add options for each benchmark
+            benchmarks.forEach(benchmark => {
+                const option = document.createElement('option');
+                option.value = benchmark.player_key;
+                option.textContent = benchmark.display_name;
+                selectEl.appendChild(option);
+            });
+            
+            // Set default to first option if available
+            if (benchmarks.length > 0 && !tab.selectedPlayer) {
+                selectEl.value = benchmarks[0].player_key;
+                tab.selectedPlayer = benchmarks[0].player_key;
+                loadBenchmarkAnglesForTab(tab, benchmarks[0].player_key);
+            }
+        }
+        
+        // Load benchmark data for comparison
+        // Load benchmark data for a specific player and tab
+        async function loadBenchmarkAnglesForTab(tab, playerKey) {
+            try {
+                // Construct filename from player key
+                const fileName = `${playerKey}_benchmark.json`;
+                
+                // Try multiple possible paths
+                let response = null;
+                const paths = [
+                    `player_data/${fileName}`,
+                    `/tool/player_data/${fileName}`,
+                    `./player_data/${fileName}`
+                ];
+                
+                for (const path of paths) {
+                    try {
+                        response = await fetch(path);
+                        if (response.ok) break;
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                
+                if (!response || !response.ok) {
+                    console.warn(`Could not load benchmark data for ${playerKey} from any path`);
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data && data.benchmark_data) {
+                    tab.benchmarkAnglesData = data.benchmark_data.map(frame => frame.angles || null).filter(a => a !== null);
+                    tab.selectedPlayer = playerKey;
+                    // Get display name from the data
+                    tab.selectedPlayerName = `${data.first_name || ''} ${data.last_name || ''}`.trim() || playerKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    console.log(`✅ Loaded ${tab.selectedPlayerName} benchmark angles:`, tab.benchmarkAnglesData.length, 'frames');
+                    
+                    // Update UI
+                    const statusEl = tab.querySelector('#playerSelectionStatus');
+                    if (statusEl) {
+                        statusEl.textContent = `✓ Loaded ${tab.selectedPlayerName} benchmark data`;
+                    }
+                    
+                    const scorePlayerEl = tab.querySelector('#similarityScorePlayer');
+                    if (scorePlayerEl) {
+                        scorePlayerEl.textContent = `vs ${tab.selectedPlayerName} Benchmark`;
+                    }
+                }
+            } catch (error) {
+                console.error(`Error loading benchmark data for ${playerKey}:`, error);
+                const statusEl = tab.querySelector('#playerSelectionStatus');
+                if (statusEl) {
+                    statusEl.textContent = '❌ Error loading benchmark data';
+                }
+            }
+        }
+        
+        // Calculate similarity score after one loop cycle
+        function calculateSimilarityScore(tab) {
+            if (!tab.benchmarkAnglesData || tab.benchmarkAnglesData.length === 0) {
+                console.log('No benchmark data loaded for tab, loading default player...');
+                const selectedPlayer = tab.selectedPlayer || 'steph_curry';
+                loadBenchmarkAnglesForTab(tab, selectedPlayer).then(() => {
+                    if (tab.benchmarkAnglesData && tab.benchmarkAnglesData.length > 0) {
+                        calculateSimilarityScore(tab);
+                    }
+                });
+                return;
+            }
+            
+            if (!tab.loop3DPoses || tab.loop3DPoses.length === 0) return;
+            
+            // Collect angles from one complete loop cycle
+            const userAngles = [];
+            for (let i = 0; i < tab.loop3DPoses.length; i++) {
+                const landmarks = tab.loop3DPoses[i];
+                const angles = {
+                    left_elbow: null,
+                    right_elbow: null,
+                    left_knee: null,
+                    right_knee: null
+                };
+                
+                // Calculate angles for this frame
+                if (landmarks[11] && landmarks[13] && landmarks[15] &&
+                    landmarks[11].visibility > 0.3 && landmarks[13].visibility > 0.3 && landmarks[15].visibility > 0.3) {
+                    angles.left_elbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
+                }
+                if (landmarks[12] && landmarks[14] && landmarks[16] &&
+                    landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3) {
+                    angles.right_elbow = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+                }
+                if (landmarks[23] && landmarks[25] && landmarks[27] &&
+                    landmarks[23].visibility > 0.3 && landmarks[25].visibility > 0.3 && landmarks[27].visibility > 0.3) {
+                    angles.left_knee = calculateAngle(landmarks[23], landmarks[25], landmarks[27]);
+                }
+                if (landmarks[24] && landmarks[26] && landmarks[28] &&
+                    landmarks[24].visibility > 0.3 && landmarks[26].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                    angles.right_knee = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+                }
+                
+                userAngles.push(angles);
+            }
+            
+            // Normalize lengths for comparison (use DTW or simple alignment)
+            const benchmarkLen = tab.benchmarkAnglesData.length;
+            const userLen = userAngles.length;
+            
+            // Simple approach: compare corresponding frames (scaled)
+            let totalSimilarity = 0;
+            let validComparisons = 0;
+            const angleKeys = ['left_elbow', 'right_elbow', 'left_knee', 'right_knee'];
+            const individualScores = { left_elbow: 0, right_elbow: 0, left_knee: 0, right_knee: 0 };
+            const individualCounts = { left_elbow: 0, right_elbow: 0, left_knee: 0, right_knee: 0 };
+            
+            // Track frames with non-identical angles
+            const framesWithNonIdenticalAngles = new Set();
+            const angleTolerance = 0.1; // Consider angles identical if within 0.1 degrees
+            
+            // Compare frames (use shorter length to avoid out of bounds)
+            const compareLength = Math.min(benchmarkLen, userLen);
+            
+            for (let i = 0; i < compareLength; i++) {
+                const benchIdx = Math.floor((i / compareLength) * benchmarkLen);
+                const userIdx = Math.floor((i / compareLength) * userLen);
+                
+                const benchAngles = tab.benchmarkAnglesData[benchIdx];
+                const userAnglesFrame = userAngles[userIdx];
+                
+                if (!benchAngles || !userAnglesFrame) continue;
+                
+                let frameHasNonIdenticalAngle = false;
+                
+                // Compare each angle
+                angleKeys.forEach(key => {
+                    const benchAngle = benchAngles[key];
+                    const userAngle = userAnglesFrame[key];
+                    
+                    if (benchAngle !== null && userAngle !== null) {
+                        // Check if angles are identical (within tolerance)
+                        const diff = Math.abs(benchAngle - userAngle);
+                        if (diff > angleTolerance) {
+                            frameHasNonIdenticalAngle = true;
+                        }
+                        
+                        // Calculate similarity (100% - percentage difference)
+                        const maxDiff = 180; // Maximum possible difference
+                        const similarity = Math.max(0, 100 - (diff / maxDiff * 100));
+                        
+                        individualScores[key] += similarity;
+                        individualCounts[key]++;
+                        totalSimilarity += similarity;
+                        validComparisons++;
+                    }
+                });
+                
+                // Track frame if it has any non-identical angles
+                if (frameHasNonIdenticalAngle) {
+                    framesWithNonIdenticalAngles.add(i);
+                }
+            }
+            
+            // Calculate average scores
+            const overallScore = validComparisons > 0 ? totalSimilarity / validComparisons : 0;
+            const individualAverages = {};
+            angleKeys.forEach(key => {
+                individualAverages[key] = individualCounts[key] > 0 
+                    ? individualScores[key] / individualCounts[key] 
+                    : 0;
+            });
+            
+            // Display similarity score with non-identical frame count
+            displaySimilarityScore(overallScore, individualAverages, framesWithNonIdenticalAngles.size, compareLength, tab);
+        }
+        
+        // Display similarity score in the UI
+        function displaySimilarityScore(overallScore, individualScores, nonIdenticalFramesCount, totalFramesCount, tab) {
+            // Scope to the specific tab (Shot Comparison tab)
+            const targetTab = tab || document.getElementById('shot-comparison-tab');
+            if (!targetTab) return;
+            
+            const scorePanel = targetTab.querySelector('#similarityScorePanel');
+            const scoreEl = targetTab.querySelector('#similarityScore');
+            const leftElbowSim = targetTab.querySelector('#leftElbowSimilarity');
+            const rightElbowSim = targetTab.querySelector('#rightElbowSimilarity');
+            const leftKneeSim = targetTab.querySelector('#leftKneeSimilarity');
+            const rightKneeSim = targetTab.querySelector('#rightKneeSimilarity');
+            const nonIdenticalFramesEl = targetTab.querySelector('#nonIdenticalFramesCount');
+            const totalFramesEl = targetTab.querySelector('#totalFramesCount');
+            
+            if (!scorePanel || !scoreEl) return;
+            
+            // Show panel
+            scorePanel.style.display = 'block';
+            
+            // Display overall score with color coding
+            const roundedScore = Math.round(overallScore);
+            scoreEl.textContent = roundedScore + '%';
+            
+            // Display non-identical frames count
+            if (nonIdenticalFramesEl && nonIdenticalFramesCount !== undefined) {
+                nonIdenticalFramesEl.textContent = nonIdenticalFramesCount;
+            }
+            if (totalFramesEl && totalFramesCount !== undefined) {
+                totalFramesEl.textContent = totalFramesCount;
+            }
+            
+            // Color based on score
+            if (roundedScore >= 80) {
+                scoreEl.style.color = '#4ade80'; // Green
+            } else if (roundedScore >= 60) {
+                scoreEl.style.color = '#fbbf24'; // Yellow
+            } else {
+                scoreEl.style.color = '#f87171'; // Red
+            }
+            
+            // Display individual scores
+            if (leftElbowSim) leftElbowSim.textContent = Math.round(individualScores.left_elbow || 0) + '%';
+            if (rightElbowSim) rightElbowSim.textContent = Math.round(individualScores.right_elbow || 0) + '%';
+            if (leftKneeSim) leftKneeSim.textContent = Math.round(individualScores.left_knee || 0) + '%';
+            if (rightKneeSim) rightKneeSim.textContent = Math.round(individualScores.right_knee || 0) + '%';
+        }
+        
+        // Calculate angle between three points (joint angle)
+        function calculateAngle(point1, point2, point3) {
+            // point2 is the vertex (joint)
+            // Calculate vectors from point2 to point1 and point2 to point3
+            const vec1 = {
+                x: point1.x - point2.x,
+                y: point1.y - point2.y,
+                z: (point1.z || 0) - (point2.z || 0)
+            };
+            const vec2 = {
+                x: point3.x - point2.x,
+                y: point3.y - point2.y,
+                z: (point3.z || 0) - (point2.z || 0)
+            };
+            
+            // Calculate dot product
+            const dot = vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;
+            
+            // Calculate magnitudes
+            const mag1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y + vec1.z * vec1.z);
+            const mag2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y + vec2.z * vec2.z);
+            
+            if (mag1 === 0 || mag2 === 0) return null;
+            
+            // Calculate angle in radians, then convert to degrees
+            const cosAngle = dot / (mag1 * mag2);
+            const angleRad = Math.acos(Math.max(-1, Math.min(1, cosAngle))); // Clamp to avoid NaN
+            const angleDeg = angleRad * (180 / Math.PI);
+            
+            return angleDeg;
+        }
+        
+        // Update angles display for Shot Comparison tab
+        function updateAnglesDisplay(landmarks) {
+            if (!landmarks || landmarks.length < 29) return;
+            
+            const leftElbowAngleEl = document.getElementById('leftElbowAngle');
+            const rightElbowAngleEl = document.getElementById('rightElbowAngle');
+            const leftKneeAngleEl = document.getElementById('leftKneeAngle');
+            const rightKneeAngleEl = document.getElementById('rightKneeAngle');
+            
+            // Left Elbow: shoulder(11) - elbow(13) - wrist(15)
+            if (landmarks[11] && landmarks[13] && landmarks[15] &&
+                landmarks[11].visibility > 0.3 && landmarks[13].visibility > 0.3 && landmarks[15].visibility > 0.3) {
+                const angle = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
+                if (angle !== null && leftElbowAngleEl) {
+                    leftElbowAngleEl.textContent = Math.round(angle) + '°';
+                }
+            } else if (leftElbowAngleEl) {
+                leftElbowAngleEl.textContent = '--°';
+            }
+            
+            // Right Elbow: shoulder(12) - elbow(14) - wrist(16)
+            if (landmarks[12] && landmarks[14] && landmarks[16] &&
+                landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3) {
+                const angle = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+                if (angle !== null && rightElbowAngleEl) {
+                    rightElbowAngleEl.textContent = Math.round(angle) + '°';
+                }
+            } else if (rightElbowAngleEl) {
+                rightElbowAngleEl.textContent = '--°';
+            }
+            
+            // Left Knee: hip(23) - knee(25) - ankle(27)
+            if (landmarks[23] && landmarks[25] && landmarks[27] &&
+                landmarks[23].visibility > 0.3 && landmarks[25].visibility > 0.3 && landmarks[27].visibility > 0.3) {
+                const angle = calculateAngle(landmarks[23], landmarks[25], landmarks[27]);
+                if (angle !== null && leftKneeAngleEl) {
+                    leftKneeAngleEl.textContent = Math.round(angle) + '°';
+                }
+            } else if (leftKneeAngleEl) {
+                leftKneeAngleEl.textContent = '--°';
+            }
+            
+            // Right Knee: hip(24) - knee(26) - ankle(28)
+            if (landmarks[24] && landmarks[26] && landmarks[28] &&
+                landmarks[24].visibility > 0.3 && landmarks[26].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                const angle = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+                if (angle !== null && rightKneeAngleEl) {
+                    rightKneeAngleEl.textContent = Math.round(angle) + '°';
+                }
+            } else if (rightKneeAngleEl) {
+                rightKneeAngleEl.textContent = '--°';
+            }
+        }
+        
+        // Update loop 3D skeleton for a specific tab - EXACT COPY of updateLoop3DSkeleton
+        function updateLoop3DSkeletonForTab(tab, landmarks) {
+            if (!tab.loopScene || !landmarks || landmarks.length === 0) return;
+
+            // Clear previous skeleton
+            tab.loopSkeletonObjects.forEach(obj => tab.loopScene.remove(obj));
+            tab.loopSkeletonObjects = [];
+
+            // Complete MediaPipe Pose connections (all main body connections) - SAME AS MAIN VIEWER
+            const connections = [
+                // Torso (core skeleton)
+                [11, 12],  // Shoulders
+                [11, 23],  // Left shoulder to left hip
+                [12, 24],  // Right shoulder to right hip
+                [23, 24],  // Hips
+                // Left arm (complete chain)
+                [11, 13],  // Left shoulder to left elbow
+                [13, 15],  // Left elbow to left wrist
+                // Right arm (complete chain)
+                [12, 14],  // Right shoulder to right elbow
+                [14, 16],  // Right elbow to right wrist
+                // Left leg (complete chain)
+                [23, 25],  // Left hip to left knee
+                [25, 27],  // Left knee to left ankle
+                // Right leg (complete chain)
+                [24, 26],  // Right hip to right knee
+                [26, 28]   // Right knee to right ankle
+            ];
+
+            // First pass: calculate center for better normalization - SAME AS MAIN VIEWER
+            let centerX = 0, centerY = 0, centerZ = 0;
+            let validCount = 0;
+            
+            landmarks.forEach((lm) => {
+                if (lm.visibility >= 0.3) {
+                    centerX += lm.x;
+                    centerY += lm.y;
+                    centerZ += (lm.z || 0);
+                    validCount++;
+                }
+            });
+            
+            if (validCount === 0) return;
+            
+            centerX /= validCount;
+            centerY /= validCount;
+            centerZ /= validCount;
+            
+            // Calculate scale based on shoulder width (more stable) - SAME AS MAIN VIEWER
+            let scale = 4.0;
+            if (landmarks[11] && landmarks[12] && 
+                landmarks[11].visibility > 0.5 && landmarks[12].visibility > 0.5) {
+                const shoulderWidth = Math.abs(landmarks[11].x - landmarks[12].x);
+                scale = Math.max(3.0, Math.min(6.0, 1.0 / (shoulderWidth + 0.1)));
+            }
+
+            // Helper function to calculate 3D position from landmark - SAME AS MAIN VIEWER
+            const calculatePos3D = (lm) => {
+                const x = (lm.x - centerX) * scale * 2;
+                const y = -(lm.y - centerY) * scale * 2;  // Flip Y for 3D
+                const zOffset = (lm.z || 0) - centerZ;
+                const z = zOffset * scale * 0.5;  // Reduced Z scale
+                return { x, y, z };
+            };
+
+            // Create joints (spheres) with improved coordinate transformation - SAME AS MAIN VIEWER
+            landmarks.forEach((lm, index) => {
+                // Calculate position for all landmarks (even low visibility ones for connections)
+                const pos3d = calculatePos3D(lm);
+                landmarks[index].pos3d = pos3d;
+                
+                // Only create visible spheres for landmarks with good visibility
+                if (lm.visibility < 0.3) {
+                    return;  // Don't show sphere, but keep pos3d for connections
+                }
+
+                const geometry = new THREE.SphereGeometry(0.04, 12, 12);
+                const color = lm.visibility > 0.8 ? 0x00ff00 : lm.visibility > 0.6 ? 0xffff00 : 0xff6600;
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: color, 
+                    emissive: color, 
+                    emissiveIntensity: 0.4,
+                    shininess: 30
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos3d.x, pos3d.y, pos3d.z);
+                tab.loopScene.add(sphere);
+                tab.loopSkeletonObjects.push(sphere);
+            });
+
+            // Create connections (lines) - draw if both landmarks exist and have reasonable visibility - SAME AS MAIN VIEWER
+            connections.forEach(([startIdx, endIdx]) => {
+                if (startIdx >= landmarks.length || endIdx >= landmarks.length) {
+                    return;
+                }
+                
+                const start = landmarks[startIdx];
+                const end = landmarks[endIdx];
+                
+                if (!start || !end) {
+                    return;
+                }
+                
+                // Draw connection if both landmarks have at least minimal visibility
+                if (start.visibility < 0.2 || end.visibility < 0.2) {
+                    return;  // Too low visibility, skip connection
+                }
+                
+                // pos3d should already be set from the joint creation loop above
+                if (!start.pos3d || !end.pos3d) {
+                    return;  // Safety check
+                }
+
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(start.pos3d.x, start.pos3d.y, start.pos3d.z),
+                    new THREE.Vector3(end.pos3d.x, end.pos3d.y, end.pos3d.z)
+                ]);
+
+                // Make connections more visible - SAME AS MAIN VIEWER
+                const material = new THREE.LineBasicMaterial({ 
+                    color: 0x00ffff, 
+                    linewidth: 3,
+                    opacity: 0.95,
+                    transparent: true
+                });
+                const line = new THREE.Line(geometry, material);
+                tab.loopScene.add(line);
+                tab.loopSkeletonObjects.push(line);
+            });
+            
+            // Update camera aspect ratio in case canvas size changed
+            if (tab.loopCamera && tab.loopRenderer) {
+                const canvas3d = tab.querySelector('#loopCanvas3d');
+                if (canvas3d) {
+                    const width = canvas3d.clientWidth || 800;
+                    const height = canvas3d.clientHeight || 800;
+                    tab.loopCamera.aspect = width / height;
+                    tab.loopCamera.updateProjectionMatrix();
+                    tab.loopRenderer.setSize(width, height, false);
+                }
+            }
+            
+            tab.loopRenderer.render(tab.loopScene, tab.loopCamera);
+            
+            // Update angles display if this is the Shot Comparison tab
+            if (tab.id === 'shot-comparison-tab') {
+                updateAnglesDisplay(landmarks);
+        }
+        }
+        
+        // Attach generateLoop to all buttons in all tabs
+        generateLoopBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const tab = btn.closest('.tab-content');
+                if (!tab) return;
+                
+                const tabVideoElement = tab.querySelector('video#videoPlayer') || tab.querySelector('video');
+                const tabCanvas = tab.querySelector('canvas#overlayCanvas') || tab.querySelector('canvas');
+                const tabLoop3DSection = tab.querySelector('#loop3DSection');
+                const tabLoopGenerationStatus = tab.querySelector('#loopGenerationStatus');
+                const tabLoopCanvas3d = tab.querySelector('#loopCanvas3d');
+                const tabPoseMethod = tab.querySelector('#poseMethod');
+                const tabUserHeight = tab.querySelector('#userHeight');
+                const tabShoulderWidth = tab.querySelector('#shoulderWidth');
+                
+                if (!tabVideoElement || !tabVideoElement.src) {
+                    alert('Please upload a video first');
+                    return;
+                }
+                
+                generateLoopForTab(tab, tabVideoElement, tabCanvas, btn, tabLoop3DSection, tabLoopGenerationStatus, tabLoopCanvas3d, tabPoseMethod, tabUserHeight, tabShoulderWidth);
+            });
+        });
+        
+        // Attach play/pause handlers to all tabs
+        playLoopBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const tab = btn.closest('.tab-content');
+                if (!tab || !tab.loop3DPoses || tab.loop3DPoses.length === 0) return;
+                
+                tab.isLoopPlaying = true;
+                btn.style.display = 'none';
+                const tabPauseBtn = tab.querySelector('#pauseLoopBtn');
+                if (tabPauseBtn) tabPauseBtn.style.display = 'inline-block';
+                
+                const tabLoopCanvas3d = tab.querySelector('#loopCanvas3d');
+                animateLoopForTab(tab, tabLoopCanvas3d);
+            });
+        });
+        
+        pauseLoopBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const tab = btn.closest('.tab-content');
+                if (!tab) return;
+                
+                tab.isLoopPlaying = false;
+                if (tab.loopAnimationFrameId) {
+                    clearTimeout(tab.loopAnimationFrameId);
+                    tab.loopAnimationFrameId = null;
+                }
+                const tabPlayBtn = tab.querySelector('#playLoopBtn');
+                if (tabPlayBtn) tabPlayBtn.style.display = 'inline-block';
+                btn.style.display = 'none';
+            });
+        });
         
         // ========== SLIDER EVENT LISTENERS ==========
         
@@ -2337,6 +3718,769 @@
                 });
             }
         });
+
+        // ========== TAB NAVIGATION ==========
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetTab = this.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and buttons
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                this.classList.add('active');
+                const tabContent = document.getElementById(targetTab + '-tab');
+                tabContent.classList.add('active');
+                
+                // Show player selection panel for Shot Comparison tab
+                if (targetTab === 'shot-comparison') {
+                    const playerSelectionPanel = tabContent.querySelector('#playerSelectionPanel');
+                    if (playerSelectionPanel) {
+                        playerSelectionPanel.style.display = 'block';
+                    }
+                    // Populate dropdown with available benchmarks
+                    populateBenchmarkDropdown(tabContent);
+                }
+            });
+        });
+        
+        // Initialize dropdown on page load if Shot Comparison tab is active
+        window.addEventListener('load', function() {
+            const shotComparisonTab = document.getElementById('shot-comparison-tab');
+            if (shotComparisonTab && shotComparisonTab.classList.contains('active')) {
+                populateBenchmarkDropdown(shotComparisonTab);
+            }
+        });
+        
+        // ========== PLAYER SELECTION HANDLER ==========
+        // Attach player selection handler to all player selectors (for each tab)
+        document.querySelectorAll('#benchmarkPlayerSelect').forEach(select => {
+            select.addEventListener('change', function() {
+                const tab = this.closest('.tab-content');
+                if (!tab || tab.id !== 'shot-comparison-tab') return;
+                
+                const selectedPlayer = this.value;
+                const statusEl = tab.querySelector('#playerSelectionStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Loading...';
+                }
+                
+                loadBenchmarkAnglesForTab(tab, selectedPlayer);
+            });
+        });
+
+        // ========== NBA BENCHMARK UPLOAD ==========
+        const nbaBenchmarkForm = document.getElementById('nbaBenchmarkForm');
+        const nbaVideoUpload = document.getElementById('nbaVideoUpload');
+        const nbaProcessBtn = document.getElementById('nbaProcessBtn');
+        const nbaStatusDiv = document.getElementById('nbaStatus');
+        const nbaSaveBenchmarkBtn = document.getElementById('nbaSaveBenchmarkBtn');
+        
+        // NBA Loop Animation variables (EXACT COPY from first tab)
+        let nbaLoop3DPoses = []; // Store all 3D poses for loop animation
+        let nbaIsLoopPlaying = false;
+        let nbaLoopAnimationFrameId = null;
+        let nbaCurrentLoopFrameIndex = 0;
+        let nbaLoopScene = null;
+        let nbaLoopCamera = null;
+        let nbaLoopRenderer = null;
+        let nbaLoopSkeletonObjects = [];
+        let nbaBenchmarkData = []; // Store processed benchmark data
+        
+        const nbaLoop3DSection = document.getElementById('nbaLoop3DSection');
+        const nbaPlayLoopBtn = document.getElementById('nbaPlayLoopBtn');
+        const nbaPauseLoopBtn = document.getElementById('nbaPauseLoopBtn');
+        const nbaLoopFrameInfo = document.getElementById('nbaLoopFrameInfo');
+        const nbaLoopGenerationStatus = document.getElementById('nbaLoopGenerationStatus');
+        const nbaLoopCanvas3d = document.getElementById('nbaLoopCanvas3d');
+        
+        // Initialize NBA loop 3D viewer (EXACT COPY from first tab)
+        function initNBALoop3DViewer() {
+            if (!nbaLoopCanvas3d) return;
+            
+            // Get actual canvas dimensions
+            const container = nbaLoopCanvas3d.parentElement;
+            const width = container ? container.clientWidth : 800;
+            const height = 800; // Fixed height for consistency
+            
+            // Scene
+            nbaLoopScene = new THREE.Scene();
+            nbaLoopScene.background = new THREE.Color(0x1a1a1a);
+            
+            // Camera
+            nbaLoopCamera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            nbaLoopCamera.position.set(0, 0, 5);
+            
+            // Renderer
+            nbaLoopRenderer = new THREE.WebGLRenderer({ canvas: nbaLoopCanvas3d, antialias: true });
+            nbaLoopRenderer.setSize(width, height, false);
+            nbaLoopRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+            
+            // Set canvas size explicitly
+            nbaLoopCanvas3d.width = width;
+            nbaLoopCanvas3d.height = height;
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+            nbaLoopScene.add(gridHelper);
+            
+            // Axes
+            const axesHelper = new THREE.AxesHelper(2);
+            nbaLoopScene.add(axesHelper);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            nbaLoopScene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            nbaLoopScene.add(directionalLight);
+            
+            // Render initial empty scene
+            nbaLoopRenderer.render(nbaLoopScene, nbaLoopCamera);
+            
+            console.log('NBA Loop 3D viewer initialized:', width, 'x', height);
+        }
+        
+        // Update NBA loop camera position from sliders
+        function updateNBALoopCameraPosition() {
+            if (!nbaLoopCamera) return;
+            
+            const horizontalSlider = document.getElementById('nbaLoopHorizontalSlider');
+            const verticalSlider = document.getElementById('nbaLoopVerticalSlider');
+            const horizontalValue = document.getElementById('nbaLoopHorizontalValue');
+            const verticalValue = document.getElementById('nbaLoopVerticalValue');
+            
+            if (!horizontalSlider || !verticalSlider) return;
+            
+            const horizontalDeg = parseFloat(horizontalSlider.value);
+            const verticalDeg = parseFloat(verticalSlider.value);
+            
+            // Update display values
+            if (horizontalValue) horizontalValue.textContent = horizontalDeg + '°';
+            if (verticalValue) verticalValue.textContent = verticalDeg + '°';
+            
+            // Convert degrees to radians
+            const horizontalRad = (horizontalDeg * Math.PI) / 180;
+            const verticalRad = (verticalDeg * Math.PI) / 180;
+            
+            // Calculate camera position (orbit around origin)
+            const distance = 5;
+            const x = Math.sin(horizontalRad) * Math.cos(verticalRad) * distance;
+            const y = Math.sin(verticalRad) * distance;
+            const z = Math.cos(horizontalRad) * Math.cos(verticalRad) * distance;
+            
+            nbaLoopCamera.position.set(x, y, z);
+            nbaLoopCamera.lookAt(0, 0, 0);
+            
+            // Re-render if scene exists
+            if (nbaLoopScene && nbaLoopRenderer) {
+                nbaLoopRenderer.render(nbaLoopScene, nbaLoopCamera);
+            }
+        }
+        
+        // Update NBA loop 3D skeleton (EXACT COPY from first tab)
+        function updateNBALoop3DSkeleton(landmarks) {
+            if (!nbaLoopScene || !landmarks || landmarks.length === 0) {
+                console.warn('NBA Loop: Cannot update skeleton - scene:', !!nbaLoopScene, 'landmarks:', landmarks?.length);
+                return;
+            }
+            
+            console.log('NBA Loop: Updating skeleton with', landmarks.length, 'landmarks');
+
+            // Clear previous skeleton
+            nbaLoopSkeletonObjects.forEach(obj => nbaLoopScene.remove(obj));
+            nbaLoopSkeletonObjects = [];
+
+            // Complete MediaPipe Pose connections (all main body connections) - SAME AS MAIN VIEWER
+            const connections = [
+                // Torso (core skeleton)
+                [11, 12],  // Shoulders
+                [11, 23],  // Left shoulder to left hip
+                [12, 24],  // Right shoulder to right hip
+                [23, 24],  // Hips
+                // Left arm (complete chain)
+                [11, 13],  // Left shoulder to left elbow
+                [13, 15],  // Left elbow to left wrist
+                // Right arm (complete chain)
+                [12, 14],  // Right shoulder to right elbow
+                [14, 16],  // Right elbow to right wrist
+                // Left leg (complete chain)
+                [23, 25],  // Left hip to left knee
+                [25, 27],  // Left knee to left ankle
+                // Right leg (complete chain)
+                [24, 26],  // Right hip to right knee
+                [26, 28]   // Right knee to right ankle
+            ];
+
+            // Normalize all landmarks to object format first
+            const normalizedLandmarks = landmarks.map((lm, idx) => {
+                if (typeof lm === 'object' && !Array.isArray(lm) && lm.x !== undefined) {
+                    return {
+                        x: lm.x !== undefined ? lm.x : 0,
+                        y: lm.y !== undefined ? lm.y : 0,
+                        z: lm.z !== undefined ? lm.z : 0,
+                        visibility: lm.visibility !== undefined ? lm.visibility : 0
+                    };
+                } else if (Array.isArray(lm)) {
+                    return {
+                        x: lm[0] !== undefined ? lm[0] : 0,
+                        y: lm[1] !== undefined ? lm[1] : 0,
+                        z: lm[2] !== undefined ? lm[2] : 0,
+                        visibility: lm[3] !== undefined ? lm[3] : 1.0
+                    };
+                } else {
+                    return { x: 0, y: 0, z: 0, visibility: 0 };
+                }
+            });
+            
+            // First pass: calculate center for better normalization - SAME AS MAIN VIEWER
+            let centerX = 0, centerY = 0, centerZ = 0;
+            let validCount = 0;
+            
+            normalizedLandmarks.forEach((lm) => {
+                if (lm.visibility >= 0.3) {
+                    centerX += lm.x;
+                    centerY += lm.y;
+                    centerZ += lm.z;
+                    validCount++;
+                }
+            });
+            
+            if (validCount === 0) {
+                console.warn('NBA Loop: No valid landmarks found (visibility >= 0.3)');
+                return;
+            }
+            
+            centerX /= validCount;
+            centerY /= validCount;
+            centerZ /= validCount;
+            
+            // Calculate scale based on shoulder width (more stable) - SAME AS MAIN VIEWER
+            let scale = 4.0;
+            if (normalizedLandmarks[11] && normalizedLandmarks[12] && 
+                normalizedLandmarks[11].visibility > 0.5 && normalizedLandmarks[12].visibility > 0.5) {
+                const shoulderWidth = Math.abs(normalizedLandmarks[11].x - normalizedLandmarks[12].x);
+                scale = Math.max(3.0, Math.min(6.0, 1.0 / (shoulderWidth + 0.1)));
+            }
+
+            // Helper function to calculate 3D position from landmark - SAME AS MAIN VIEWER
+            const calculatePos3D = (lm) => {
+                const x = (lm.x - centerX) * scale * 2;
+                const y = -(lm.y - centerY) * scale * 2;  // Flip Y for 3D
+                const zOffset = lm.z - centerZ;
+                const z = zOffset * scale * 0.5;  // Reduced Z scale
+                return { x, y, z };
+            };
+
+            // Create joints (spheres) with improved coordinate transformation - SAME AS MAIN VIEWER
+            normalizedLandmarks.forEach((lm, index) => {
+                // Calculate position for all landmarks (even low visibility ones for connections)
+                const pos3d = calculatePos3D(lm);
+                normalizedLandmarks[index].pos3d = pos3d;
+                
+                // Only create visible spheres for landmarks with good visibility
+                if (lm.visibility < 0.3) {
+                    return;  // Don't show sphere, but keep pos3d for connections
+                }
+
+                const geometry = new THREE.SphereGeometry(0.04, 12, 12);
+                const color = lm.visibility > 0.8 ? 0x00ff00 : lm.visibility > 0.6 ? 0xffff00 : 0xff6600;
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: color, 
+                    emissive: color, 
+                    emissiveIntensity: 0.4,
+                    shininess: 30
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos3d.x, pos3d.y, pos3d.z);
+                nbaLoopScene.add(sphere);
+                nbaLoopSkeletonObjects.push(sphere);
+            });
+            
+            console.log('NBA Loop: Created', nbaLoopSkeletonObjects.length, 'skeleton objects');
+
+            // Create connections (lines) - draw if both landmarks exist and have reasonable visibility - SAME AS MAIN VIEWER
+            connections.forEach(([startIdx, endIdx]) => {
+                if (startIdx >= normalizedLandmarks.length || endIdx >= normalizedLandmarks.length) {
+                    return;
+                }
+                
+                const start = normalizedLandmarks[startIdx];
+                const end = normalizedLandmarks[endIdx];
+                
+                if (!start || !end) {
+                    return;
+                }
+                
+                // Draw connection if both landmarks have at least minimal visibility
+                if (start.visibility < 0.2 || end.visibility < 0.2) {
+                    return;  // Too low visibility, skip connection
+                }
+                
+                // pos3d should already be set from the joint creation loop above
+                if (!start.pos3d || !end.pos3d) {
+                    return;  // Safety check
+                }
+
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(start.pos3d.x, start.pos3d.y, start.pos3d.z),
+                    new THREE.Vector3(end.pos3d.x, end.pos3d.y, end.pos3d.z)
+                ]);
+
+                // Make connections more visible - SAME AS MAIN VIEWER
+                const material = new THREE.LineBasicMaterial({ 
+                    color: 0x00ffff, 
+                    linewidth: 3,
+                    opacity: 0.95,
+                    transparent: true
+                });
+                const line = new THREE.Line(geometry, material);
+                nbaLoopScene.add(line);
+                nbaLoopSkeletonObjects.push(line);
+            });
+            
+            // Update camera aspect ratio in case canvas size changed
+            if (nbaLoopCamera && nbaLoopRenderer) {
+                const width = nbaLoopCanvas3d.clientWidth || 800;
+                const height = nbaLoopCanvas3d.clientHeight || 800;
+                nbaLoopCamera.aspect = width / height;
+                nbaLoopCamera.updateProjectionMatrix();
+                nbaLoopRenderer.setSize(width, height, false);
+            }
+            
+            nbaLoopRenderer.render(nbaLoopScene, nbaLoopCamera);
+            
+            // Update camera position from sliders after rendering
+            updateNBALoopCameraPosition();
+        }
+        
+        // Animate NBA loop (EXACT COPY from first tab)
+        function animateNBALoop() {
+            if (!nbaIsLoopPlaying || nbaLoop3DPoses.length === 0) return;
+            
+            // Update to current frame
+            if (nbaCurrentLoopFrameIndex < nbaLoop3DPoses.length) {
+                updateNBALoop3DSkeleton(nbaLoop3DPoses[nbaCurrentLoopFrameIndex]);
+                if (nbaLoopFrameInfo) {
+                    nbaLoopFrameInfo.textContent = `Frame: ${nbaCurrentLoopFrameIndex + 1}/${nbaLoop3DPoses.length}`;
+                }
+                
+                // Move to next frame
+                nbaCurrentLoopFrameIndex = (nbaCurrentLoopFrameIndex + 1) % nbaLoop3DPoses.length;
+            }
+            
+            // Continue animation (ultra-fast frame-by-frame: ~256 fps for extremely smooth playback)
+            nbaLoopAnimationFrameId = setTimeout(() => {
+                requestAnimationFrame(animateNBALoop);
+            }, 3.90625); // 3.90625ms = ~256 fps (1/128 of original 500ms)
+        }
+        
+        // Initialize NBA loop sliders after page loads
+        window.addEventListener('load', function() {
+            const nbaLoopHorizontalSlider = document.getElementById('nbaLoopHorizontalSlider');
+            const nbaLoopVerticalSlider = document.getElementById('nbaLoopVerticalSlider');
+            
+            if (nbaLoopHorizontalSlider) {
+                nbaLoopHorizontalSlider.addEventListener('input', function() {
+                    updateNBALoopCameraPosition();
+                });
+            }
+            
+            if (nbaLoopVerticalSlider) {
+                nbaLoopVerticalSlider.addEventListener('input', function() {
+                    updateNBALoopCameraPosition();
+                });
+            }
+        });
+
+        if (nbaVideoUpload) {
+            nbaVideoUpload.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    nbaStatusDiv.textContent = `Video selected: ${file.name}`;
+                    nbaStatusDiv.className = 'processing-status';
+                    nbaProcessBtn.disabled = false;
+                }
+            });
+        }
+
+        if (nbaProcessBtn) {
+            nbaProcessBtn.addEventListener('click', async function() {
+                const firstName = document.getElementById('nbaFirstName').value.trim();
+                const lastName = document.getElementById('nbaLastName').value.trim();
+                const videoFile = nbaVideoUpload?.files[0];
+
+                if (!firstName || !lastName) {
+                    nbaStatusDiv.textContent = '❌ Please enter both first name and last name';
+                    nbaStatusDiv.className = 'processing-status error active';
+                    return;
+                }
+
+                if (!videoFile) {
+                    nbaStatusDiv.textContent = '❌ Please select a video file';
+                    nbaStatusDiv.className = 'processing-status error active';
+                    return;
+                }
+
+                // Disable button and show processing status
+                nbaProcessBtn.disabled = true;
+                nbaStatusDiv.textContent = '⏳ Processing video... This may take a few minutes.';
+                nbaStatusDiv.className = 'processing-status processing active';
+                
+                // Show loop 3D viewer section and initialize it
+                if (nbaLoop3DSection) {
+                    nbaLoop3DSection.style.display = 'block';
+                    // Initialize loop 3D viewer if not already initialized
+                    if (!nbaLoopScene || !nbaLoopRenderer) {
+                        setTimeout(() => initNBALoop3DViewer(), 100);
+                    }
+                }
+
+                try {
+                    // Process video frame by frame using MediaPipe
+                    const video = document.createElement('video');
+                    video.src = URL.createObjectURL(videoFile);
+                    video.muted = true;
+                    video.playsInline = true;
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    nbaBenchmarkData = []; // Reset benchmark data
+                    const benchmarkData = nbaBenchmarkData;
+                    let previousStage = "neutral";
+                    let startTime = null;
+                    let frameCount = 0;
+
+                    // Wait for video to load
+                    await new Promise((resolve) => {
+                        video.addEventListener('loadedmetadata', () => {
+                            canvas.width = video.videoWidth || 640;
+                            canvas.height = video.videoHeight || 480;
+                            resolve();
+                        }, { once: true });
+                    });
+
+                    await video.play();
+
+                    // Process frames at regular intervals
+                    const fps = 30; // Target frames per second
+                    const frameInterval = 1 / fps;
+                    let currentTime = 0;
+                    
+                    const processFrame = async () => {
+                        if (currentTime >= video.duration) {
+                            // Video finished processing
+                            if (benchmarkData.length > 0) {
+                                // Extract landmarks from benchmark data for loop animation
+                                nbaLoop3DPoses = benchmarkData.map(frame => frame.landmarks).filter(landmarks => landmarks && landmarks.length > 0);
+                                
+                                if (nbaLoop3DPoses.length > 0) {
+                                    // Ensure loop 3D viewer is initialized
+                                    if (!nbaLoopScene || !nbaLoopRenderer) {
+                                        initNBALoop3DViewer();
+                                        // Wait a bit for initialization
+                                        await new Promise(resolve => setTimeout(resolve, 200));
+                                    }
+                                    
+                                    // Interpolate frames to make animation smoother (16x frames) - EXACT COPY from first tab
+                                    const interpolationFactor = 16; // Create 16x as many frames
+                                    const originalFrameCount = nbaLoop3DPoses.length;
+                                    const interpolatedPoses = interpolateFrames(nbaLoop3DPoses, interpolationFactor);
+                                    nbaLoop3DPoses = interpolatedPoses;
+                                    
+                                    nbaLoopGenerationStatus.textContent = `✓ Loop generated! ${nbaLoop3DPoses.length} frames (${originalFrameCount} original, ${nbaLoop3DPoses.length - originalFrameCount} interpolated)`;
+                                    
+                                    // Start playing automatically
+                                    nbaIsLoopPlaying = true;
+                                    nbaCurrentLoopFrameIndex = 0;
+                                    if (nbaPlayLoopBtn) nbaPlayLoopBtn.style.display = 'none';
+                                    if (nbaPauseLoopBtn) nbaPauseLoopBtn.style.display = 'inline-block';
+                                    
+                                    // Render first frame immediately
+                                    if (nbaLoop3DPoses.length > 0) {
+                                        updateNBALoop3DSkeleton(nbaLoop3DPoses[0]);
+                                    }
+                                    
+                                    animateNBALoop();
+                                }
+                                
+                                nbaStatusDiv.textContent = `✅ Processing complete! ${benchmarkData.length} frames with pose data. Watch the loop animation, then click "Save Benchmark Data".`;
+                                nbaStatusDiv.className = 'processing-status success active';
+                                // Show save button
+                                if (nbaSaveBenchmarkBtn) {
+                                    nbaSaveBenchmarkBtn.style.display = 'inline-block';
+                                }
+                                nbaProcessBtn.disabled = false;
+                            } else {
+                                nbaStatusDiv.textContent = '❌ No pose data extracted from video';
+                                nbaStatusDiv.className = 'processing-status error active';
+                                nbaProcessBtn.disabled = false;
+                            }
+                            return;
+                        }
+
+                        // Seek to current time
+                        video.currentTime = currentTime;
+                        
+                        // Wait for seek to complete
+                        await new Promise((resolve) => {
+                            const onSeeked = () => {
+                                video.removeEventListener('seeked', onSeeked);
+                                resolve();
+                            };
+                            video.addEventListener('seeked', onSeeked);
+                        });
+
+                        // Draw frame to canvas
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const frameData = canvas.toDataURL('image/jpeg', 0.9);
+
+                        // Send frame to API for processing
+                        try {
+                            const response = await fetch('/api/process_frame_overlay', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    frame: frameData,
+                                    user_height: 72,
+                                    shoulder_width: 18
+                                })
+                            });
+
+                            const result = await response.json();
+                            
+                            if (result.success && result.landmarks && result.landmarks.length > 0) {
+                                const landmarks = result.landmarks;
+                                
+                                // Ensure landmarks are in correct format (objects with x, y, z, visibility)
+                                const formattedLandmarks = landmarks.map((lm, idx) => {
+                                    if (Array.isArray(lm)) {
+                                        // Convert array [x, y, z] to object format
+                                        return {
+                                            x: lm[0] || 0,
+                                            y: lm[1] || 0,
+                                            z: lm[2] || 0,
+                                            visibility: lm[3] !== undefined ? lm[3] : 1.0
+                                        };
+                                    }
+                                    // Already in object format, ensure all properties exist
+                                    return {
+                                        x: lm.x !== undefined ? lm.x : 0,
+                                        y: lm.y !== undefined ? lm.y : 0,
+                                        z: lm.z !== undefined ? lm.z : 0,
+                                        visibility: lm.visibility !== undefined ? lm.visibility : 0
+                                    };
+                                });
+                                
+                                // Calculate angles (simplified - you may want to use more sophisticated calculations)
+                                const wrist = formattedLandmarks[15] || formattedLandmarks[16]; // Use available wrist
+                                const elbow = formattedLandmarks[13] || formattedLandmarks[14]; // Use available elbow
+                                const shoulder = formattedLandmarks[11] || formattedLandmarks[12]; // Use available shoulder
+
+                                let state = "neutral";
+                                if (wrist && elbow && shoulder) {
+                                    // Simple state detection based on wrist position
+                                    if (wrist.y < shoulder.y) {
+                                        state = "pre_shot";
+                                    } else if (wrist.y < elbow.y) {
+                                        state = "follow_through";
+                                    }
+                                }
+
+                                if (state !== previousStage && state !== "neutral") {
+                                    if (startTime === null) {
+                                        startTime = currentTime;
+                                    }
+                                }
+
+                                const time = startTime !== null ? currentTime - startTime : 0;
+
+                                // Calculate angles for this frame
+                                const angles = {
+                                    left_elbow: null,
+                                    right_elbow: null,
+                                    left_knee: null,
+                                    right_knee: null
+                                };
+                                
+                                // Left Elbow: shoulder(11) - elbow(13) - wrist(15)
+                                if (formattedLandmarks[11] && formattedLandmarks[13] && formattedLandmarks[15] &&
+                                    formattedLandmarks[11].visibility > 0.3 && formattedLandmarks[13].visibility > 0.3 && formattedLandmarks[15].visibility > 0.3) {
+                                    angles.left_elbow = calculateAngle(formattedLandmarks[11], formattedLandmarks[13], formattedLandmarks[15]);
+                                }
+                                
+                                // Right Elbow: shoulder(12) - elbow(14) - wrist(16)
+                                if (formattedLandmarks[12] && formattedLandmarks[14] && formattedLandmarks[16] &&
+                                    formattedLandmarks[12].visibility > 0.3 && formattedLandmarks[14].visibility > 0.3 && formattedLandmarks[16].visibility > 0.3) {
+                                    angles.right_elbow = calculateAngle(formattedLandmarks[12], formattedLandmarks[14], formattedLandmarks[16]);
+                                }
+                                
+                                // Left Knee: hip(23) - knee(25) - ankle(27)
+                                if (formattedLandmarks[23] && formattedLandmarks[25] && formattedLandmarks[27] &&
+                                    formattedLandmarks[23].visibility > 0.3 && formattedLandmarks[25].visibility > 0.3 && formattedLandmarks[27].visibility > 0.3) {
+                                    angles.left_knee = calculateAngle(formattedLandmarks[23], formattedLandmarks[25], formattedLandmarks[27]);
+                                }
+                                
+                                // Right Knee: hip(24) - knee(26) - ankle(28)
+                                if (formattedLandmarks[24] && formattedLandmarks[26] && formattedLandmarks[28] &&
+                                    formattedLandmarks[24].visibility > 0.3 && formattedLandmarks[26].visibility > 0.3 && formattedLandmarks[28].visibility > 0.3) {
+                                    angles.right_knee = calculateAngle(formattedLandmarks[24], formattedLandmarks[26], formattedLandmarks[28]);
+                                }
+
+                                benchmarkData.push({
+                                    state: state,
+                                    time: time,
+                                    landmarks: formattedLandmarks, // Use formatted landmarks
+                                    frame: frameCount,
+                                    angles: angles // Add angles to benchmark data
+                                });
+
+                                previousStage = state;
+                            }
+
+                            frameCount++;
+                            const progress = Math.round((currentTime / video.duration) * 100);
+                            nbaStatusDiv.textContent = `⏳ Processing... ${progress}% (${frameCount} frames, ${benchmarkData.length} with pose data)`;
+
+                            // Move to next frame
+                            currentTime += frameInterval;
+                            
+                            // Process next frame with a small delay to avoid overwhelming the API
+                            setTimeout(processFrame, 100);
+                        } catch (error) {
+                            console.error('Error processing frame:', error);
+                            frameCount++;
+                            currentTime += frameInterval;
+                            setTimeout(processFrame, 100);
+                        }
+                    };
+
+                    // Start processing
+                    processFrame();
+                } catch (error) {
+                    console.error('Error processing NBA benchmark video:', error);
+                    nbaStatusDiv.textContent = `❌ Error: ${error.message}`;
+                    nbaStatusDiv.className = 'processing-status error active';
+                    nbaProcessBtn.disabled = false;
+                }
+            });
+        }
+
+        async function saveNBABenchmark(firstName, lastName, benchmarkData) {
+            try {
+                const response = await fetch('/api/save_nba_benchmark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        benchmark_data: benchmarkData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    nbaStatusDiv.textContent = `✅ Success! Benchmark data saved for ${firstName} ${lastName}. ${benchmarkData.length} frames processed.`;
+                    nbaStatusDiv.className = 'processing-status success active';
+                    
+                    // Refresh benchmark dropdown in Shot Comparison tab
+                    const shotComparisonTab = document.getElementById('shot-comparison-tab');
+                    if (shotComparisonTab) {
+                        populateBenchmarkDropdown(shotComparisonTab);
+                    }
+                    
+                    // Reset form
+                    document.getElementById('nbaFirstName').value = '';
+                    document.getElementById('nbaLastName').value = '';
+                    nbaVideoUpload.value = '';
+                    if (nbaSaveBenchmarkBtn) nbaSaveBenchmarkBtn.style.display = 'none';
+                } else {
+                    nbaStatusDiv.textContent = `❌ Failed to save: ${result.error || 'Unknown error'}`;
+                    nbaStatusDiv.className = 'processing-status error active';
+                }
+            } catch (error) {
+                console.error('Error saving NBA benchmark:', error);
+                nbaStatusDiv.textContent = `❌ Error saving: ${error.message}`;
+                nbaStatusDiv.className = 'processing-status error active';
+            } finally {
+                nbaProcessBtn.disabled = false;
+            }
+        }
+        
+        // Save button event listener
+        if (nbaSaveBenchmarkBtn) {
+            nbaSaveBenchmarkBtn.addEventListener('click', async function() {
+                const firstName = document.getElementById('nbaFirstName').value.trim();
+                const lastName = document.getElementById('nbaLastName').value.trim();
+                
+                if (!firstName || !lastName) {
+                    nbaStatusDiv.textContent = '❌ Please enter both first name and last name';
+                    nbaStatusDiv.className = 'processing-status error active';
+                    return;
+                }
+                
+                if (nbaBenchmarkData.length === 0) {
+                    nbaStatusDiv.textContent = '❌ No benchmark data to save. Please process the video first.';
+                    nbaStatusDiv.className = 'processing-status error active';
+                    return;
+                }
+                
+                nbaSaveBenchmarkBtn.disabled = true;
+                nbaSaveBenchmarkBtn.textContent = '💾 Saving...';
+                
+                await saveNBABenchmark(firstName, lastName, nbaBenchmarkData);
+                
+                nbaSaveBenchmarkBtn.disabled = false;
+                nbaSaveBenchmarkBtn.textContent = '💾 Save Benchmark Data';
+            });
+        }
+        
+        // NBA Loop play/pause controls (EXACT COPY from first tab)
+        if (nbaPlayLoopBtn) {
+            nbaPlayLoopBtn.addEventListener('click', function() {
+                if (nbaLoop3DPoses.length > 0) {
+                    nbaIsLoopPlaying = true;
+                    nbaPlayLoopBtn.style.display = 'none';
+                    nbaPauseLoopBtn.style.display = 'inline-block';
+                    animateNBALoop();
+                }
+            });
+        }
+        
+        if (nbaPauseLoopBtn) {
+            nbaPauseLoopBtn.addEventListener('click', function() {
+                nbaIsLoopPlaying = false;
+                if (nbaLoopAnimationFrameId) {
+                    clearTimeout(nbaLoopAnimationFrameId);
+                    nbaLoopAnimationFrameId = null;
+                }
+                nbaPlayLoopBtn.style.display = 'inline-block';
+                nbaPauseLoopBtn.style.display = 'none';
+            });
+        }
+        
+        // NBA Loop rotation slider controls
+        const nbaLoopHorizontalSlider = document.getElementById('nbaLoopHorizontalSlider');
+        const nbaLoopVerticalSlider = document.getElementById('nbaLoopVerticalSlider');
+        
+        if (nbaLoopHorizontalSlider) {
+            nbaLoopHorizontalSlider.addEventListener('input', function() {
+                updateNBALoopCameraPosition();
+            });
+        }
+        
+        if (nbaLoopVerticalSlider) {
+            nbaLoopVerticalSlider.addEventListener('input', function() {
+                updateNBALoopCameraPosition();
+            });
+        }
+
+        // ========== SHOT COMPARISON ==========
+        // Shot Comparison tab now uses the same structure and element IDs as Overlay Viewer tab
+        // All functionality is shared through the existing Overlay Viewer JavaScript code
     </script>
 </body>
 </html>
