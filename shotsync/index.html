@@ -591,6 +591,14 @@
         .pm-drill-name { font-weight: 600; font-size: 16px; margin-bottom: 10px; }
         .pm-drill-desc { font-size: 13px; color: var(--text-gray); line-height: 1.6; margin-bottom: 14px; }
         .pm-drill-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-gray); }
+        .pm-drill-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 0; }
+        .pm-yt-link {
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; background: rgba(255, 0, 0, 0.1);
+            border-radius: 6px; transition: all 0.2s; text-decoration: none;
+        }
+        .pm-yt-link:hover { background: rgba(255, 0, 0, 0.25); transform: scale(1.1); }
+        .pm-yt-link svg { width: 18px; height: 18px; fill: #FF0000; }
 
         @media (max-width: 900px) {
             .pm-grid { grid-template-columns: 1fr; }
@@ -2071,19 +2079,24 @@
                             <div class="pm-fixes-header"><span>🔧</span> Quick Fixes</div>
                             <div class="pm-fix-item">
                                 <button class="pm-fix-toggle">
-                                    <div class="pm-fix-icon">📏</div>
+                                    <div class="pm-fix-icon">🧍</div>
                                     <div class="pm-fix-content">
-                                        <div class="pm-fix-title">Increase your arc</div>
-                                        <div class="pm-fix-tip">Aim higher on your release to get more arc on your shot</div>
+                                        <div class="pm-fix-title">Stay more upright</div>
+                                        <div class="pm-fix-tip">Reduce forward trunk lean to match Curry's vertical posture</div>
                                     </div>
                                     <span class="pm-fix-arrow">▼</span>
                                 </button>
                                 <div class="pm-drill-content">
                                     <div class="pm-drill-card">
                                         <div class="pm-drill-label">Recommended Drill</div>
-                                        <div class="pm-drill-name">Rainbow Flick Drill</div>
-                                        <div class="pm-drill-desc">Practice shooting with exaggerated arc. Start close to the basket and focus on getting the ball to peak above the top of the backboard.</div>
-                                        <div class="pm-drill-meta"><span>⏱️ 10 mins</span><span>🏀 25 reps</span></div>
+                                        <div class="pm-drill-name">Wall Alignment Drill</div>
+                                        <div class="pm-drill-desc">Stand with your back against a wall and practice your shooting motion. Keep your shoulders touching the wall throughout to build muscle memory for upright posture.</div>
+                                        <div class="pm-drill-footer">
+                                            <div class="pm-drill-meta"><span>⏱️ 10 mins</span><span>🏀 25 reps</span></div>
+                                            <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
+                                                <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2091,8 +2104,8 @@
                                 <button class="pm-fix-toggle">
                                     <div class="pm-fix-icon">🦵</div>
                                     <div class="pm-fix-content">
-                                        <div class="pm-fix-title">Use more leg power</div>
-                                        <div class="pm-fix-tip">Generate more force from your legs to power your shot</div>
+                                        <div class="pm-fix-title">Deepen your knee bend</div>
+                                        <div class="pm-fix-tip">More knee flexion generates power and consistency at release</div>
                                     </div>
                                     <span class="pm-fix-arrow">▼</span>
                                 </button>
@@ -2100,26 +2113,36 @@
                                     <div class="pm-drill-card">
                                         <div class="pm-drill-label">Recommended Drill</div>
                                         <div class="pm-drill-name">Squat & Shoot</div>
-                                        <div class="pm-drill-desc">Start in a low squat position before each shot. Explode up through your legs and transfer that energy into your shot.</div>
-                                        <div class="pm-drill-meta"><span>⏱️ 15 mins</span><span>🏀 20 reps</span></div>
+                                        <div class="pm-drill-desc">Start in a low squat position before each shot. Explode up through your legs and transfer that energy into your shot. Focus on consistent knee bend depth.</div>
+                                        <div class="pm-drill-footer">
+                                            <div class="pm-drill-meta"><span>⏱️ 15 mins</span><span>🏀 20 reps</span></div>
+                                            <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
+                                                <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="pm-fix-item">
                                 <button class="pm-fix-toggle">
-                                    <div class="pm-fix-icon">🖐️</div>
+                                    <div class="pm-fix-icon">🤚</div>
                                     <div class="pm-fix-content">
-                                        <div class="pm-fix-title">Keep your guide hand steady</div>
-                                        <div class="pm-fix-tip">Your off-hand should only balance the ball, not push it</div>
+                                        <div class="pm-fix-title">Snap your wrist fully</div>
+                                        <div class="pm-fix-tip">Complete follow-through with a full wrist snap for better rotation</div>
                                     </div>
                                     <span class="pm-fix-arrow">▼</span>
                                 </button>
                                 <div class="pm-drill-content">
                                     <div class="pm-drill-card">
                                         <div class="pm-drill-label">Recommended Drill</div>
-                                        <div class="pm-drill-name">One-Hand Form Shooting</div>
-                                        <div class="pm-drill-desc">Shoot with only your shooting hand from close range. Place your guide hand behind your back. Focus on a clean release with no sideways spin.</div>
-                                        <div class="pm-drill-meta"><span>⏱️ 10 mins</span><span>🏀 30 reps</span></div>
+                                        <div class="pm-drill-name">Gooseneck Hold Drill</div>
+                                        <div class="pm-drill-desc">After each shot, hold your follow-through with wrist fully snapped (gooseneck position) until the ball hits the rim. This builds muscle memory for complete wrist rotation.</div>
+                                        <div class="pm-drill-footer">
+                                            <div class="pm-drill-meta"><span>⏱️ 10 mins</span><span>🏀 30 reps</span></div>
+                                            <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
+                                                <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2139,20 +2162,12 @@
                                     <span class="pm-player-name">Stephen Curry</span>
                                 </div>
                                 <div class="pm-trait-item">
-                                    <div class="pm-trait-icon">⚡</div>
+                                    <div class="pm-trait-icon">📐</div>
                                     <div class="pm-trait-text">
-                                        <div class="pm-trait-name">Release Speed</div>
-                                        <div class="pm-trait-detail">Sub 0.4 second release time</div>
+                                        <div class="pm-trait-name">Release Angle</div>
+                                        <div class="pm-trait-detail">Optimal 52° release trajectory</div>
                                     </div>
-                                    <div class="pm-trait-match">98%</div>
-                                </div>
-                                <div class="pm-trait-item">
-                                    <div class="pm-trait-icon">🎯</div>
-                                    <div class="pm-trait-text">
-                                        <div class="pm-trait-name">Set Point Height</div>
-                                        <div class="pm-trait-detail">High release above forehead</div>
-                                    </div>
-                                    <div class="pm-trait-match">94%</div>
+                                    <div class="pm-trait-match">96%</div>
                                 </div>
                                 <div class="pm-trait-item">
                                     <div class="pm-trait-icon">🔄</div>
@@ -2160,7 +2175,23 @@
                                         <div class="pm-trait-name">Follow Through</div>
                                         <div class="pm-trait-detail">Full extension with wrist snap</div>
                                     </div>
-                                    <div class="pm-trait-match">91%</div>
+                                    <div class="pm-trait-match">94%</div>
+                                </div>
+                                <div class="pm-trait-item">
+                                    <div class="pm-trait-icon">📏</div>
+                                    <div class="pm-trait-text">
+                                        <div class="pm-trait-name">Release Height</div>
+                                        <div class="pm-trait-detail">High release point above forehead</div>
+                                    </div>
+                                    <div class="pm-trait-match">92%</div>
+                                </div>
+                                <div class="pm-trait-item">
+                                    <div class="pm-trait-icon">🦶</div>
+                                    <div class="pm-trait-text">
+                                        <div class="pm-trait-name">Foot Alignment</div>
+                                        <div class="pm-trait-detail">Squared stance to the basket</div>
+                                    </div>
+                                    <div class="pm-trait-match">89%</div>
                                 </div>
                             </div>
 
@@ -2170,20 +2201,20 @@
                                     <span class="pm-player-name">Stephen Curry</span>
                                 </div>
                                 <div class="pm-diff-item">
-                                    <div class="pm-diff-icon">📏</div>
+                                    <div class="pm-diff-icon">🧍</div>
                                     <div class="pm-diff-text">
-                                        <div class="pm-diff-name">Arc Height</div>
-                                        <div class="pm-diff-detail">Your arc is flatter than Curry's</div>
+                                        <div class="pm-diff-name">Trunk Lean</div>
+                                        <div class="pm-diff-detail">More forward lean than Curry's upright form</div>
                                     </div>
-                                    <div class="pm-diff-gap">-12%</div>
+                                    <div class="pm-diff-gap">-15%</div>
                                 </div>
                                 <div class="pm-diff-item">
                                     <div class="pm-diff-icon">🦵</div>
                                     <div class="pm-diff-text">
-                                        <div class="pm-diff-name">Leg Drive</div>
-                                        <div class="pm-diff-detail">Less power from lower body</div>
+                                        <div class="pm-diff-name">Knee Bend</div>
+                                        <div class="pm-diff-detail">Less knee flexion at release point</div>
                                     </div>
-                                    <div class="pm-diff-gap">-8%</div>
+                                    <div class="pm-diff-gap">-11%</div>
                                 </div>
                             </div>
                         </div>
