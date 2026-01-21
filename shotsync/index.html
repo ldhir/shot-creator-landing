@@ -470,6 +470,132 @@
             background: var(--bg-primary);
             color: var(--text-dark);
         }
+
+        /* ========== Player Match Results UI ========== */
+        .player-match-results { display: none; }
+        .player-match-results.active { display: block; }
+
+        .pm-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .pm-left { min-width: 0; }
+        .pm-right { position: sticky; top: 20px; }
+
+        .pm-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .pm-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .pm-row:hover { border-color: var(--primary-color); transform: translateX(4px); }
+        .pm-row-selected { border: 2px solid var(--primary-color); background: rgba(255, 107, 122, 0.1); }
+
+        .pm-rank { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--text-gray); min-width: 40px; text-align: center; }
+        .pm-rank-1 { font-size: 32px; color: var(--primary-color); }
+
+        .pm-info { flex: 1; min-width: 150px; }
+        .pm-name { font-weight: 600; font-size: 16px; margin-bottom: 2px; }
+        .pm-archetype { font-size: 13px; color: var(--text-gray); }
+
+        .pm-similarity { flex: 1; max-width: 180px; }
+        .pm-score { font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+        .pm-bar { height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; }
+        .pm-fill { height: 100%; background: var(--primary-color); border-radius: 3px; }
+
+        .pm-stats { display: flex; gap: 16px; font-size: 13px; color: var(--text-gray); }
+        .pm-stats span { white-space: nowrap; }
+
+        /* User Archetype Card */
+        .pm-archetype-card {
+            background: var(--bg-card);
+            border: 2px solid var(--primary-color);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .pm-arch-label { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-gray); margin-bottom: 12px; }
+        .pm-arch-name { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 2px; color: var(--primary-color); margin-bottom: 12px; }
+        .pm-arch-desc { color: var(--text-gray); font-size: 14px; line-height: 1.6; }
+
+        /* Traits & Differences */
+        .pm-traits, .pm-differences {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .pm-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .pm-section-title { font-size: 14px; font-weight: 600; }
+        .pm-player-name { color: var(--primary-color); font-size: 14px; }
+
+        .pm-trait-item, .pm-diff-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .pm-trait-item:last-child, .pm-diff-item:last-child { margin-bottom: 0; }
+
+        .pm-trait-icon, .pm-diff-icon {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; font-size: 16px;
+        }
+        .pm-trait-icon { background: rgba(255, 107, 122, 0.15); }
+        .pm-diff-icon { background: rgba(251, 191, 36, 0.15); }
+
+        .pm-trait-text, .pm-diff-text { flex: 1; }
+        .pm-trait-name, .pm-diff-name { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+        .pm-trait-detail, .pm-diff-detail { font-size: 12px; color: var(--text-gray); }
+        .pm-trait-match { font-size: 13px; font-weight: 600; color: var(--success-color); }
+        .pm-diff-gap { font-size: 13px; font-weight: 600; color: var(--warning-color); }
+
+        /* Quick Fixes */
+        .pm-fixes-header { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; margin: 24px 0 16px; display: flex; align-items: center; gap: 10px; }
+        .pm-fix-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+        .pm-fix-toggle {
+            width: 100%; background: none; border: none; padding: 16px 20px;
+            cursor: pointer; display: flex; align-items: center; gap: 16px;
+            color: var(--text-light); transition: all 0.2s ease;
+        }
+        .pm-fix-toggle:hover { background: rgba(255, 107, 122, 0.05); }
+        .pm-fix-item.active .pm-fix-toggle { background: rgba(255, 107, 122, 0.1); }
+
+        .pm-fix-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: rgba(255, 107, 122, 0.15); border-radius: 8px; font-size: 20px; }
+        .pm-fix-content { flex: 1; text-align: left; }
+        .pm-fix-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+        .pm-fix-tip { font-size: 13px; color: var(--text-gray); }
+        .pm-fix-arrow { font-size: 16px; color: var(--text-gray); transition: transform 0.3s ease; }
+        .pm-fix-item.active .pm-fix-arrow { transform: rotate(180deg); color: var(--primary-color); }
+
+        .pm-drill-content { display: none; padding: 0 20px 20px 20px; }
+        .pm-fix-item.active .pm-drill-content { display: block; }
+        .pm-drill-card { background: var(--bg-dark); border-radius: 10px; padding: 20px; border: 1px solid var(--border-color); }
+        .pm-drill-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--primary-color); margin-bottom: 8px; }
+        .pm-drill-name { font-weight: 600; font-size: 16px; margin-bottom: 10px; }
+        .pm-drill-desc { font-size: 13px; color: var(--text-gray); line-height: 1.6; margin-bottom: 14px; }
+        .pm-drill-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-gray); }
+
+        @media (max-width: 900px) {
+            .pm-grid { grid-template-columns: 1fr; }
+            .pm-right { position: static; order: -1; }
+        }
     </style>
     <!-- MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -1843,12 +1969,218 @@
 
             <!-- Step 3: Analysis Results -->
             <section id="step3" class="step" style="display: none;">
-                <h2 style="font-family: 'Forum', serif; text-align: center;">Analysis Results</h2>
                 <div id="loading" class="loading" style="display: none;">
                     <p>Analyzing your shot...</p>
                     <div class="spinner"></div>
                 </div>
-                <div id="results" style="display: none;">
+
+                <!-- Player Match Results UI -->
+                <div id="playerMatchResults" class="player-match-results">
+                    <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 2px; margin-bottom: 10px;">
+                        PLAYER <span style="color: var(--primary-color);">MATCH</span>
+                    </h1>
+                    <p style="color: var(--text-gray); margin-bottom: 40px;">Your top 5 most similar pro players</p>
+
+                    <div class="pm-grid">
+                        <!-- Left Column: Player List -->
+                        <div class="pm-left">
+                            <div class="pm-list">
+                                <div class="pm-row pm-row-selected" data-player="curry">
+                                    <div class="pm-rank pm-rank-1">1</div>
+                                    <div class="pm-info">
+                                        <div class="pm-name">Stephen Curry</div>
+                                        <div class="pm-archetype">Quick Release</div>
+                                    </div>
+                                    <div class="pm-similarity">
+                                        <div class="pm-score">94%</div>
+                                        <div class="pm-bar"><div class="pm-fill" style="width: 94%"></div></div>
+                                    </div>
+                                    <div class="pm-stats">
+                                        <span>6'2"</span>
+                                        <span>6'4" WS</span>
+                                        <span>Right</span>
+                                    </div>
+                                </div>
+                                <div class="pm-row" data-player="trae">
+                                    <div class="pm-rank">2</div>
+                                    <div class="pm-info">
+                                        <div class="pm-name">Trae Young</div>
+                                        <div class="pm-archetype">High Arc</div>
+                                    </div>
+                                    <div class="pm-similarity">
+                                        <div class="pm-score">87%</div>
+                                        <div class="pm-bar"><div class="pm-fill" style="width: 87%"></div></div>
+                                    </div>
+                                    <div class="pm-stats">
+                                        <span>6'1"</span>
+                                        <span>6'3" WS</span>
+                                        <span>Right</span>
+                                    </div>
+                                </div>
+                                <div class="pm-row" data-player="dame">
+                                    <div class="pm-rank">3</div>
+                                    <div class="pm-info">
+                                        <div class="pm-name">Damian Lillard</div>
+                                        <div class="pm-archetype">Deep Range</div>
+                                    </div>
+                                    <div class="pm-similarity">
+                                        <div class="pm-score">82%</div>
+                                        <div class="pm-bar"><div class="pm-fill" style="width: 82%"></div></div>
+                                    </div>
+                                    <div class="pm-stats">
+                                        <span>6'2"</span>
+                                        <span>6'8" WS</span>
+                                        <span>Right</span>
+                                    </div>
+                                </div>
+                                <div class="pm-row" data-player="kyrie">
+                                    <div class="pm-rank">4</div>
+                                    <div class="pm-info">
+                                        <div class="pm-name">Kyrie Irving</div>
+                                        <div class="pm-archetype">Textbook Form</div>
+                                    </div>
+                                    <div class="pm-similarity">
+                                        <div class="pm-score">78%</div>
+                                        <div class="pm-bar"><div class="pm-fill" style="width: 78%"></div></div>
+                                    </div>
+                                    <div class="pm-stats">
+                                        <span>6'2"</span>
+                                        <span>6'8" WS</span>
+                                        <span>Right</span>
+                                    </div>
+                                </div>
+                                <div class="pm-row" data-player="klay">
+                                    <div class="pm-rank">5</div>
+                                    <div class="pm-info">
+                                        <div class="pm-name">Klay Thompson</div>
+                                        <div class="pm-archetype">Set Shot</div>
+                                    </div>
+                                    <div class="pm-similarity">
+                                        <div class="pm-score">74%</div>
+                                        <div class="pm-bar"><div class="pm-fill" style="width: 74%"></div></div>
+                                    </div>
+                                    <div class="pm-stats">
+                                        <span>6'6"</span>
+                                        <span>6'9" WS</span>
+                                        <span>Right</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Fixes -->
+                            <div class="pm-fixes-header"><span>🔧</span> Quick Fixes</div>
+                            <div class="pm-fix-item">
+                                <button class="pm-fix-toggle">
+                                    <div class="pm-fix-icon">📏</div>
+                                    <div class="pm-fix-content">
+                                        <div class="pm-fix-title">Increase your arc</div>
+                                        <div class="pm-fix-tip">Aim higher on your release to get more arc on your shot</div>
+                                    </div>
+                                    <span class="pm-fix-arrow">▼</span>
+                                </button>
+                                <div class="pm-drill-content">
+                                    <div class="pm-drill-card">
+                                        <div class="pm-drill-label">Recommended Drill</div>
+                                        <div class="pm-drill-name">Rainbow Flick Drill</div>
+                                        <div class="pm-drill-desc">Practice shooting with exaggerated arc. Start close to the basket and focus on getting the ball to peak above the top of the backboard.</div>
+                                        <div class="pm-drill-meta"><span>⏱️ 10 mins</span><span>🏀 25 reps</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pm-fix-item">
+                                <button class="pm-fix-toggle">
+                                    <div class="pm-fix-icon">🦵</div>
+                                    <div class="pm-fix-content">
+                                        <div class="pm-fix-title">Use more leg power</div>
+                                        <div class="pm-fix-tip">Generate more force from your legs to power your shot</div>
+                                    </div>
+                                    <span class="pm-fix-arrow">▼</span>
+                                </button>
+                                <div class="pm-drill-content">
+                                    <div class="pm-drill-card">
+                                        <div class="pm-drill-label">Recommended Drill</div>
+                                        <div class="pm-drill-name">Squat & Shoot</div>
+                                        <div class="pm-drill-desc">Start in a low squat position before each shot. Explode up through your legs and transfer that energy into your shot.</div>
+                                        <div class="pm-drill-meta"><span>⏱️ 15 mins</span><span>🏀 20 reps</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="pm-right">
+                            <div class="pm-archetype-card">
+                                <div class="pm-arch-label">Your Shot Archetype</div>
+                                <div class="pm-arch-name">QUICK RELEASE</div>
+                                <div class="pm-arch-desc">You have a fast, compact shooting motion with minimal wind-up. Your release point is optimized for getting shots off quickly against defenders.</div>
+                            </div>
+
+                            <div class="pm-traits">
+                                <div class="pm-section-header">
+                                    <span class="pm-section-title">Shared traits with</span>
+                                    <span class="pm-player-name">Stephen Curry</span>
+                                </div>
+                                <div class="pm-trait-item">
+                                    <div class="pm-trait-icon">⚡</div>
+                                    <div class="pm-trait-text">
+                                        <div class="pm-trait-name">Release Speed</div>
+                                        <div class="pm-trait-detail">Sub 0.4 second release time</div>
+                                    </div>
+                                    <div class="pm-trait-match">98%</div>
+                                </div>
+                                <div class="pm-trait-item">
+                                    <div class="pm-trait-icon">🎯</div>
+                                    <div class="pm-trait-text">
+                                        <div class="pm-trait-name">Set Point Height</div>
+                                        <div class="pm-trait-detail">High release above forehead</div>
+                                    </div>
+                                    <div class="pm-trait-match">94%</div>
+                                </div>
+                                <div class="pm-trait-item">
+                                    <div class="pm-trait-icon">🔄</div>
+                                    <div class="pm-trait-text">
+                                        <div class="pm-trait-name">Follow Through</div>
+                                        <div class="pm-trait-detail">Full extension with wrist snap</div>
+                                    </div>
+                                    <div class="pm-trait-match">91%</div>
+                                </div>
+                            </div>
+
+                            <div class="pm-differences">
+                                <div class="pm-section-header">
+                                    <span class="pm-section-title">Key differences from</span>
+                                    <span class="pm-player-name">Stephen Curry</span>
+                                </div>
+                                <div class="pm-diff-item">
+                                    <div class="pm-diff-icon">📏</div>
+                                    <div class="pm-diff-text">
+                                        <div class="pm-diff-name">Arc Height</div>
+                                        <div class="pm-diff-detail">Your arc is flatter than Curry's</div>
+                                    </div>
+                                    <div class="pm-diff-gap">-12%</div>
+                                </div>
+                                <div class="pm-diff-item">
+                                    <div class="pm-diff-icon">🦵</div>
+                                    <div class="pm-diff-text">
+                                        <div class="pm-diff-name">Leg Drive</div>
+                                        <div class="pm-diff-detail">Less power from lower body</div>
+                                    </div>
+                                    <div class="pm-diff-gap">-8%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="controls" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 30px;">
+                        <button id="pmTryOther" class="btn btn-secondary">Try Other Analysis</button>
+                        <button id="pmNewComparison" class="btn btn-primary">New Comparison</button>
+                    </div>
+                </div>
+
+                <!-- Ideal Form Results (original) -->
+                <div id="idealFormResults">
+                    <h2 style="font-family: 'Forum', serif; text-align: center;">Analysis Results</h2>
+                    <div id="results" style="display: none;">
                     <div class="score-section">
                         <h3 id="overallScore">Overall Score: --</h3>
                     </div>
@@ -1944,6 +2276,7 @@
                     <div class="controls" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 30px;">
                         <button id="tryOtherAnalysis" class="btn btn-secondary">Try Other Analysis</button>
                         <button id="newComparison" class="btn btn-primary">New Comparison</button>
+                    </div>
                     </div>
                 </div>
             </section>
@@ -9224,18 +9557,32 @@
                     const runningOverlay = document.getElementById('analysisRunningOverlay');
                     if (runningOverlay) runningOverlay.style.display = 'flex';
 
-                    // Run the analysis based on source (recording vs upload)
-                    if (window.recordedUserPoseData && window.recordedUserPoseData.length > 0) {
-                        // Came from recording - pose data already captured, run comparison
-                        console.log('Running analysis on recorded shot data...');
-                        if (typeof compareShots === 'function') {
-                            compareShots();
-                        }
+                    // Run the analysis based on type
+                    if (analysisType === 'similarity') {
+                        // Player Match - show hardcoded UI for now
+                        console.log('Showing Player Match results...');
+                        setTimeout(() => {
+                            if (runningOverlay) runningOverlay.style.display = 'none';
+                            document.getElementById('step2').style.display = 'none';
+                            document.getElementById('step3').style.display = 'block';
+                            document.getElementById('playerMatchResults').classList.add('active');
+                            document.getElementById('idealFormResults').style.display = 'none';
+                        }, 1000); // Simulate brief loading
                     } else {
-                        // Came from upload - need to process video first
-                        console.log('Processing uploaded video...');
-                        if (typeof processUploadedUserVideo === 'function') {
-                            processUploadedUserVideo();
+                        // Ideal Form - run actual analysis
+                        document.getElementById('playerMatchResults').classList.remove('active');
+                        document.getElementById('idealFormResults').style.display = 'block';
+
+                        if (window.recordedUserPoseData && window.recordedUserPoseData.length > 0) {
+                            console.log('Running analysis on recorded shot data...');
+                            if (typeof compareShots === 'function') {
+                                compareShots();
+                            }
+                        } else {
+                            console.log('Processing uploaded video...');
+                            if (typeof processUploadedUserVideo === 'function') {
+                                processUploadedUserVideo();
+                            }
                         }
                     }
                 });
@@ -9274,6 +9621,89 @@
 
         // Make showAnalysisOptions available globally
         window.showAnalysisOptions = showAnalysisOptions;
+
+        // ========== Player Match UI Event Handlers ==========
+
+        // Quick Fixes toggles
+        document.querySelectorAll('.pm-fix-toggle').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const item = toggle.closest('.pm-fix-item');
+                item.classList.toggle('active');
+            });
+        });
+
+        // Player row selection
+        const pmRows = document.querySelectorAll('.pm-row');
+        let pmSelectedIndex = 0;
+
+        function updatePMSelection(index) {
+            if (index < 0) index = 0;
+            if (index >= pmRows.length) index = pmRows.length - 1;
+            pmSelectedIndex = index;
+
+            pmRows.forEach((row, i) => {
+                if (i === pmSelectedIndex) {
+                    row.classList.add('pm-row-selected');
+                } else {
+                    row.classList.remove('pm-row-selected');
+                }
+            });
+
+            // Update right column with selected player name
+            const selectedRow = pmRows[pmSelectedIndex];
+            const playerName = selectedRow.querySelector('.pm-name').textContent;
+            document.querySelectorAll('.pm-player-name').forEach(el => {
+                el.textContent = playerName;
+            });
+
+            selectedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            const pmResults = document.getElementById('playerMatchResults');
+            if (!pmResults || !pmResults.classList.contains('active')) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                updatePMSelection(pmSelectedIndex + 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                updatePMSelection(pmSelectedIndex - 1);
+            }
+        });
+
+        // Click to select player
+        pmRows.forEach((row, i) => {
+            row.addEventListener('click', () => updatePMSelection(i));
+        });
+
+        // PM Try Other Analysis button
+        const pmTryOther = document.getElementById('pmTryOther');
+        if (pmTryOther) {
+            pmTryOther.addEventListener('click', function() {
+                document.getElementById('step3').style.display = 'none';
+                document.getElementById('playerMatchResults').classList.remove('active');
+                document.getElementById('step2').style.display = 'block';
+                showAnalysisOptions();
+                // Pre-select ideal form
+                document.querySelectorAll('.analysis-type-btn').forEach(b => {
+                    b.classList.remove('selected');
+                    if (b.dataset.type === 'ideal') b.classList.add('selected');
+                });
+            });
+        }
+
+        // PM New Comparison button
+        const pmNewComparison = document.getElementById('pmNewComparison');
+        if (pmNewComparison) {
+            pmNewComparison.addEventListener('click', function() {
+                document.getElementById('step3').style.display = 'none';
+                document.getElementById('playerMatchResults').classList.remove('active');
+                document.getElementById('step2').style.display = 'block';
+                goBackToRecord();
+            });
+        }
     </script>
 </body>
 </html>
