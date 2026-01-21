@@ -573,6 +573,10 @@ footer > .container {
     color: var(--text-primary);
 }
 
+.benefit-card h3 .accent {
+    color: var(--accent-primary);
+}
+
 .card-divider {
     width: 60px;
     border: none;

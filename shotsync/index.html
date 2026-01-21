@@ -107,6 +107,176 @@
             border-bottom-color: var(--primary-color);
         }
 
+        /* Analysis Type Button Styles */
+        .analysis-type-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 220px;
+            height: 140px;
+            color: var(--text-dark);
+        }
+
+        .analysis-type-btn:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .analysis-type-btn.selected {
+            border-color: var(--primary-color);
+            background: rgba(255, 107, 122, 0.15);
+        }
+
+        .analysis-icon { font-size: 32px; }
+
+        .analysis-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .analysis-desc {
+            font-size: 12px;
+            color: var(--text-gray);
+            text-align: center;
+        }
+
+        /* Body Warning Overlay */
+        .body-warning-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 12px;
+        }
+
+        .body-warning-overlay .warning-content {
+            text-align: center;
+            color: white;
+            padding: 30px;
+        }
+
+        .body-warning-overlay .warning-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .body-warning-overlay h3 {
+            color: #FF6B7A;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .body-warning-overlay p {
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        /* Video Ready Overlay (neutral - waiting for analysis selection) */
+        .video-ready-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 12px;
+        }
+
+        .video-ready-overlay .ready-content {
+            text-align: center;
+            color: white;
+            padding: 30px;
+        }
+
+        .video-ready-overlay .ready-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .video-ready-overlay h3 {
+            color: #60a5fa;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .video-ready-overlay p {
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        /* Running Analysis Overlay (green - actually processing) */
+        .analysis-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 12px;
+        }
+
+        .analysis-overlay .analysis-content {
+            text-align: center;
+            color: white;
+            padding: 30px;
+        }
+
+        .analysis-overlay .analysis-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #4ade80;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .analysis-overlay h3 {
+            color: #4ade80;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .analysis-overlay p {
+            color: #ccc;
+            font-size: 14px;
+        }
+
         /* Stat Card Styles */
         .stat-card {
             background: var(--bg-card);
@@ -1493,6 +1663,7 @@
                 </div>
                 <div class="nav-tabs" style="display: flex; gap: 20px; align-items: center; justify-content: center; flex: 1;">
                     <button id="shotSyncTab" class="nav-tab active" onclick="showShotSync()">Shot Sync</button>
+                    <a href="/shotlab" class="nav-tab" style="text-decoration: none;">Shot Lab</a>
                     <button id="trainingDbTab" class="nav-tab" onclick="showTrainingDatabase()" style="display: none;">Training Database</button>
                     <button id="progressPicsTab" class="nav-tab" onclick="showProgressPics()" style="display: none;">Progress Pics</button>
                     <button id="badgesTab" class="nav-tab" onclick="showBadges()" style="display: none;">Badges</button>
@@ -1507,31 +1678,23 @@
     </nav>
 
     <div class="container">
-        <header style="position: relative;">
-            <div class="header-content" style="margin-top: 60px;">
-                <h1 style="font-family: 'Forum', serif;">
-                    <span style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Shot</span><span style="font-weight: 400;">Sync</span>
-                </h1>
-                <p class="subtitle">Record your shot and compare it to a benchmark</p>
-            </div>
-            <!-- Profile Dropdown -->
-            <div id="profileDropdown" style="position: absolute; top: 20px; right: 20px; display: none; z-index: 100;">
-                <button id="profileButton" class="btn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 8px 12px; border-radius: 20px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
-                    <span id="profileInitials" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">U</span>
-                    <span id="profileName" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px;"></span>
-                    <span style="font-size: 10px;">▼</span>
-                </button>
-                <div id="profileMenu" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; display: none; z-index: 1001;">
-                    <div style="padding: 16px; border-bottom: 1px solid #e0e0e0;">
-                        <div id="menuUserName" style="font-weight: bold; color: #333; margin-bottom: 4px;"></div>
-                        <div id="menuUserEmail" style="font-size: 12px; color: #666;"></div>
-                    </div>
-                    <button id="logoutButton" style="width: 100%; padding: 12px 16px; text-align: left; background: none; border: none; cursor: pointer; color: #333; font-size: 14px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
-                        Sign Out
-                    </button>
+        <!-- Profile Dropdown (positioned in nav area) -->
+        <div id="profileDropdown" style="position: fixed; top: 20px; right: 20px; display: none; z-index: 100;">
+            <button id="profileButton" class="btn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 8px 12px; border-radius: 20px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                <span id="profileInitials" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">U</span>
+                <span id="profileName" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px;"></span>
+                <span style="font-size: 10px;">▼</span>
+            </button>
+            <div id="profileMenu" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; display: none; z-index: 1001;">
+                <div style="padding: 16px; border-bottom: 1px solid #e0e0e0;">
+                    <div id="menuUserName" style="font-weight: bold; color: #333; margin-bottom: 4px;"></div>
+                    <div id="menuUserEmail" style="font-size: 12px; color: #666;"></div>
                 </div>
+                <button id="logoutButton" style="width: 100%; padding: 12px 16px; text-align: left; background: none; border: none; cursor: pointer; color: #333; font-size: 14px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
+                    Sign Out
+                </button>
             </div>
-        </header>
+        </div>
 
         <div class="main-content">
             <!-- Step 0: User Information -->
@@ -1555,54 +1718,6 @@
                         </svg>
                         Sign in with Google
                     </button>
-                </div>
-            </section>
-
-            <!-- Step 0.5: Player Selection (hidden - skip to video) -->
-            <section id="step0_5" class="step" style="display: none;">
-                <div style="max-width: 900px; margin: 0 auto;">
-                    <div class="player-selection" style="margin-bottom: 30px;" id="playerSelectionContainer">
-                        <div class="player-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto;">
-                            <button class="player-btn" data-player="curry" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <img src="/tool/stephrootsicon.jpeg" alt="Stephen Curry" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Bebas Neue', sans-serif;">30</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Bebas Neue', sans-serif;">Stephen Curry</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Bebas Neue', sans-serif;">Guard</div>
-                            </button>
-                            <button class="player-btn" data-player="lebron" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <img src="/tool/lebron_icon.jpeg" alt="LeBron James" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Bebas Neue', sans-serif;">23</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Bebas Neue', sans-serif;">LeBron James</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Bebas Neue', sans-serif;">Forward</div>
-                            </button>
-                            <button class="player-btn" data-player="jordan" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <img src="/tool/jordan_icon.jpeg" alt="Michael Jordan" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Bebas Neue', sans-serif;">23</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Bebas Neue', sans-serif;">Michael Jordan</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Bebas Neue', sans-serif;">Guard</div>
-                            </button>
-                            <button class="player-btn" data-player="durant" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <img src="/tool/kd_icon.webp" alt="Kevin Durant" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Bebas Neue', sans-serif;">35</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Bebas Neue', sans-serif;">Kevin Durant</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Bebas Neue', sans-serif;">Forward</div>
-                            </button>
-                            <button class="player-btn" data-player="clark" style="background: white; border: 2px solid #e0e0e0; border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <img src="/tool/caitlin_icon.webp" alt="Caitlin Clark" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
-                                <div class="player-number" style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; font-family: 'Bebas Neue', sans-serif;">22</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Bebas Neue', sans-serif;">Caitlin Clark</div>
-                                <div class="player-position" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Bebas Neue', sans-serif;">Guard</div>
-                            </button>
-                            <button class="player-btn custom-btn" data-player="custom" style="background: white; border: 2px dashed var(--primary-color); border-radius: 16px; padding: 24px 16px; cursor: pointer; transition: all 0.3s ease; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div class="player-icon-custom" style="font-size: 36px; font-weight: 300; color: var(--primary-color); margin-bottom: 4px; line-height: 1; font-family: 'Bebas Neue', sans-serif;">+</div>
-                                <div class="player-name" style="font-size: 15px; font-weight: 600; color: #333; line-height: 1.3; font-family: 'Bebas Neue', sans-serif;">Custom Benchmark</div>
-                                <div class="player-description" style="font-size: 12px; color: #999; line-height: 1.4; font-family: 'Bebas Neue', sans-serif;">Record your own ideal form</div>
-                            </button>
-                        </div>
-                        <div class="custom-explanation" id="customExplanation" style="display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid var(--primary-color);">
-                            <p style="margin: 0; color: #666; line-height: 1.6;"><strong style="color: #333;">Custom Benchmark:</strong> Uses a global benchmark recorded by the administrator. Record your shot to compare against it.</p>
-                        </div>
-                    </div>
                 </div>
             </section>
 
@@ -1646,9 +1761,9 @@
             </section>
 
             <!-- Step 2: Record User Shot -->
-            <section id="step2" class="step active">
-                <h2 id="step2Title" style="font-family: 'Bebas Neue', sans-serif; text-align: center; letter-spacing: 2px;">Record Your Shot</h2>
-                <p style="text-align: center;">Record your shot and get AI-powered analysis of your form.</p>
+            <section id="step2" class="step active" style="padding-top: 20px;">
+                <h2 id="step2Title" style="font-family: 'Bebas Neue', sans-serif; text-align: center; letter-spacing: 2px; margin-top: 0;">Record Your Shot</h2>
+                <p style="text-align: center;">And our AI will do the rest, select what type of analysis next!</p>
                 <div class="video-container" style="position: relative;">
                     <video id="userVideo" playsinline muted style="width: 100%; max-width: 640px; height: auto; display: block; border-radius: 12px; z-index: 1;"></video>
                     <canvas id="userCanvas" style="display: none;"></canvas>
@@ -1660,28 +1775,70 @@
                             <p>Please step back so your entire body is visible in the frame</p>
                         </div>
                     </div>
+                    <!-- Video Ready Overlay (blue - waiting for analysis selection) -->
+                    <div id="videoReadyOverlay" class="video-ready-overlay" style="display: none;">
+                        <div class="ready-content">
+                            <div class="ready-icon">✓</div>
+                            <h3>Video Ready</h3>
+                            <p>Select analysis type below</p>
+                        </div>
+                    </div>
+                    <!-- Running Analysis Overlay (green - actually processing) -->
+                    <div id="analysisRunningOverlay" class="analysis-overlay" style="display: none;">
+                        <div class="analysis-content">
+                            <div class="analysis-spinner"></div>
+                            <h3>Running Analysis</h3>
+                            <p>Processing your video...</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                <div class="controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center; width: 100%;">
                     <!-- All buttons in one horizontal line -->
-                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;">
-                        <!-- Upload Video Toggle -->
-                        <button id="userUploadModeBtn" class="btn btn-secondary mode-toggle-btn" style="min-width: 140px;">📤 Upload Video</button>
-                        
-                        <!-- Recording Controls -->
-                        <button id="startUser" class="btn btn-primary" style="min-width: 140px;">Start Recording</button>
-                        <button id="stopUser" class="btn btn-secondary" disabled style="min-width: 140px;">Stop Recording</button>
-                        <button id="retakeUser" class="btn btn-warning" style="display: none; min-width: 140px;">Retake</button>
-                        
-                        <!-- Upload Controls (hidden by default) -->
+                    <div id="recordingControls" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center;">
+                        <!-- Upload Video - directly triggers file picker -->
+                        <label for="userVideoUpload" class="btn btn-secondary" style="min-width: 180px; height: 48px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">UPLOAD VIDEO</label>
                         <input type="file" id="userVideoUpload" accept="video/mp4,video/mov,video/webm,video/quicktime" style="display: none;">
-                        <button id="selectUserVideo" class="btn btn-primary" style="display: none; min-width: 140px;">Choose Video File</button>
-                        <button id="processUserVideo" class="btn btn-success" style="display: none; min-width: 140px;">Analyze Video</button>
+
+                        <!-- Recording Controls -->
+                        <button id="startUser" class="btn btn-primary" style="min-width: 180px; height: 48px; border-radius: 8px; font-size: 14px; font-weight: 600; clip-path: none;">START RECORDING</button>
+                        <button id="stopUser" class="btn btn-secondary" disabled style="min-width: 180px; height: 48px; border-radius: 8px; font-size: 14px; font-weight: 600;">STOP RECORDING</button>
+                        <button id="retakeUser" class="btn btn-warning" style="display: none; min-width: 180px; height: 48px; border-radius: 8px; font-size: 14px; font-weight: 600;">RETAKE</button>
+
+                        <!-- Hidden buttons (kept for JS compatibility) -->
+                        <button id="userUploadModeBtn" style="display: none;"></button>
+                        <button id="selectUserVideo" style="display: none;"></button>
+                        <button id="processUserVideo" style="display: none;"></button>
                     </div>
                     
                     <!-- File name display for upload -->
                     <div id="uploadedFileName" style="width: 100%; text-align: center; color: #666; font-size: 14px;"></div>
                 </div>
-                <div id="userStatus" class="status" style="display: none;"></div>
+
+                <!-- Analysis Type Selection (shown after video is ready) -->
+                <div id="analysisTypeSelection" style="display: none; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    <p style="text-align: center; margin-bottom: 15px; color: var(--text-gray); font-family: 'Work Sans', sans-serif;">
+                        Choose your analysis type:
+                    </p>
+                    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; align-items: stretch;">
+                        <button id="idealFormBtn" class="analysis-type-btn" data-type="ideal">
+                            <span class="analysis-icon">🎯</span>
+                            <span class="analysis-title">Ideal Form</span>
+                            <span class="analysis-desc">Get feedback on your shooting mechanics</span>
+                        </button>
+                        <button id="playerSimilarityBtn" class="analysis-type-btn" data-type="similarity">
+                            <span class="analysis-icon">👥</span>
+                            <span class="analysis-title">Player Match</span>
+                            <span class="analysis-desc">See which pros shoot like you</span>
+                        </button>
+                        <button id="backToRecordBtn" class="analysis-type-btn" style="background: transparent; border-style: dashed;">
+                            <span class="analysis-icon">←</span>
+                            <span class="analysis-title">Back</span>
+                            <span class="analysis-desc">Choose a different video</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status removed - no longer needed -->
             </section>
 
             <!-- Step 3: Analysis Results -->
@@ -1784,7 +1941,8 @@
                         <div id="feedbackList"></div>
                     </div>
                     
-                    <div class="controls">
+                    <div class="controls" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 30px;">
+                        <button id="tryOtherAnalysis" class="btn btn-secondary">Try Other Analysis</button>
                         <button id="newComparison" class="btn btn-primary">New Comparison</button>
                     </div>
                 </div>
@@ -2446,8 +2604,8 @@
     </div>
 
     <!-- Player Benchmark Data -->
-    <script src="player_data/lebron_benchmark.js"></script>
-    <script src="player_data/curry_benchmark.js"></script>
+    <script src="/tool/player_data/lebron_benchmark.js"></script>
+    <script src="/tool/player_data/curry_benchmark.js"></script>
     <script>
         // ====================== API CONFIGURATION ======================
         // Set the backend API base URL
@@ -2466,7 +2624,7 @@
             window.curry_benchmark_data = curry_data;
         }
     </script>
-    <script src="app.js"></script>
+    <script src="/tool/app.js"></script>
     <script>
         // Tab navigation functions
         let trainingChart = null;
@@ -2487,10 +2645,10 @@
             const mainContent = document.querySelector('.main-content');
             if (mainContent) mainContent.style.display = 'block';
             
-            // Show step0_5 (player selection) by default
+            // Show step2 (record shot) by default - skip player selection
             document.querySelectorAll('.step').forEach(step => step.style.display = 'none');
-            const step0_5 = document.getElementById('step0_5');
-            if (step0_5) step0_5.style.display = 'block';
+            const step2 = document.getElementById('step2');
+            if (step2) step2.style.display = 'block';
             
             // Update nav tabs
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
@@ -3626,16 +3784,16 @@
                                 playerSelectionContainer.style.pointerEvents = 'auto';
                             }
                             
-                            // Move to player selection step
+                            // Move to record shot step (skip player selection)
                             const step0 = document.getElementById('step0');
-                            const step0_5 = document.getElementById('step0_5');
+                            const step2 = document.getElementById('step2');
                             if (step0) {
                                 step0.classList.remove('active');
                                 step0.style.display = 'none';
                             }
-                            if (step0_5) {
-                                step0_5.classList.add('active');
-                                step0_5.style.display = 'block';
+                            if (step2) {
+                                step2.classList.add('active');
+                                step2.style.display = 'block';
                             }
                             
                             // Save user email
@@ -8965,6 +9123,157 @@
         window.connectGoogleCalendar = connectGoogleCalendar;
         window.syncToGoogleCalendar = syncToGoogleCalendar;
         window.checkGoogleCalendarStatus = checkGoogleCalendarStatus;
+    </script>
+
+    <!-- Analysis Type Selection Logic -->
+    <script>
+        // Show analysis selection after video is ready
+        function showAnalysisOptions() {
+            const selection = document.getElementById('analysisTypeSelection');
+            if (selection) {
+                selection.style.display = 'block';
+            }
+            // Hide the control buttons
+            const controlsDiv = document.getElementById('recordingControls');
+            if (controlsDiv) controlsDiv.style.display = 'none';
+            // Hide file name display
+            const fileName = document.getElementById('uploadedFileName');
+            if (fileName) fileName.style.display = 'none';
+            // Hide the old "Analyze Video" button
+            const processBtn = document.getElementById('processUserVideo');
+            if (processBtn) {
+                processBtn.style.display = 'none';
+            }
+            // Hide body warning overlay (pink)
+            const bodyWarning = document.getElementById('userBodyWarning');
+            if (bodyWarning) bodyWarning.style.display = 'none';
+            // Hide user status
+            const userStatus = document.getElementById('userStatus');
+            if (userStatus) userStatus.style.display = 'none';
+            // Show "Video Ready" overlay (blue)
+            const readyOverlay = document.getElementById('videoReadyOverlay');
+            if (readyOverlay) readyOverlay.style.display = 'flex';
+        }
+
+        // Go back to recording/upload state
+        function goBackToRecord() {
+            // Hide analysis selection
+            const selection = document.getElementById('analysisTypeSelection');
+            if (selection) selection.style.display = 'none';
+            // Show the control buttons
+            const controlsDiv = document.getElementById('recordingControls');
+            if (controlsDiv) controlsDiv.style.display = 'flex';
+            // Show file name display
+            const fileName = document.getElementById('uploadedFileName');
+            if (fileName) {
+                fileName.style.display = 'block';
+                fileName.textContent = '';
+            }
+            // Hide overlays
+            const readyOverlay = document.getElementById('videoReadyOverlay');
+            if (readyOverlay) readyOverlay.style.display = 'none';
+            const runningOverlay = document.getElementById('analysisRunningOverlay');
+            if (runningOverlay) runningOverlay.style.display = 'none';
+            // Reset video
+            const video = document.getElementById('userVideo');
+            if (video) {
+                video.src = '';
+                video.load();
+            }
+            // Clear file input
+            const fileInput = document.getElementById('userVideoUpload');
+            if (fileInput) fileInput.value = '';
+            // Deselect analysis buttons
+            document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
+            // Clear recorded pose data
+            window.recordedUserPoseData = null;
+            if (typeof userPoseData !== 'undefined') {
+                userPoseData = [];
+            }
+        }
+
+        // Override the userVideoUpload change handler to show analysis options
+        document.addEventListener('DOMContentLoaded', function() {
+            const userVideoUpload = document.getElementById('userVideoUpload');
+            if (userVideoUpload) {
+                userVideoUpload.addEventListener('change', function(e) {
+                    if (e.target.files[0]) {
+                        // Show analysis options and blue overlay
+                        setTimeout(showAnalysisOptions, 100);
+                    }
+                });
+            }
+
+            // Handle analysis type button clicks
+            document.querySelectorAll('.analysis-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Skip if this is the back button
+                    if (this.id === 'backToRecordBtn') return;
+
+                    // Visual feedback - select this button
+                    document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+
+                    // Store the selected type
+                    const analysisType = this.dataset.type;
+                    window.selectedAnalysisType = analysisType;
+
+                    // Hide "Video Ready" overlay, show "Running Analysis" overlay
+                    const readyOverlay = document.getElementById('videoReadyOverlay');
+                    if (readyOverlay) readyOverlay.style.display = 'none';
+                    const runningOverlay = document.getElementById('analysisRunningOverlay');
+                    if (runningOverlay) runningOverlay.style.display = 'flex';
+
+                    // Run the analysis based on source (recording vs upload)
+                    if (window.recordedUserPoseData && window.recordedUserPoseData.length > 0) {
+                        // Came from recording - pose data already captured, run comparison
+                        console.log('Running analysis on recorded shot data...');
+                        if (typeof compareShots === 'function') {
+                            compareShots();
+                        }
+                    } else {
+                        // Came from upload - need to process video first
+                        console.log('Processing uploaded video...');
+                        if (typeof processUploadedUserVideo === 'function') {
+                            processUploadedUserVideo();
+                        }
+                    }
+                });
+            });
+
+            // Handle "Back" button
+            const backBtn = document.getElementById('backToRecordBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', goBackToRecord);
+            }
+
+            // Handle "Try Other Analysis" button
+            const tryOtherBtn = document.getElementById('tryOtherAnalysis');
+            if (tryOtherBtn) {
+                tryOtherBtn.addEventListener('click', function() {
+                    // Go back to step2 with video still loaded
+                    document.getElementById('step3').style.display = 'none';
+                    document.getElementById('step3').classList.remove('active');
+                    document.getElementById('step2').style.display = 'block';
+                    document.getElementById('step2').classList.add('active');
+
+                    // Show analysis options
+                    showAnalysisOptions();
+
+                    // Pre-select the OTHER analysis type
+                    const otherType = window.selectedAnalysisType === 'ideal' ? 'similarity' : 'ideal';
+                    document.querySelectorAll('.analysis-type-btn').forEach(b => {
+                        b.classList.remove('selected');
+                        if (b.dataset.type === otherType) {
+                            b.classList.add('selected');
+                        }
+                    });
+                });
+            }
+        });
+
+        // Make showAnalysisOptions available globally
+        window.showAnalysisOptions = showAnalysisOptions;
     </script>
 </body>
 </html>

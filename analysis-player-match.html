@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Match Analysis - UI Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #FF6B7A;
+            --bg-dark: #1a1a2e;
+            --bg-card: #252542;
+            --text-light: #ffffff;
+            --text-gray: #a0a0a0;
+            --border-color: #3a3a5c;
+            --success-color: #4ade80;
+            --warning-color: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Two-column layout */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .left-column {
+            min-width: 0;
+        }
+
+        .right-column {
+            position: sticky;
+            top: 40px;
+        }
+
+        /* User Archetype Card */
+        .user-archetype-card {
+            background: var(--bg-card);
+            border: 2px solid var(--primary-color);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .archetype-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-gray);
+            margin-bottom: 12px;
+        }
+
+        .archetype-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 42px;
+            letter-spacing: 2px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .archetype-description {
+            color: var(--text-gray);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Matching Traits */
+        .matching-traits {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .traits-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .traits-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .traits-player {
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+
+        .traits-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .trait-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+
+        .trait-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 107, 122, 0.15);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .trait-text {
+            flex: 1;
+        }
+
+        .trait-name {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .trait-detail {
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .trait-match {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--success-color);
+        }
+
+        /* Differences section */
+        .differences-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 16px;
+        }
+
+        .differences-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .differences-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .difference-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .difference-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .difference-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(251, 191, 36, 0.15);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .difference-text {
+            flex: 1;
+        }
+
+        .difference-name {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .difference-detail {
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .difference-gap {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--warning-color);
+        }
+
+        /* Quick Fixes Section */
+        .quick-fixes-section {
+            margin-top: 24px;
+        }
+
+        .quick-fixes-header {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-fixes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .quick-fix-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .quick-fix-toggle {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-light);
+            transition: all 0.2s ease;
+        }
+
+        .quick-fix-toggle:hover {
+            background: rgba(255, 107, 122, 0.05);
+        }
+
+        .quick-fix-item.active .quick-fix-toggle {
+            background: rgba(255, 107, 122, 0.1);
+        }
+
+        .fix-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 107, 122, 0.15);
+            border-radius: 8px;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .fix-content {
+            flex: 1;
+            text-align: left;
+        }
+
+        .fix-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .fix-tip {
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        .fix-arrow {
+            font-size: 16px;
+            color: var(--text-gray);
+            transition: transform 0.3s ease;
+        }
+
+        .quick-fix-item.active .fix-arrow {
+            transform: rotate(180deg);
+            color: var(--primary-color);
+        }
+
+        .drill-content {
+            display: none;
+            padding: 0 20px 20px 20px;
+        }
+
+        .quick-fix-item.active .drill-content {
+            display: block;
+        }
+
+        .drill-card {
+            background: var(--bg-dark);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .drill-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .drill-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .drill-description {
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+
+        .drill-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .drill-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .right-column {
+                position: static;
+                order: -1;
+            }
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        h1 .accent {
+            color: var(--primary-color);
+        }
+
+        .subtitle {
+            color: var(--text-gray);
+            margin-bottom: 40px;
+        }
+
+        /* Player Match List */
+        .player-match-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Row base */
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .player-row:hover {
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+        }
+
+        /* Selected player (keyboard/click selection) */
+        .player-row-selected {
+            border: 2px solid var(--primary-color);
+            background: rgba(255, 107, 122, 0.1);
+        }
+
+        .player-row-selected:hover {
+            background: rgba(255, 107, 122, 0.15);
+        }
+
+        /* Rank number */
+        .rank {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            color: var(--text-gray);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .rank-1 {
+            font-size: 32px;
+            color: var(--primary-color);
+        }
+
+        /* Player info */
+        .player-info {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .player-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .player-archetype {
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        /* Similarity */
+        .similarity {
+            flex: 1;
+            max-width: 180px;
+        }
+
+        .similarity-score {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .similarity-bar {
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .similarity-fill {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* Stats */
+        .player-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        .player-stats span {
+            white-space: nowrap;
+        }
+
+        /* Modal */
+        .player-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .player-modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--primary-color);
+        }
+
+        .modal-header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-player-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .modal-archetype {
+            color: var(--primary-color);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-gray);
+            margin-bottom: 10px;
+        }
+
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .modal-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+
+        .modal-stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            color: var(--text-light);
+        }
+
+        .modal-stat-label {
+            font-size: 11px;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .modal-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .breakdown-label {
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        .breakdown-value {
+            font-weight: 600;
+        }
+
+        .breakdown-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            margin: 0 12px;
+            max-width: 150px;
+        }
+
+        .breakdown-fill {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .player-row {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .player-stats {
+                width: 100%;
+                justify-content: flex-start;
+                padding-left: 60px;
+            }
+
+            .similarity {
+                max-width: none;
+                flex: none;
+                width: 120px;
+            }
+
+            .modal-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PLAYER <span class="accent">MATCH</span></h1>
+        <p class="subtitle">Your top 5 most similar pro players</p>
+
+        <div class="analysis-grid">
+            <!-- Left Column: Player List -->
+            <div class="left-column">
+                <div class="player-match-list">
+            <!-- #1 Match -->
+            <div class="player-row" data-player="curry">
+                <div class="rank rank-1">1</div>
+                <div class="player-info">
+                    <div class="player-name">Stephen Curry</div>
+                    <div class="player-archetype">Quick Release</div>
+                </div>
+                <div class="similarity">
+                    <div class="similarity-score">94%</div>
+                    <div class="similarity-bar">
+                        <div class="similarity-fill" style="width: 94%"></div>
+                    </div>
+                </div>
+                <div class="player-stats">
+                    <span>6'2"</span>
+                    <span>6'4" WS</span>
+                    <span>Right</span>
+                </div>
+            </div>
+
+            <!-- #2 Match -->
+            <div class="player-row" data-player="trae">
+                <div class="rank">2</div>
+                <div class="player-info">
+                    <div class="player-name">Trae Young</div>
+                    <div class="player-archetype">High Arc</div>
+                </div>
+                <div class="similarity">
+                    <div class="similarity-score">87%</div>
+                    <div class="similarity-bar">
+                        <div class="similarity-fill" style="width: 87%"></div>
+                    </div>
+                </div>
+                <div class="player-stats">
+                    <span>6'1"</span>
+                    <span>6'3" WS</span>
+                    <span>Right</span>
+                </div>
+            </div>
+
+            <!-- #3 Match -->
+            <div class="player-row" data-player="dame">
+                <div class="rank">3</div>
+                <div class="player-info">
+                    <div class="player-name">Damian Lillard</div>
+                    <div class="player-archetype">Deep Range</div>
+                </div>
+                <div class="similarity">
+                    <div class="similarity-score">82%</div>
+                    <div class="similarity-bar">
+                        <div class="similarity-fill" style="width: 82%"></div>
+                    </div>
+                </div>
+                <div class="player-stats">
+                    <span>6'2"</span>
+                    <span>6'8" WS</span>
+                    <span>Right</span>
+                </div>
+            </div>
+
+            <!-- #4 Match -->
+            <div class="player-row" data-player="kyrie">
+                <div class="rank">4</div>
+                <div class="player-info">
+                    <div class="player-name">Kyrie Irving</div>
+                    <div class="player-archetype">Textbook Form</div>
+                </div>
+                <div class="similarity">
+                    <div class="similarity-score">78%</div>
+                    <div class="similarity-bar">
+                        <div class="similarity-fill" style="width: 78%"></div>
+                    </div>
+                </div>
+                <div class="player-stats">
+                    <span>6'2"</span>
+                    <span>6'8" WS</span>
+                    <span>Right</span>
+                </div>
+            </div>
+
+            <!-- #5 Match -->
+            <div class="player-row" data-player="klay">
+                <div class="rank">5</div>
+                <div class="player-info">
+                    <div class="player-name">Klay Thompson</div>
+                    <div class="player-archetype">Set Shot</div>
+                </div>
+                <div class="similarity">
+                    <div class="similarity-score">74%</div>
+                    <div class="similarity-bar">
+                        <div class="similarity-fill" style="width: 74%"></div>
+                    </div>
+                </div>
+                <div class="player-stats">
+                    <span>6'6"</span>
+                    <span>6'9" WS</span>
+                    <span>Right</span>
+                </div>
+            </div>
+                </div>
+
+                <!-- Quick Fixes Section -->
+                <div class="quick-fixes-section">
+                    <div class="quick-fixes-header">
+                        <span>🔧</span> Quick Fixes
+                    </div>
+                    <div class="quick-fixes-list">
+                        <!-- Quick Fix 1 -->
+                        <div class="quick-fix-item">
+                            <button class="quick-fix-toggle">
+                                <div class="fix-icon">📏</div>
+                                <div class="fix-content">
+                                    <div class="fix-title">Increase your arc</div>
+                                    <div class="fix-tip">Aim higher on your release to get more arc on your shot</div>
+                                </div>
+                                <span class="fix-arrow">▼</span>
+                            </button>
+                            <div class="drill-content">
+                                <div class="drill-card">
+                                    <div class="drill-label">Recommended Drill</div>
+                                    <div class="drill-name">Rainbow Flick Drill</div>
+                                    <div class="drill-description">
+                                        Practice shooting with exaggerated arc. Start close to the basket and focus on getting the ball to peak above the top of the backboard before coming down. Gradually move back while maintaining the high arc.
+                                    </div>
+                                    <div class="drill-meta">
+                                        <span>⏱️ 10 mins</span>
+                                        <span>🏀 25 reps</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Fix 2 -->
+                        <div class="quick-fix-item">
+                            <button class="quick-fix-toggle">
+                                <div class="fix-icon">🦵</div>
+                                <div class="fix-content">
+                                    <div class="fix-title">Use more leg power</div>
+                                    <div class="fix-tip">Generate more force from your legs to power your shot</div>
+                                </div>
+                                <span class="fix-arrow">▼</span>
+                            </button>
+                            <div class="drill-content">
+                                <div class="drill-card">
+                                    <div class="drill-label">Recommended Drill</div>
+                                    <div class="drill-name">Squat & Shoot</div>
+                                    <div class="drill-description">
+                                        Start in a low squat position before each shot. Explode up through your legs and transfer that energy into your shot. Focus on feeling the power come from your legs, not your arms.
+                                    </div>
+                                    <div class="drill-meta">
+                                        <span>⏱️ 15 mins</span>
+                                        <span>🏀 20 reps</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: User Archetype & Traits -->
+            <div class="right-column">
+                <!-- User's Archetype -->
+                <div class="user-archetype-card">
+                    <div class="archetype-label">Your Shot Archetype</div>
+                    <div class="archetype-name">QUICK RELEASE</div>
+                    <div class="archetype-description">
+                        You have a fast, compact shooting motion with minimal wind-up. Your release point is optimized for getting shots off quickly against defenders.
+                    </div>
+                </div>
+
+                <!-- Matching Traits -->
+                <div class="matching-traits">
+                    <div class="traits-header">
+                        <span class="traits-title">Shared traits with</span>
+                        <span class="traits-player">Stephen Curry</span>
+                    </div>
+                    <div class="traits-list">
+                        <div class="trait-item">
+                            <div class="trait-icon">⚡</div>
+                            <div class="trait-text">
+                                <div class="trait-name">Release Speed</div>
+                                <div class="trait-detail">Sub 0.4 second release time</div>
+                            </div>
+                            <div class="trait-match">98%</div>
+                        </div>
+                        <div class="trait-item">
+                            <div class="trait-icon">🎯</div>
+                            <div class="trait-text">
+                                <div class="trait-name">Set Point Height</div>
+                                <div class="trait-detail">High release above forehead</div>
+                            </div>
+                            <div class="trait-match">94%</div>
+                        </div>
+                        <div class="trait-item">
+                            <div class="trait-icon">🔄</div>
+                            <div class="trait-text">
+                                <div class="trait-name">Follow Through</div>
+                                <div class="trait-detail">Full extension with wrist snap</div>
+                            </div>
+                            <div class="trait-match">91%</div>
+                        </div>
+                        <div class="trait-item">
+                            <div class="trait-icon">📐</div>
+                            <div class="trait-text">
+                                <div class="trait-name">Elbow Alignment</div>
+                                <div class="trait-detail">Tucked elbow, straight line to rim</div>
+                            </div>
+                            <div class="trait-match">88%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Differences Section -->
+                <div class="differences-section">
+                    <div class="differences-header">
+                        <span class="differences-title">Key differences from</span>
+                        <span class="traits-player">Stephen Curry</span>
+                    </div>
+                    <div class="differences-list">
+                        <div class="difference-item">
+                            <div class="difference-icon">📏</div>
+                            <div class="difference-text">
+                                <div class="difference-name">Arc Height</div>
+                                <div class="difference-detail">Your arc is flatter than Curry's</div>
+                            </div>
+                            <div class="difference-gap">-12%</div>
+                        </div>
+                        <div class="difference-item">
+                            <div class="difference-icon">🦵</div>
+                            <div class="difference-text">
+                                <div class="difference-name">Leg Drive</div>
+                                <div class="difference-detail">Less power from lower body</div>
+                            </div>
+                            <div class="difference-gap">-8%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="player-modal" id="playerModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+
+            <div class="modal-header">
+                <h2 class="modal-player-name" id="modalPlayerName">Stephen Curry</h2>
+                <div class="modal-archetype" id="modalArchetype">Quick Release</div>
+            </div>
+
+            <div class="modal-section">
+                <div class="modal-section-title">Physical Stats</div>
+                <div class="modal-stats-grid">
+                    <div class="modal-stat">
+                        <div class="modal-stat-value" id="modalHeight">6'2"</div>
+                        <div class="modal-stat-label">Height</div>
+                    </div>
+                    <div class="modal-stat">
+                        <div class="modal-stat-value" id="modalWingspan">6'4"</div>
+                        <div class="modal-stat-label">Wingspan</div>
+                    </div>
+                    <div class="modal-stat">
+                        <div class="modal-stat-value" id="modalHand">Right</div>
+                        <div class="modal-stat-label">Hand</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <div class="modal-section-title">Shot Breakdown</div>
+                <div class="modal-breakdown">
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Release Speed</span>
+                        <div class="breakdown-bar"><div class="breakdown-fill" style="width: 95%"></div></div>
+                        <span class="breakdown-value">95%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Arc Height</span>
+                        <div class="breakdown-bar"><div class="breakdown-fill" style="width: 82%"></div></div>
+                        <span class="breakdown-value">82%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Follow Through</span>
+                        <div class="breakdown-bar"><div class="breakdown-fill" style="width: 91%"></div></div>
+                        <span class="breakdown-value">91%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Elbow Alignment</span>
+                        <div class="breakdown-bar"><div class="breakdown-fill" style="width: 88%"></div></div>
+                        <span class="breakdown-value">88%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Player data
+        const playerData = {
+            curry: {
+                name: 'Stephen Curry',
+                archetype: 'Quick Release',
+                height: "6'2\"",
+                wingspan: "6'4\"",
+                hand: 'Right',
+                breakdown: { release: 95, arc: 82, follow: 91, elbow: 88 }
+            },
+            trae: {
+                name: 'Trae Young',
+                archetype: 'High Arc',
+                height: "6'1\"",
+                wingspan: "6'3\"",
+                hand: 'Right',
+                breakdown: { release: 88, arc: 94, follow: 85, elbow: 82 }
+            },
+            dame: {
+                name: 'Damian Lillard',
+                archetype: 'Deep Range',
+                height: "6'2\"",
+                wingspan: "6'8\"",
+                hand: 'Right',
+                breakdown: { release: 85, arc: 78, follow: 92, elbow: 90 }
+            },
+            kyrie: {
+                name: 'Kyrie Irving',
+                archetype: 'Textbook Form',
+                height: "6'2\"",
+                wingspan: "6'8\"",
+                hand: 'Right',
+                breakdown: { release: 82, arc: 85, follow: 96, elbow: 94 }
+            },
+            klay: {
+                name: 'Klay Thompson',
+                archetype: 'Set Shot',
+                height: "6'6\"",
+                wingspan: "6'9\"",
+                hand: 'Right',
+                breakdown: { release: 78, arc: 80, follow: 94, elbow: 96 }
+            }
+        };
+
+        // Open modal on row click
+        document.querySelectorAll('.player-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const playerId = row.dataset.player;
+                openPlayerModal(playerId);
+            });
+        });
+
+        function openPlayerModal(playerId) {
+            const player = playerData[playerId];
+            if (!player) return;
+
+            // Populate modal
+            document.getElementById('modalPlayerName').textContent = player.name;
+            document.getElementById('modalArchetype').textContent = player.archetype;
+            document.getElementById('modalHeight').textContent = player.height;
+            document.getElementById('modalWingspan').textContent = player.wingspan;
+            document.getElementById('modalHand').textContent = player.hand;
+
+            // Update breakdown bars
+            const breakdownItems = document.querySelectorAll('.breakdown-item');
+            const breakdownKeys = ['release', 'arc', 'follow', 'elbow'];
+            breakdownItems.forEach((item, i) => {
+                const value = player.breakdown[breakdownKeys[i]];
+                item.querySelector('.breakdown-fill').style.width = value + '%';
+                item.querySelector('.breakdown-value').textContent = value + '%';
+            });
+
+            document.getElementById('playerModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('playerModal').classList.remove('active');
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('playerModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Quick Fixes toggles
+        document.querySelectorAll('.quick-fix-toggle').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const item = toggle.closest('.quick-fix-item');
+                item.classList.toggle('active');
+            });
+        });
+
+        // Keyboard navigation for player selection
+        const playerRows = document.querySelectorAll('.player-row');
+        let selectedIndex = 0;
+
+        function updateSelectedPlayer(index) {
+            // Clamp index
+            if (index < 0) index = 0;
+            if (index >= playerRows.length) index = playerRows.length - 1;
+
+            selectedIndex = index;
+
+            // Update visual selection
+            playerRows.forEach((row, i) => {
+                if (i === selectedIndex) {
+                    row.classList.add('player-row-selected');
+                } else {
+                    row.classList.remove('player-row-selected');
+                }
+            });
+
+            // Get selected player data
+            const selectedRow = playerRows[selectedIndex];
+            const playerId = selectedRow.dataset.player;
+            const player = playerData[playerId];
+
+            // Update right column with selected player's data
+            if (player) {
+                // Update traits header
+                document.querySelector('.traits-player').textContent = player.name;
+                document.querySelector('.differences-section .traits-player').textContent = player.name;
+
+                // Update trait match percentages
+                const traitItems = document.querySelectorAll('.matching-traits .trait-item');
+                const traitValues = [player.breakdown.release, player.breakdown.arc, player.breakdown.follow, player.breakdown.elbow];
+                traitItems.forEach((item, i) => {
+                    if (traitValues[i]) {
+                        item.querySelector('.trait-match').textContent = traitValues[i] + '%';
+                    }
+                });
+            }
+
+            // Scroll selected row into view
+            selectedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Arrow key listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                updateSelectedPlayer(selectedIndex + 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                updateSelectedPlayer(selectedIndex - 1);
+            } else if (e.key === 'Enter' && !document.getElementById('playerModal').classList.contains('active')) {
+                e.preventDefault();
+                const selectedRow = playerRows[selectedIndex];
+                openPlayerModal(selectedRow.dataset.player);
+            }
+        });
+
+        // Click to select
+        playerRows.forEach((row, i) => {
+            row.addEventListener('click', (e) => {
+                // Don't change selection if just clicking to open modal
+                updateSelectedPlayer(i);
+            });
+        });
+
+        // Initialize first player as selected
+        updateSelectedPlayer(0);
+    </script>
+</body>
+</html>

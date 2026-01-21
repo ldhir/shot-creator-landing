@@ -1018,7 +1018,7 @@ async function startUserRecording() {
         document.getElementById('stopUser').disabled = false;
         const userStatusEl = document.getElementById('userStatus');
         if (userStatusEl) {
-            userStatusEl.textContent = 'Processing video...';
+            userStatusEl.textContent = 'Session is live';
             userStatusEl.className = 'status recording';
             userStatusEl.style.display = 'block';
         }
@@ -1177,31 +1177,16 @@ async function stopUserRecording() {
     document.getElementById('stopUser').disabled = true;
     
     if (userPoseData.length > 0) {
-        const userStatusEl = document.getElementById('userStatus');
-        if (userStatusEl) {
-            userStatusEl.textContent = `Recorded ${userPoseData.length} frames. Analyzing...`;
-            userStatusEl.className = 'status success';
-            userStatusEl.style.display = 'block';
-        }
         document.getElementById('retakeUser').style.display = 'inline-block';
-        
-        // For custom mode, we should already have a benchmark from step 1
-        // The benchmark was recorded in step 1 and stored in benchmarkPoseData
-        // Now we compare the user's shot (userPoseData) against that benchmark
-        if (selectedPlayer === 'custom') {
-            if (!benchmarkPoseData || benchmarkPoseData.length === 0) {
-                // This shouldn't happen if user followed the flow, but handle gracefully
-                alert('⚠️ No benchmark found. Please record a benchmark first in Step 1.');
-                if (userStatusEl) {
-                    userStatusEl.textContent = '⚠️ Please record a benchmark first.';
-                    userStatusEl.className = 'status error';
-                }
-                return;
-            }
-            console.log('✅ Custom mode: Comparing user shot against recorded benchmark');
+
+        // Store pose data for analysis and show analysis type selection
+        window.recordedUserPoseData = userPoseData;
+        console.log(`✅ Shot recorded: ${userPoseData.length} frames captured`);
+
+        // Show analysis options instead of auto-analyzing
+        if (typeof window.showAnalysisOptions === 'function') {
+            window.showAnalysisOptions();
         }
-        
-        compareShots();
     }
 }
 
@@ -1226,7 +1211,7 @@ async function processUploadedUserVideo() {
         let recordingActive = false;
         let seenFollowThrough = false;
 
-        statusEl.textContent = 'Processing video...';
+        statusEl.textContent = 'Session is live';
         statusEl.className = 'status recording';
 
         // Wait for video to be ready
@@ -1446,7 +1431,7 @@ async function processUploadedBenchmarkVideo() {
         let seenFollowThrough = false;
 
         if (statusEl) {
-            statusEl.textContent = 'Processing video...';
+            statusEl.textContent = 'Session is live';
             statusEl.className = 'status recording';
             statusEl.style.display = 'block';
         }
@@ -5422,7 +5407,7 @@ async function processGlobalBenchmarkUploadedVideo() {
     }
     
     if (statusEl) {
-        statusEl.textContent = 'Processing video...';
+        statusEl.textContent = 'Session is live';
         statusEl.className = 'status';
         statusEl.style.display = 'block';
     }
