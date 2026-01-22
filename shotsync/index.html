@@ -604,6 +604,345 @@
             .pm-grid { grid-template-columns: 1fr; }
             .pm-right { position: static; order: -1; }
         }
+
+        /* ========== Ideal Form Results UI ========== */
+        .ideal-form-results { display: none; }
+        .ideal-form-results.active { display: block; }
+
+        .if-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .if-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            letter-spacing: 3px;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+        .if-title span { color: var(--primary-color); }
+
+        .if-player-info {
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+        .if-player-info .if-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-right: 6px;
+        }
+
+        .if-consistency-box { text-align: right; }
+        .if-consistency-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .if-consistency-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            color: #00D4FF;
+            line-height: 1;
+        }
+        .if-consistency-toggle {
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 4px;
+        }
+        .if-toggle-btn {
+            background: none;
+            border: none;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .if-toggle-btn:hover { color: var(--text-gray); }
+        .if-toggle-btn.active { background: var(--primary-color); color: var(--bg-dark); }
+
+        .if-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        .if-metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .if-metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+        .if-metric-card:hover { border-color: var(--primary-color); }
+
+        .if-metric-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        /* Rhythm Bars */
+        .if-rhythm-viz { display: flex; flex-direction: column; gap: 12px; }
+        .if-rhythm-bar-container { display: flex; align-items: center; gap: 12px; }
+        .if-rhythm-label { font-size: 11px; color: var(--text-gray); width: 50px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .if-rhythm-track { flex: 1; height: 8px; background: var(--border-color); border-radius: 4px; position: relative; }
+        .if-rhythm-marker {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            transition: left 0.4s ease;
+        }
+        .if-rhythm-marker.knee { background: #00D4FF; box-shadow: 0 0 12px rgba(0, 212, 255, 0.6); }
+        .if-rhythm-marker.elbow { background: var(--primary-color); box-shadow: 0 0 12px rgba(255, 107, 122, 0.6); }
+        .if-rhythm-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+        .if-rhythm-status.aligned { color: var(--success-color); }
+        .if-rhythm-status.offset { color: var(--warning-color); }
+        .if-rhythm-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        /* Arc Meter */
+        .if-arc-container { display: flex; flex-direction: column; align-items: center; }
+        .if-arc-svg { width: 100%; max-width: 140px; }
+        .if-arc-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            margin-top: 8px;
+        }
+        .if-arc-unit { font-size: 14px; color: var(--text-muted); font-weight: 400; }
+
+        /* Foot Stance */
+        .if-stance-viz { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .if-stance-track {
+            width: 100%;
+            height: 36px;
+            background: var(--border-color);
+            border-radius: 8px;
+            position: relative;
+        }
+        .if-stance-zone {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: rgba(61, 214, 140, 0.15);
+            border-left: 2px dashed var(--success-color);
+            border-right: 2px dashed var(--success-color);
+        }
+        .if-stance-foot {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 22px;
+            border-radius: 5px;
+            background: var(--primary-color);
+            box-shadow: 0 0 8px rgba(255, 107, 122, 0.5);
+        }
+        .if-stance-label { font-size: 12px; color: var(--text-gray); }
+
+        /* Release Height */
+        .if-release-viz { display: flex; align-items: flex-end; gap: 16px; height: 100px; }
+        .if-release-bar {
+            flex: 1;
+            height: 100%;
+            background: var(--border-color);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .if-release-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #00D4FF 0%, rgba(0, 212, 255, 0.3) 100%);
+            border-radius: 0 0 8px 8px;
+            transition: height 0.5s ease;
+        }
+        .if-release-target {
+            position: absolute;
+            left: 0;
+            right: 0;
+            background: rgba(61, 214, 140, 0.2);
+            border-top: 2px dashed var(--success-color);
+            border-bottom: 2px dashed var(--success-color);
+        }
+        .if-release-info { display: flex; flex-direction: column; gap: 2px; }
+        .if-release-value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #00D4FF; }
+        .if-release-target-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Radar Chart Container */
+        .if-radar-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .if-radar-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-gray);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .if-radar-chart {
+            flex: 1;
+            min-height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .if-radar-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 16px;
+        }
+        .if-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-gray); }
+        .if-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .if-legend-dot.player { background: var(--primary-color); }
+        .if-legend-dot.ideal { background: var(--success-color); opacity: 0.5; }
+
+        /* Bottom Sections */
+        .if-bottom {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 32px;
+        }
+
+        .if-section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .if-section-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .if-tips-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .if-tip-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-gray);
+            transition: all 0.2s ease;
+        }
+        .if-tip-item:hover { border-color: #00D4FF; }
+        .if-tip-bullet {
+            width: 6px;
+            height: 6px;
+            background: #00D4FF;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .if-workon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .if-workon-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .if-workon-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--warning-color) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .if-workon-card:hover { border-color: var(--primary-color); transform: translateY(-4px); }
+        .if-workon-card:hover::before { opacity: 1; }
+
+        .if-workon-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .if-workon-desc { font-size: 13px; color: var(--text-gray); line-height: 1.5; margin-bottom: 14px; }
+        .if-workon-drill {
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .if-workon-drill-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #00D4FF; margin-bottom: 4px; }
+        .if-workon-drill-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .if-workon-drill-tip { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+        @media (max-width: 900px) {
+            .if-main { grid-template-columns: 1fr; }
+            .if-metrics-grid { grid-template-columns: 1fr; }
+            .if-bottom { grid-template-columns: 1fr; }
+            .if-workon-grid { grid-template-columns: 1fr; }
+            .if-header { flex-direction: column; gap: 20px; }
+            .if-consistency-box { text-align: left; }
+            .if-title { font-size: 36px; }
+        }
     </style>
     <!-- MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -2228,106 +2567,222 @@
                     </div>
                 </div>
 
-                <!-- Ideal Form Results (original) -->
-                <div id="idealFormResults">
-                    <h2 style="font-family: 'Forum', serif; text-align: center;">Analysis Results</h2>
-                    <div id="results" style="display: none;">
-                    <div class="score-section">
-                        <h3 id="overallScore">Overall Score: --</h3>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="comparisonChart"></canvas>
-                    </div>
-                    <!-- Coordinate Table (Hidden) -->
-                    <div id="coordinateTableContainer" style="display: none; margin-top: 30px; overflow-x: auto; max-height: 400px; overflow-y: auto;">
-                        <table id="coordinateTable" style="width: 100%; border-collapse: collapse; font-size: 12px; background: white; border-radius: 8px; overflow: hidden;">
-                            <thead>
-                                <tr style="background: #f3f4f6; position: sticky; top: 0; z-index: 10;">
-                                    <th style="padding: 10px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Time (s)</th>
-                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Benchmark<br>Wrist (x,y,z)</th>
-                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Benchmark<br>Elbow (x,y,z)</th>
-                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Benchmark<br>Shoulder (x,y,z)</th>
-                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Your Shot<br>Wrist (x,y,z)</th>
-                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Your Shot<br>Elbow (x,y,z)</th>
-                                    <th style="padding: 10px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Your Shot<br>Shoulder (x,y,z)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="coordinateTableBody">
-                                <!-- Table rows will be populated by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- Detailed Feedback Section -->
-                    <div id="detailedFeedback" class="detailed-feedback-section" style="display: none;">
-                        <h3 id="playerComparisonTitle">Shot Analysis</h3>
-                        
-                        <!-- Player Summary -->
-                        <div id="playerSummarySection" class="player-summary-section" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid var(--primary-color);">
-                            <h4 style="margin-top: 0; color: #333; font-family: 'Bebas Neue', sans-serif;">What Makes This Player's Shot Unique</h4>
-                            <div id="playerSummaryText" style="color: #555; line-height: 1.8; white-space: pre-line; font-size: 15px;"></div>
+                <!-- Ideal Form Results (hardcoded UI) -->
+                <div id="idealFormResults" class="ideal-form-results">
+                    <!-- Header -->
+                    <header class="if-header">
+                        <div>
+                            <h1 class="if-title">IDEAL <span>SHOT</span></h1>
+                            <div class="if-player-info">
+                                <span><span class="if-label">Player</span>Marcus Chen</span>
+                                <span><span class="if-label">Height</span>6'2"</span>
+                                <span><span class="if-label">Hand</span>Right</span>
+                            </div>
                         </div>
-                        
-                        <!-- Summary -->
-                        <div class="summary-section">
-                            <h4>Summary</h4>
-                            <p id="shotSummary" class="summary-text"></p>
+                        <div class="if-consistency-box">
+                            <div class="if-consistency-label">Session Consistency</div>
+                            <div class="if-consistency-value" id="ifConsistencyValue">78</div>
+                            <div class="if-consistency-toggle">
+                                <button class="if-toggle-btn active" data-period="session">Session</button>
+                                <button class="if-toggle-btn" data-period="week">Week</button>
+                                <button class="if-toggle-btn" data-period="month">Month</button>
+                                <button class="if-toggle-btn" data-period="career">Career</button>
+                            </div>
                         </div>
-                        
-                        <!-- Strengths -->
-                        <div class="strengths-section">
-                            <h4>Strengths</h4>
-                            <div id="strengthsList" class="feedback-list"></div>
+                    </header>
+
+                    <!-- Main Content -->
+                    <div class="if-main">
+                        <!-- Left: Individual Metrics -->
+                        <div class="if-metrics-grid">
+                            <!-- Rhythm -->
+                            <div class="if-metric-card">
+                                <div class="if-metric-title">Rhythm</div>
+                                <div class="if-rhythm-viz">
+                                    <div class="if-rhythm-bar-container">
+                                        <span class="if-rhythm-label">Knee</span>
+                                        <div class="if-rhythm-track">
+                                            <div class="if-rhythm-marker knee" style="left: 52%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="if-rhythm-bar-container">
+                                        <span class="if-rhythm-label">Elbow</span>
+                                        <div class="if-rhythm-track">
+                                            <div class="if-rhythm-marker elbow" style="left: 60%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="if-rhythm-status offset">
+                                        <span class="if-rhythm-dot"></span>
+                                        0.06s offset
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Foot Alignment -->
+                            <div class="if-metric-card">
+                                <div class="if-metric-title">Foot Alignment</div>
+                                <div class="if-arc-container">
+                                    <svg class="if-arc-svg" viewBox="0 0 100 60">
+                                        <path d="M 10 55 A 40 40 0 0 1 90 55" fill="none" stroke="#2A2A30" stroke-width="8" stroke-linecap="round"/>
+                                        <path d="M 45 17.5 A 40 40 0 0 1 55 17.5" fill="none" stroke="rgba(61, 214, 140, 0.3)" stroke-width="10" stroke-linecap="round"/>
+                                        <g transform="rotate(-74, 50, 55)">
+                                            <line x1="50" y1="55" x2="50" y2="20" stroke="#FFD93D" stroke-width="3" stroke-linecap="round"/>
+                                            <circle cx="50" cy="55" r="6" fill="#FFD93D"/>
+                                        </g>
+                                        <text x="8" y="58" fill="#5A5A64" font-size="8">-45°</text>
+                                        <text x="46" y="12" fill="#5A5A64" font-size="8">0°</text>
+                                        <text x="82" y="58" fill="#5A5A64" font-size="8">+45°</text>
+                                    </svg>
+                                    <div class="if-arc-value" style="color: #FFD93D;">
+                                        +8<span class="if-arc-unit">°</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Foot Stance -->
+                            <div class="if-metric-card">
+                                <div class="if-metric-title">Foot Stance</div>
+                                <div class="if-stance-viz">
+                                    <div class="if-stance-track">
+                                        <div class="if-stance-zone" style="left: 23%; width: 54%;"></div>
+                                        <div class="if-stance-foot" style="left: 36%"></div>
+                                        <div class="if-stance-foot" style="left: 64%"></div>
+                                    </div>
+                                    <span class="if-stance-label" style="color: var(--success-color);">17" width (optimal)</span>
+                                </div>
+                            </div>
+
+                            <!-- Release Height -->
+                            <div class="if-metric-card">
+                                <div class="if-metric-title">Release Height</div>
+                                <div class="if-release-viz">
+                                    <div class="if-release-bar">
+                                        <div class="if-release-fill" style="height: 80%"></div>
+                                        <div class="if-release-target" style="bottom: 77%; height: 7%;"></div>
+                                    </div>
+                                    <div class="if-release-info">
+                                        <span class="if-release-value">96"</span>
+                                        <span class="if-release-target-text">Target: 92-100"</span>
+                                        <span class="if-release-target-text" style="color: var(--success-color);">In range</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Weaknesses -->
-                        <div class="weaknesses-section">
-                            <h4>Areas for Improvement</h4>
-                            <div id="weaknessesList" class="feedback-list"></div>
+                        <!-- Right: Radar Chart -->
+                        <div class="if-radar-container">
+                            <div class="if-radar-title">Mechanics Breakdown</div>
+                            <div class="if-radar-chart">
+                                <svg viewBox="0 0 300 280" style="width: 100%; max-width: 320px;">
+                                    <!-- Grid circles -->
+                                    <circle cx="150" cy="130" r="100" fill="none" stroke="#2A2A30" stroke-width="1"/>
+                                    <circle cx="150" cy="130" r="75" fill="none" stroke="#2A2A30" stroke-width="1"/>
+                                    <circle cx="150" cy="130" r="50" fill="none" stroke="#2A2A30" stroke-width="1"/>
+                                    <circle cx="150" cy="130" r="25" fill="none" stroke="#2A2A30" stroke-width="1"/>
+
+                                    <!-- Spokes -->
+                                    <line x1="150" y1="130" x2="150" y2="30" stroke="#2A2A30" stroke-width="1"/>
+                                    <line x1="150" y1="130" x2="245" y2="80" stroke="#2A2A30" stroke-width="1"/>
+                                    <line x1="150" y1="130" x2="220" y2="200" stroke="#2A2A30" stroke-width="1"/>
+                                    <line x1="150" y1="130" x2="80" y2="200" stroke="#2A2A30" stroke-width="1"/>
+                                    <line x1="150" y1="130" x2="55" y2="80" stroke="#2A2A30" stroke-width="1"/>
+
+                                    <!-- Ideal range (dashed) -->
+                                    <polygon points="150,45 230,75 205,190 95,190 70,75" fill="rgba(61, 214, 140, 0.15)" stroke="#3DD68C" stroke-width="1" stroke-dasharray="4,4"/>
+
+                                    <!-- Player polygon -->
+                                    <polygon points="150,48 222,82 195,185 102,180 72,78" fill="rgba(255, 107, 122, 0.3)" stroke="#FF6B7A" stroke-width="2"/>
+
+                                    <!-- Labels -->
+                                    <text x="150" y="18" text-anchor="middle" fill="#8B8B96" font-size="11">Elbow Flare</text>
+                                    <text x="258" y="78" text-anchor="start" fill="#8B8B96" font-size="11">Trunk Lean</text>
+                                    <text x="228" y="218" text-anchor="start" fill="#8B8B96" font-size="11">Knee Bend</text>
+                                    <text x="72" y="218" text-anchor="end" fill="#8B8B96" font-size="11">Elbow Ext.</text>
+                                    <text x="42" y="78" text-anchor="end" fill="#8B8B96" font-size="11">Wrist Snap</text>
+
+                                    <!-- Score labels on spokes -->
+                                    <text x="150" y="55" text-anchor="middle" fill="#5A5A64" font-size="9">82</text>
+                                    <text x="218" y="88" text-anchor="start" fill="#5A5A64" font-size="9">68</text>
+                                    <text x="195" y="190" text-anchor="start" fill="#5A5A64" font-size="9">71</text>
+                                    <text x="105" y="186" text-anchor="end" fill="#5A5A64" font-size="9">88</text>
+                                    <text x="78" y="84" text-anchor="end" fill="#5A5A64" font-size="9">79</text>
+                                </svg>
+                            </div>
+                            <div class="if-radar-legend">
+                                <div class="if-legend-item">
+                                    <span class="if-legend-dot player"></span>
+                                    Your Form
+                                </div>
+                                <div class="if-legend-item">
+                                    <span class="if-legend-dot ideal"></span>
+                                    Ideal Range
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Section -->
+                    <div class="if-bottom">
+                        <!-- Quick Tips -->
+                        <div>
+                            <h2 class="if-section-title">Quick Tips</h2>
+                            <ul class="if-tips-list">
+                                <li class="if-tip-item">
+                                    <span class="if-tip-bullet"></span>
+                                    Focus on syncing your knee drive with elbow lift for smoother rhythm
+                                </li>
+                                <li class="if-tip-item">
+                                    <span class="if-tip-bullet"></span>
+                                    Square your feet to the basket before each shot
+                                </li>
+                                <li class="if-tip-item">
+                                    <span class="if-tip-bullet"></span>
+                                    Your release point is solid - maintain that consistency
+                                </li>
+                            </ul>
                         </div>
 
-                        <!-- Metrics -->
-                        <div class="metrics-section">
-                            <h4>Detailed Metrics</h4>
-                            <div id="metricsList" class="metrics-grid"></div>
+                        <!-- Work On -->
+                        <div>
+                            <h2 class="if-section-title">Work On</h2>
+                            <div class="if-workon-grid">
+                                <div class="if-workon-card">
+                                    <div class="if-workon-title">Trunk Stability</div>
+                                    <div class="if-workon-desc">Your torso shows slight forward lean at release, reducing shot consistency.</div>
+                                    <div class="if-workon-drill">
+                                        <div class="if-workon-drill-label">Recommended Drill</div>
+                                        <div class="if-workon-drill-name">Wall Alignment Shots</div>
+                                        <div class="if-workon-drill-tip">Stand 1ft from wall, shoot without touching. Builds upright muscle memory.</div>
+                                    </div>
+                                </div>
+                                <div class="if-workon-card">
+                                    <div class="if-workon-title">Knee-Elbow Sync</div>
+                                    <div class="if-workon-desc">Your elbow extends 0.06s after knee peak, creating timing inconsistency.</div>
+                                    <div class="if-workon-drill">
+                                        <div class="if-workon-drill-label">Recommended Drill</div>
+                                        <div class="if-workon-drill-name">Rhythm Counting</div>
+                                        <div class="if-workon-drill-tip">Count "1-2-shoot" aloud. Knee bends on 1, elbow rises on 2, release on shoot.</div>
+                                    </div>
+                                </div>
+                                <div class="if-workon-card">
+                                    <div class="if-workon-title">Foot Alignment</div>
+                                    <div class="if-workon-desc">Feet are angled 8° off center, affecting accuracy on longer shots.</div>
+                                    <div class="if-workon-drill">
+                                        <div class="if-workon-drill-label">Recommended Drill</div>
+                                        <div class="if-workon-drill-name">Tape Line Drill</div>
+                                        <div class="if-workon-drill-tip">Place tape on floor pointing at rim. Align feet parallel before each shot.</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <!-- Landmark Coordinates Table -->
-                    <div id="landmarkTableSection" class="landmark-table-section" style="display: none;">
-                        <h4>🔍 Interpolated Landmark Coordinates</h4>
-                        <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
-                            All 33 MediaPipe landmarks with their x, y, z coordinates after linear interpolation.
-                            Missing landmarks are filled in using linear interpolation between last seen and first reseen positions.
-                        </p>
-                        <div id="landmarkTableContainer" style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
-                            <table id="landmarkTable" class="landmark-table">
-                                <thead>
-                                    <tr>
-                                        <th>Landmark</th>
-                                        <th>Name</th>
-                                        <th>Weight</th>
-                                        <th>Avg X</th>
-                                        <th>Avg Y</th>
-                                        <th>Avg Z</th>
-                                        <th>Frames</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="landmarkTableBody">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Old Feedback Section (hidden by default) -->
-                    <div class="feedback-section" style="display: none;">
-                        <h3>Feedback & Recommendations</h3>
-                        <div id="feedbackList"></div>
-                    </div>
-                    
-                    <div class="controls" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 30px;">
-                        <button id="tryOtherAnalysis" class="btn btn-secondary">Try Other Analysis</button>
-                        <button id="newComparison" class="btn btn-primary">New Comparison</button>
-                    </div>
+
+                    <!-- Controls -->
+                    <div class="controls" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 40px; align-items: center;">
+                        <button id="ifTryOther" class="btn btn-primary" style="padding: 18px 36px; font-size: 17px; background: linear-gradient(135deg, var(--primary-color) 0%, #ff8a9b 100%); box-shadow: 0 4px 15px rgba(255, 107, 122, 0.4);">
+                            Compare to Pro Players
+                        </button>
+                        <button id="ifNewAnalysis" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">New Analysis</button>
                     </div>
                 </div>
             </section>
@@ -9617,24 +10072,18 @@
                             document.getElementById('step2').style.display = 'none';
                             document.getElementById('step3').style.display = 'block';
                             document.getElementById('playerMatchResults').classList.add('active');
-                            document.getElementById('idealFormResults').style.display = 'none';
+                            document.getElementById('idealFormResults').classList.remove('active');
                         }, 1000); // Simulate brief loading
                     } else {
-                        // Ideal Form - run actual analysis
-                        document.getElementById('playerMatchResults').classList.remove('active');
-                        document.getElementById('idealFormResults').style.display = 'block';
-
-                        if (window.recordedUserPoseData && window.recordedUserPoseData.length > 0) {
-                            console.log('Running analysis on recorded shot data...');
-                            if (typeof compareShots === 'function') {
-                                compareShots();
-                            }
-                        } else {
-                            console.log('Processing uploaded video...');
-                            if (typeof processUploadedUserVideo === 'function') {
-                                processUploadedUserVideo();
-                            }
-                        }
+                        // Ideal Form - show hardcoded UI for now
+                        console.log('Showing Ideal Form results...');
+                        setTimeout(() => {
+                            if (runningOverlay) runningOverlay.style.display = 'none';
+                            document.getElementById('step2').style.display = 'none';
+                            document.getElementById('step3').style.display = 'block';
+                            document.getElementById('playerMatchResults').classList.remove('active');
+                            document.getElementById('idealFormResults').classList.add('active');
+                        }, 1000); // Simulate brief loading
                     }
                 });
             });
@@ -9751,6 +10200,39 @@
             pmNewComparison.addEventListener('click', function() {
                 document.getElementById('step3').style.display = 'none';
                 document.getElementById('playerMatchResults').classList.remove('active');
+                document.getElementById('step2').style.display = 'block';
+                goBackToRecord();
+            });
+        }
+
+        // ========== Ideal Form UI Handlers ==========
+
+        // Consistency toggle
+        const ifConsistencyData = { session: 78, week: 75, month: 74, career: 72 };
+        document.querySelectorAll('.if-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.if-toggle-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const period = this.dataset.period;
+                document.getElementById('ifConsistencyValue').textContent = ifConsistencyData[period];
+            });
+        });
+
+        // IF Try Other (go to Player Match)
+        const ifTryOther = document.getElementById('ifTryOther');
+        if (ifTryOther) {
+            ifTryOther.addEventListener('click', function() {
+                document.getElementById('idealFormResults').classList.remove('active');
+                document.getElementById('playerMatchResults').classList.add('active');
+            });
+        }
+
+        // IF New Analysis button
+        const ifNewAnalysis = document.getElementById('ifNewAnalysis');
+        if (ifNewAnalysis) {
+            ifNewAnalysis.addEventListener('click', function() {
+                document.getElementById('step3').style.display = 'none';
+                document.getElementById('idealFormResults').classList.remove('active');
                 document.getElementById('step2').style.display = 'block';
                 goBackToRecord();
             });
