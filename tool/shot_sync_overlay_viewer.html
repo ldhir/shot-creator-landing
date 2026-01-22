@@ -126,6 +126,9 @@
             background: #000;
             border-radius: 15px;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #videoPlayer {
@@ -134,17 +137,19 @@
             display: block;
             position: relative;
             z-index: 1;
+            object-fit: contain; /* Preserve aspect ratio, no distortion */
+            object-position: center;
         }
 
         #overlayCanvas {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
             pointer-events: none;
             z-index: 2;
             background: transparent;
+            /* Canvas will be sized to match video dimensions exactly */
+            /* Don't use 100% width/height as it can cause distortion */
         }
 
         .viewer-3d-wrapper {
@@ -186,6 +191,30 @@
         
         #loop3DSection .video-wrapper {
             min-height: 800px;
+            position: relative;
+        }
+        
+        #loop3DSection .video-wrapper {
+            position: relative;
+        }
+        
+        #loop3DSection .video-wrapper .background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.4;
+            z-index: 1;
+            pointer-events: none;
+            border-radius: 10px;
+        }
+        
+        #loop3DSection .video-wrapper canvas {
+            position: relative;
+            z-index: 2;
+            background: transparent;
         }
         
         #nbaLoop3DSection .video-wrapper {
@@ -795,14 +824,37 @@
                     💡 VideoPose3D selected - Buffer will fill as video plays (needs 243 frames)
                 </div>
             </div>
-            <label for="videoUpload" class="upload-label">
-                📹 Upload Video
-            </label>
-            <input type="file" id="videoUpload" accept="video/*">
+            <div style="display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
+                <label for="videoUpload" class="upload-label" style="flex: 1; min-width: 200px; cursor: pointer;">
+                    📹 Upload Video
+                </label>
+                <button id="startWebcamBtn" class="btn" style="flex: 1; min-width: 200px; padding: 12px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1em;">
+                    📷 Use Webcam
+                </button>
+            </div>
+            <input type="file" id="videoUpload" accept="video/*" style="display: none;">
             <label for="imageUpload" class="upload-label" style="margin-top: 15px;">
                 🖼️ Upload Image (for 3D pose visualization)
             </label>
             <input type="file" id="imageUpload" accept="image/*">
+            
+            <!-- Webcam Preview -->
+            <div id="webcamSection" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: #667eea; margin: 0; font-size: 1.2em;">📷 Webcam Live Feed</h3>
+                    <button id="stopWebcamBtn" class="btn" style="padding: 8px 15px; background: #f87171; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        Stop Webcam
+                    </button>
+                </div>
+                <div style="position: relative; display: inline-block; width: 100%; max-width: 640px; margin: 0 auto;">
+                    <video id="webcamVideo" autoplay playsinline style="width: 100%; border-radius: 10px; background: #000; display: none;"></video>
+                    <canvas id="webcamCanvas" style="width: 100%; border-radius: 10px; background: #000; display: block; transform: scaleX(-1);"></canvas>
+                </div>
+                <div id="webcamStatus" style="margin-top: 15px; padding: 10px; background: white; border-radius: 8px; color: #667eea; font-weight: 500; text-align: center;">
+                    🎯 Ready - Perform your shot when ready!
+                </div>
+            </div>
+            
             <div id="uploadStatus" class="status"></div>
             <div id="errorStatus" class="status" style="display: none;"></div>
                 </div>
@@ -930,6 +982,99 @@
                     </div>
                 </div>
                 
+                <!-- Distance Measurements -->
+                <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <h4 style="color: #667eea; margin: 0 0 15px 0; font-size: 1.1em;">📏 Distance Measurements</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div>
+                            <div style="font-weight: bold; color: #333; margin-bottom: 5px; font-size: 0.95em;">Ankle Distance</div>
+                            <div style="font-size: 1.8em; font-weight: bold; color: #667eea;" id="ankleDistance">-- in</div>
+                            <div style="font-size: 0.85em; color: #666; margin-top: 3px;">Distance between ankles</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; color: #333; margin-bottom: 5px; font-size: 0.95em;">Eye to Heel</div>
+                            <div style="font-size: 1.8em; font-weight: bold; color: #667eea;" id="eyeToHeelDistance">-- in</div>
+                            <div style="font-size: 0.85em; color: #666; margin-top: 3px;">Vertical distance from eye to heel</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Basketball Shot Analysis Metrics -->
+                <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 1.3em;">🏀 Basketball Shot Analysis</h3>
+                    
+                    <!-- Upper Body Metrics -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #495057; margin: 0 0 12px 0; font-size: 1.1em; border-bottom: 2px solid #667eea; padding-bottom: 5px;">Upper Body & Release</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Elbow Flare</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="elbowFlare">--°</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Target: ~10°</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Trunk Lean</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="trunkLean">--°</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Target: ~10°</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Elbow Extension</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="elbowExtension">--°</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Max extension angle</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Release Height</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="releaseHeight">-- in</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Wrist height at release</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Wrist Snap</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="wristSnap">--</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Follow through angle</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lower Body Metrics -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #495057; margin: 0 0 12px 0; font-size: 1.1em; border-bottom: 2px solid #667eea; padding-bottom: 5px;">Lower Body & Alignment</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Knee Bend</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="kneeBend">--°</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Right knee angle</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Foot Alignment</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="footAlignment">--</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Dominant foot forward</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Foot Stance</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="footStance">--</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Within shoulders</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Rhythm & Consistency -->
+                    <div>
+                        <h4 style="color: #495057; margin: 0 0 12px 0; font-size: 1.1em; border-bottom: 2px solid #667eea; padding-bottom: 5px;">Rhythm & Consistency</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Rhythm</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="rhythm">--</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Knee & elbow sync</div>
+                            </div>
+                            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 0.9em;">Consistency Score</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #333;" id="consistencyScore">--%</div>
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">Shot-to-shot similarity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Similarity Score Display -->
                 <div id="similarityScorePanel" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
                     <h3 style="color: white; margin: 0 0 10px 0; font-size: 1.3em;">🎯 Similarity Score</h3>
@@ -949,6 +1094,27 @@
                             <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.3);">
                                 <div style="color: rgba(255,255,255,0.9); font-size: 0.85em;">
                                     Frames with non-identical angles: <span id="nonIdenticalFramesCount" style="font-weight: bold; color: #ffd700;">--</span> / <span id="totalFramesCount" style="font-weight: bold;">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Improvement Feedback Panel (shown after shot completes) -->
+                    <div id="improvementFeedbackPanel" style="display: none; margin-top: 20px; padding: 20px; background: rgba(255,255,255,0.15); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                        <h3 style="color: white; margin: 0 0 15px 0; font-size: 1.3em; display: flex; align-items: center; gap: 10px;">
+                            💡 Shot Analysis Feedback
+                        </h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h4 style="color: #4ade80; margin: 0 0 10px 0; font-size: 1.1em;">✅ Strengths</h4>
+                                <div id="strengthsList" style="color: rgba(255,255,255,0.95); font-size: 0.95em; line-height: 1.8;">
+                                    <!-- Strengths will be populated here -->
+                                </div>
+                            </div>
+                            <div>
+                                <h4 style="color: #fbbf24; margin: 0 0 10px 0; font-size: 1.1em;">📈 Areas for Improvement</h4>
+                                <div id="improvementsList" style="color: rgba(255,255,255,0.95); font-size: 0.95em; line-height: 1.8;">
+                                    <!-- Improvements will be populated here -->
                                 </div>
                             </div>
                         </div>
@@ -1528,7 +1694,8 @@
                 ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
                 // Convert to base64 for sending to backend
-                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+                // Use maximum quality for processing
+                const frameData = canvas.toDataURL('image/jpeg', 1.0);
 
                 // Determine which API endpoint to use
                 const poseMethod = document.getElementById('poseMethod').value;
@@ -1817,18 +1984,67 @@
                     const videoURL = URL.createObjectURL(file);
                     tabVideoElement.src = videoURL;
                     
+                    // Store video reference on tab for later use
+                    activeTab.uploadedVideo = tabVideoElement;
+                    activeTab.videoLoaded = false;
+                    
                     // Update status
                     if (tabUploadStatus) {
-                        tabUploadStatus.textContent = `✓ Loaded: ${file.name}`;
-                        tabUploadStatus.className = 'status success';
+                        tabUploadStatus.textContent = `⏳ Loading ${file.name}...`;
+                        tabUploadStatus.className = 'status';
+                        tabUploadStatus.style.display = 'block';
                 }
                 
                     // Set up handlers
                     tabVideoElement.onloadedmetadata = () => {
+                        // Mark video as loaded
+                        activeTab.videoLoaded = true;
+                        
+                        // Preserve original video dimensions and aspect ratio
+                        const videoWidth = tabVideoElement.videoWidth;
+                        const videoHeight = tabVideoElement.videoHeight;
+                        const aspectRatio = videoWidth / videoHeight;
+                        
+                        // Ensure video element maintains aspect ratio without distortion
+                        tabVideoElement.style.width = '100%';
+                        tabVideoElement.style.height = 'auto';
+                        tabVideoElement.style.objectFit = 'contain'; // Preserve aspect ratio, no cropping
+                        tabVideoElement.style.objectPosition = 'center';
+                        tabVideoElement.style.maxWidth = '100%';
+                        tabVideoElement.style.maxHeight = '100%';
+                        
+                        // Set canvas to exact video dimensions and match its display size
                         if (tabCanvas) {
-                            tabCanvas.width = tabVideoElement.videoWidth;
-                            tabCanvas.height = tabVideoElement.videoHeight;
+                            // Set canvas internal resolution to video's native resolution (for quality)
+                            tabCanvas.width = videoWidth;
+                            tabCanvas.height = videoHeight;
+                            
+                            // Match canvas display size to video's actual displayed size
+                            // Use a resize observer or wait for layout
+                            const updateCanvasSize = () => {
+                                const videoRect = tabVideoElement.getBoundingClientRect();
+                                if (videoRect.width > 0 && videoRect.height > 0) {
+                                    // Match canvas display size to video's displayed size
+                                    tabCanvas.style.width = videoRect.width + 'px';
+                                    tabCanvas.style.height = videoRect.height + 'px';
+                                    tabCanvas.style.top = '0';
+                                    tabCanvas.style.left = '0';
+                                    tabCanvas.style.objectFit = 'contain';
+                                }
+                            };
+                            
+                            // Update immediately and on resize
+                            setTimeout(updateCanvasSize, 50);
+                            tabVideoElement.addEventListener('resize', updateCanvasSize);
+                            
+                            // Also update when video is played/paused (browser may resize)
+                            tabVideoElement.addEventListener('play', updateCanvasSize);
+                            tabVideoElement.addEventListener('pause', updateCanvasSize);
                         }
+                        
+                        // Ensure video element maintains original quality
+                        tabVideoElement.setAttribute('playsinline', '');
+                        tabVideoElement.setAttribute('preload', 'auto');
                         if (tabVideoTimelineSlider && tabVideoElement.duration) {
                             tabVideoTimelineSlider.max = 100;
                             if (tabTotalTimeDisplay) {
@@ -1838,6 +2054,16 @@
                         if (tabCanvas3d) {
                             init3DViewer(tabCanvas3d);
                     }
+                        
+                        // Update status to show video is ready
+                        if (tabUploadStatus) {
+                            tabUploadStatus.textContent = `✓ Loaded: ${file.name} (Ready to generate loop)`;
+                            tabUploadStatus.className = 'status success';
+                        }
+                };
+                
+                tabVideoElement.oncanplay = () => {
+                    activeTab.videoLoaded = true;
                 };
                 
                     tabVideoElement.onerror = () => {
@@ -1903,11 +2129,554 @@
             });
         });
 
+        // ====================== WEBCAM FUNCTIONALITY ======================
+        let webcamStream = null;
+        let webcamPose = null;
+        let webcamAnimationFrame = null;
+        let webcamFrames = [];
+        let webcamShotState = {
+            current: "neutral",
+            previous: "neutral",
+            shotStartFrame: -1,
+            shotEndFrame: -1,
+            isRecording: false,
+            frames: []
+        };
+
+        // Initialize MediaPipe Pose for webcam
+        function initWebcamPose() {
+            if (webcamPose) return webcamPose;
+            
+            const poseOptions = {
+                modelComplexity: 2,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                smoothSegmentation: false,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.7
+            };
+            
+            webcamPose = new Pose({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                }
+            });
+            
+            webcamPose.setOptions(poseOptions);
+            
+            webcamPose.onResults((results) => {
+                const video = document.getElementById('webcamVideo');
+                const canvas = document.getElementById('webcamCanvas');
+                const status = document.getElementById('webcamStatus');
+                
+                if (!video || !canvas) return;
+                
+                const ctx = canvas.getContext('2d');
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw video frame (normal, will be mirrored by CSS)
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert MediaPipe landmarks to our format
+                const landmarks = results.poseLandmarks ? results.poseLandmarks.map(lm => ({
+                    x: lm.x,
+                    y: lm.y,
+                    z: lm.z || 0,
+                    visibility: lm.visibility || 1.0
+                })) : null;
+                
+                // Detect shot stage (only if landmarks exist)
+                let stage = "neutral";
+                if (landmarks) {
+                    stage = detectShotStage(landmarks, canvas.width, canvas.height);
+                }
+                
+                // Draw pose overlay if landmarks are detected
+                if (results.poseLandmarks) {
+                    // Get stage color for overlay
+                    const stageColor = {
+                        "neutral": '#888888',
+                        "pre_shot": '#0088ff',
+                        "follow_through": '#00ff00'
+                    }[stage] || '#00FF00';
+                    
+                    // Draw pose connections using MediaPipe drawing utilities
+                    try {
+                        if (typeof drawConnections !== 'undefined' && typeof POSE_CONNECTIONS !== 'undefined') {
+                            drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+                                color: stageColor,
+                                lineWidth: 3
+                            });
+                        } else if (typeof window.drawConnections !== 'undefined' && typeof window.POSE_CONNECTIONS !== 'undefined') {
+                            window.drawConnections(ctx, results.poseLandmarks, window.POSE_CONNECTIONS, {
+                                color: stageColor,
+                                lineWidth: 3
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('drawConnections not available:', e);
+                    }
+                    
+                    // Draw pose landmarks
+                    try {
+                        if (typeof drawLandmarks !== 'undefined') {
+                            drawLandmarks(ctx, results.poseLandmarks, {
+                                color: stageColor,
+                                lineWidth: 1,
+                                radius: 4
+                            });
+                        } else if (typeof window.drawLandmarks !== 'undefined') {
+                            window.drawLandmarks(ctx, results.poseLandmarks, {
+                                color: stageColor,
+                                lineWidth: 1,
+                                radius: 4
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('drawLandmarks not available:', e);
+                    }
+                    
+                    // Fallback: Draw simple circles and lines if MediaPipe drawing utils aren't available
+                    if (typeof drawConnections === 'undefined' && typeof window.drawConnections === 'undefined') {
+                        // Draw landmarks as circles
+                        results.poseLandmarks.forEach((lm, index) => {
+                            if (lm.visibility > 0.5) {
+                                const x = lm.x * canvas.width;
+                                const y = lm.y * canvas.height;
+                                ctx.beginPath();
+                                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                                ctx.fillStyle = stageColor;
+                                ctx.fill();
+                                ctx.strokeStyle = '#FFFFFF';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                            }
+                        });
+                        
+                        // Draw basic connections (key joints)
+                        const keyConnections = [
+                            [11, 12], // Left shoulder to right shoulder
+                            [11, 13], [13, 15], // Left arm
+                            [12, 14], [14, 16], // Right arm
+                            [11, 23], [12, 24], // Shoulders to hips
+                            [23, 24], // Hips
+                            [23, 25], [25, 27], // Left leg
+                            [24, 26], [26, 28]  // Right leg
+                        ];
+                        
+                        keyConnections.forEach(([start, end]) => {
+                            if (start < results.poseLandmarks.length && end < results.poseLandmarks.length) {
+                                const startLm = results.poseLandmarks[start];
+                                const endLm = results.poseLandmarks[end];
+                                if (startLm.visibility > 0.5 && endLm.visibility > 0.5) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(startLm.x * canvas.width, startLm.y * canvas.height);
+                                    ctx.lineTo(endLm.x * canvas.width, endLm.y * canvas.height);
+                                    ctx.strokeStyle = stageColor;
+                                    ctx.lineWidth = 3;
+                                    ctx.stroke();
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                // Update shot state
+                webcamShotState.previous = webcamShotState.current;
+                webcamShotState.current = stage;
+                
+                // Detect shot sequence: neutral → pre_shot → follow_through → pre_shot or neutral
+                if (!webcamShotState.isRecording) {
+                    // Start recording when we see pre_shot after neutral
+                    if (webcamShotState.previous === "neutral" && webcamShotState.current === "pre_shot") {
+                        webcamShotState.isRecording = true;
+                        webcamShotState.shotStartFrame = 0;
+                        webcamFrames = []; // Reset frames array
+                        if (status) {
+                            status.textContent = "🎬 Recording shot...";
+                            status.style.color = "#f87171";
+                        }
+                    }
+                }
+                
+                // If recording, store the frame with its stage
+                if (webcamShotState.isRecording) {
+                    webcamFrames.push({
+                        canvasData: canvas.toDataURL('image/jpeg', 1.0),
+                        stage: stage,
+                        timestamp: Date.now()
+                    });
+                    
+                    // Check for shot completion: follow_through → pre_shot or neutral
+                    if (webcamShotState.previous === "follow_through" && 
+                        (webcamShotState.current === "pre_shot" || webcamShotState.current === "neutral")) {
+                        // Shot complete!
+                        webcamShotState.isRecording = false;
+                        webcamShotState.shotEndFrame = webcamFrames.length;
+                        
+                        if (status) {
+                            status.textContent = "✓ Shot detected! Generating 3D animation...";
+                            status.style.color = "#10b981";
+                        }
+                        
+                        // Generate 3D loop animation from recorded frames
+                        generateLoopFromWebcamFrames(webcamFrames);
+                        
+                        // Reset for next shot
+                        webcamFrames = [];
+                        webcamShotState.shotStartFrame = -1;
+                        webcamShotState.shotEndFrame = -1;
+                    }
+                }
+                
+                // Update status display
+                if (status) {
+                    if (webcamShotState.isRecording) {
+                        const stageEmoji = {
+                            "neutral": "⚪",
+                            "pre_shot": "🔵",
+                            "follow_through": "🟢"
+                        };
+                        status.textContent = `🎬 Recording... ${stageEmoji[stage] || "⚪"} ${stage} (${webcamFrames.length} frames)`;
+                        status.style.color = "#f87171";
+                    } else {
+                        if (!results.poseLandmarks) {
+                            status.textContent = "⚠️ No pose detected - Make sure you're visible in the camera";
+                            status.style.color = "#f59e0b";
+                        } else {
+                            const stageEmoji = {
+                                "neutral": "⚪",
+                                "pre_shot": "🔵",
+                                "follow_through": "🟢"
+                            };
+                            status.textContent = `${stageEmoji[stage] || "⚪"} ${stage} - Ready for shot`;
+                            status.style.color = "#667eea";
+                        }
+                    }
+                }
+            });
+            
+            return webcamPose;
+        }
+
+        // Process webcam frame
+        function processWebcamFrame() {
+            const video = document.getElementById('webcamVideo');
+            
+            if (!video || !webcamPose || video.readyState !== 4) {
+                webcamAnimationFrame = requestAnimationFrame(processWebcamFrame);
+                return;
+            }
+            
+            // Send frame to MediaPipe for shot detection (frame storage happens in onResults callback)
+            webcamPose.send({ image: video });
+            
+            webcamAnimationFrame = requestAnimationFrame(processWebcamFrame);
+        }
+
+        // Generate 3D loop from webcam frames
+        async function generateLoopFromWebcamFrames(frames) {
+            const shotComparisonTab = document.getElementById('shot-comparison-tab');
+            if (!shotComparisonTab) return;
+            
+            const status = document.getElementById('webcamStatus');
+            
+            if (frames.length === 0) {
+                if (status) {
+                    status.textContent = "❌ No frames recorded";
+                    status.style.color = "#f87171";
+                }
+                return;
+            }
+            
+            if (status) {
+                status.textContent = "⏳ Processing frames for 3D poses...";
+                status.style.color = "#667eea";
+            }
+            
+            // Process each frame through backend API to get 3D poses
+            const poses = [];
+            const stages = [];
+            const poseMethod = shotComparisonTab.querySelector('#poseMethod')?.value || 'videopose3d';
+            const apiEndpoint = poseMethod === 'videopose3d' 
+                ? '/api/process_frame_overlay_videopose3d'
+                : poseMethod === 'ntu'
+                ? '/api/process_frame_overlay_ntu'
+                : '/api/process_frame_overlay';
+            
+            const userHeight = parseFloat(shotComparisonTab.querySelector('#userHeight')?.value || 72);
+            const shoulderWidth = parseFloat(shotComparisonTab.querySelector('#shoulderWidth')?.value || 18);
+            
+            for (let i = 0; i < frames.length; i++) {
+                const frame = frames[i];
+                
+                // Use stored canvas data
+                const frameData = frame.canvasData;
+                
+                if (!frameData) continue;
+                
+                try {
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            frame: frameData,
+                            user_height: userHeight,
+                            shoulder_width: shoulderWidth,
+                            sequence_id: 'webcam_shot_' + Date.now()
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success && result.landmarks && result.landmarks.length > 0) {
+                        poses.push(result.landmarks);
+                        stages.push(frame.stage || "neutral");
+                    }
+                    
+                    if (status) {
+                        const progress = Math.round((i + 1) / frames.length * 100);
+                        status.textContent = `⏳ Processing frames... ${progress}% (${i + 1}/${frames.length})`;
+                    }
+                } catch (error) {
+                    console.error(`Error processing frame ${i}:`, error);
+                }
+            }
+            
+            if (poses.length === 0) {
+                if (status) {
+                    status.textContent = "❌ No valid 3D poses generated";
+                    status.style.color = "#f87171";
+                }
+                return;
+            }
+            
+            // Store poses and stages on tab
+            shotComparisonTab.loop3DPoses = poses;
+            shotComparisonTab.loop3DStages = stages;
+            
+            // Get required elements for generateLoopForTab
+            const tabVideoElement = shotComparisonTab.querySelector('video');
+            const tabCanvas = shotComparisonTab.querySelector('canvas');
+            const tabGenerateLoopBtn = shotComparisonTab.querySelector('#generateLoopBtn');
+            const tabLoop3DSection = shotComparisonTab.querySelector('#loop3DSection');
+            const tabLoopGenerationStatus = shotComparisonTab.querySelector('#loopGenerationStatus');
+            const tabLoopCanvas3d = shotComparisonTab.querySelector('#canvas3d');
+            const tabPoseMethod = shotComparisonTab.querySelector('#poseMethod');
+            const tabUserHeight = shotComparisonTab.querySelector('#userHeight');
+            const tabShoulderWidth = shotComparisonTab.querySelector('#shoulderWidth');
+            
+            // Generate loop animation (skip frame processing since we already have poses)
+            if (tabLoop3DSection) {
+                tabLoop3DSection.style.display = 'block';
+            }
+            
+            // Initialize 3D viewer if needed
+            if (tabLoopCanvas3d && !shotComparisonTab.loopScene) {
+                initLoop3DViewerForTab(shotComparisonTab, tabLoopCanvas3d);
+            }
+            
+            // Filter frames to only include shot sequence: neutral → pre_shot → follow_through → pre_shot
+            const filteredPoses = [];
+            const filteredStages = [];
+            
+            let shotStartIndex = -1;
+            let shotEndIndex = -1;
+            let currentState = "neutral";
+            let sequenceState = 0; // 0: looking for neutral->pre_shot, 1: looking for follow_through, 2: looking for pre_shot again
+            
+            for (let i = 0; i < poses.length; i++) {
+                const frameStage = stages[i] || "neutral";
+                
+                if (sequenceState === 0) { // Looking for neutral -> pre_shot
+                    if (frameStage === "pre_shot" && currentState === "neutral") {
+                        shotStartIndex = i - 1; // Include the neutral frame before pre_shot
+                        if (shotStartIndex < 0) shotStartIndex = 0;
+                        sequenceState = 1;
+                    }
+                } else if (sequenceState === 1) { // Looking for follow_through
+                    if (frameStage === "follow_through") {
+                        sequenceState = 2;
+                    }
+                } else if (sequenceState === 2) { // Looking for pre_shot again
+                    if (frameStage === "pre_shot") {
+                        shotEndIndex = i;
+                        break; // Found complete shot sequence
+                    }
+                }
+                currentState = frameStage;
+            }
+            
+            // If we found a complete shot sequence, use only those frames
+            if (shotStartIndex !== -1 && shotEndIndex !== -1 && shotEndIndex > shotStartIndex) {
+                for (let i = shotStartIndex; i <= shotEndIndex; i++) {
+                    filteredPoses.push(poses[i]);
+                    filteredStages.push(stages[i] || "neutral");
+                }
+                shotComparisonTab.loop3DPoses = filteredPoses;
+                shotComparisonTab.loop3DStages = filteredStages;
+            }
+            
+            // Interpolate frames
+            const interpolationFactor = 16;
+            const originalFrameCount = shotComparisonTab.loop3DPoses.length;
+            const interpolatedPoses = interpolateFrames(shotComparisonTab.loop3DPoses, interpolationFactor);
+            shotComparisonTab.loop3DPoses = interpolatedPoses;
+            
+            // Interpolate stages as well
+            if (shotComparisonTab.loop3DStages && shotComparisonTab.loop3DStages.length > 0) {
+                const interpolatedStages = [];
+                for (let i = 0; i < interpolatedPoses.length; i++) {
+                    const originalFrameIndex = Math.floor(i / interpolationFactor);
+                    const stage = shotComparisonTab.loop3DStages[Math.min(originalFrameIndex, shotComparisonTab.loop3DStages.length - 1)] || "neutral";
+                    interpolatedStages.push(stage);
+                }
+                shotComparisonTab.loop3DStages = interpolatedStages;
+            }
+            
+            if (tabLoopGenerationStatus) {
+                tabLoopGenerationStatus.textContent = `✓ Shot loop generated! ${shotComparisonTab.loop3DPoses.length} frames (${originalFrameCount} original, ${shotComparisonTab.loop3DPoses.length - originalFrameCount} interpolated)`;
+            }
+            
+            // Start playing automatically
+            shotComparisonTab.isLoopPlaying = true;
+            if (shotComparisonTab.querySelector('#playLoopBtn')) {
+                shotComparisonTab.querySelector('#playLoopBtn').style.display = 'none';
+            }
+            if (shotComparisonTab.querySelector('#pauseLoopBtn')) {
+                shotComparisonTab.querySelector('#pauseLoopBtn').style.display = 'inline-block';
+            }
+            animateLoopForTab(shotComparisonTab);
+            
+            if (status) {
+                status.textContent = "✓ 3D animation generated!";
+                status.style.color = "#10b981";
+            }
+            
+            // Stop webcam after generating animation
+            setTimeout(() => {
+                stopWebcam();
+            }, 2000);
+        }
+
+        // Start webcam
+        async function startWebcam() {
+            try {
+                const shotComparisonTab = document.getElementById('shot-comparison-tab');
+                if (!shotComparisonTab) {
+                    alert('Please open the Shot Comparison tab first');
+                    return;
+                }
+                
+                const webcamSection = document.getElementById('webcamSection');
+                const webcamVideo = document.getElementById('webcamVideo');
+                const startBtn = document.getElementById('startWebcamBtn');
+                
+                if (!webcamSection || !webcamVideo) return;
+                
+                // Request webcam access
+                webcamStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    }
+                });
+                
+                webcamVideo.srcObject = webcamStream;
+                webcamSection.style.display = 'block';
+                
+                // Initialize MediaPipe Pose
+                await initWebcamPose();
+                
+                // Start processing frames
+                webcamVideo.onloadedmetadata = () => {
+                    processWebcamFrame();
+                };
+                
+                // Reset shot state
+                webcamShotState = {
+                    current: "neutral",
+                    previous: "neutral",
+                    shotStartFrame: -1,
+                    shotEndFrame: -1,
+                    isRecording: false,
+                    frames: []
+                };
+                
+                if (startBtn) {
+                    startBtn.disabled = true;
+                    startBtn.textContent = "📷 Webcam Active";
+                }
+                
+            } catch (error) {
+                console.error('Error accessing webcam:', error);
+                alert('Error accessing webcam: ' + error.message);
+            }
+        }
+
+        // Stop webcam
+        function stopWebcam() {
+            if (webcamAnimationFrame) {
+                cancelAnimationFrame(webcamAnimationFrame);
+                webcamAnimationFrame = null;
+            }
+            
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+                webcamStream = null;
+            }
+            
+            const webcamSection = document.getElementById('webcamSection');
+            const webcamVideo = document.getElementById('webcamVideo');
+            const startBtn = document.getElementById('startWebcamBtn');
+            
+            if (webcamSection) {
+                webcamSection.style.display = 'none';
+            }
+            
+            if (webcamVideo) {
+                webcamVideo.srcObject = null;
+            }
+            
+            if (startBtn) {
+                startBtn.disabled = false;
+                startBtn.textContent = "📷 Use Webcam";
+            }
+            
+            webcamShotState = {
+                current: "neutral",
+                previous: "neutral",
+                shotStartFrame: -1,
+                shotEndFrame: -1,
+                isRecording: false,
+                frames: []
+            };
+        }
+
+        // Event listeners for webcam buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const startWebcamBtn = document.getElementById('startWebcamBtn');
+            const stopWebcamBtn = document.getElementById('stopWebcamBtn');
+            
+            if (startWebcamBtn) {
+                startWebcamBtn.addEventListener('click', startWebcam);
+            }
+            
+            if (stopWebcamBtn) {
+                stopWebcamBtn.addEventListener('click', stopWebcam);
+            }
+        });
+
         // Process a single image
         async function processImage(img) {
             try {
                 // Convert image to base64
-                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+                // Use maximum quality for processing
+                const frameData = canvas.toDataURL('image/jpeg', 1.0);
                 
                 // Determine which API endpoint to use
                 const poseMethod = document.getElementById('poseMethod').value;
@@ -2840,7 +3609,8 @@
                         canvas.height = videoElement.videoHeight;
                         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
                         
-                        const frameData = canvas.toDataURL('image/jpeg', 0.9);
+                        // Use maximum quality for frame extraction
+                        const frameData = canvas.toDataURL('image/jpeg', 1.0);
                         const poseMethod = document.getElementById('poseMethod').value;
                         const apiEndpoint = poseMethod === 'videopose3d' 
                             ? '/api/process_frame_overlay_videopose3d'
@@ -2906,7 +3676,17 @@
         
         // Tab-scoped generateLoop function
         async function generateLoopForTab(tab, tabVideoElement, tabCanvas, tabGenerateLoopBtn, tabLoop3DSection, tabLoopGenerationStatus, tabLoopCanvas3d, tabPoseMethod, tabUserHeight, tabShoulderWidth) {
-            if (!tabVideoElement || !tabVideoElement.src || isGeneratingLoop) {
+            // Check if video is loaded - check both src and readyState
+            const hasVideoSource = tabVideoElement && 
+                                   tabVideoElement.src && 
+                                   tabVideoElement.src !== '' && 
+                                   tabVideoElement.src !== window.location.href &&
+                                   (tabVideoElement.readyState >= 1 || tabVideoElement.src.startsWith('blob:'));
+            
+            if (!hasVideoSource || isGeneratingLoop) {
+                if (!hasVideoSource && tabLoopGenerationStatus) {
+                    tabLoopGenerationStatus.textContent = '⚠️ Please upload a video first';
+                }
                 return;
             }
             
@@ -2916,6 +3696,7 @@
             
             // Use tab-specific storage for loop poses (store on tab element)
             if (!tab.loop3DPoses) tab.loop3DPoses = [];
+            if (!tab.loop3DStages) tab.loop3DStages = []; // Store stage for each frame
             if (!tab.currentLoopFrameIndex) tab.currentLoopFrameIndex = 0;
             if (!tab.loopScene) tab.loopScene = null;
             if (!tab.loopRenderer) tab.loopRenderer = null;
@@ -2923,6 +3704,7 @@
             if (!tab.loopSkeletonObjects) tab.loopSkeletonObjects = [];
             
             tab.loop3DPoses = [];
+            tab.loop3DStages = [];
             tab.currentLoopFrameIndex = 0;
             
             // Show loop section
@@ -2978,11 +3760,16 @@
                     await new Promise(resolve => setTimeout(resolve, 50));
                     
                     if (tabCanvas && tabCtx && tabVideoElement.videoWidth > 0 && tabVideoElement.videoHeight > 0) {
-                        tabCanvas.width = tabVideoElement.videoWidth;
-                        tabCanvas.height = tabVideoElement.videoHeight;
-                        tabCtx.drawImage(tabVideoElement, 0, 0, tabCanvas.width, tabCanvas.height);
+                        // Set canvas to exact video dimensions to preserve quality and aspect ratio
+                        const videoWidth = tabVideoElement.videoWidth;
+                        const videoHeight = tabVideoElement.videoHeight;
+                        tabCanvas.width = videoWidth;
+                        tabCanvas.height = videoHeight;
+                        // Draw video frame at full resolution without any scaling or distortion
+                        tabCtx.drawImage(tabVideoElement, 0, 0, videoWidth, videoHeight);
                         
-                        const frameData = tabCanvas.toDataURL('image/jpeg', 0.9);
+                        // Use higher quality (1.0 = maximum quality, no compression)
+                        const frameData = tabCanvas.toDataURL('image/jpeg', 1.0);
                         const poseMethod = tabPoseMethod ? tabPoseMethod.value : 'videopose3d';
                         const apiEndpoint = poseMethod === 'videopose3d' 
                             ? '/api/process_frame_overlay_videopose3d'
@@ -3005,6 +3792,11 @@
                             const result = await response.json();
                             if (result.success && result.landmarks && result.landmarks.length > 0) {
                                 tab.loop3DPoses.push(result.landmarks);
+                                
+                                // Detect shot stage for this frame
+                                const stage = detectShotStage(result.landmarks);
+                                if (!tab.loop3DStages) tab.loop3DStages = [];
+                                tab.loop3DStages.push(stage);
                             }
                         } catch (error) {
                             console.error(`Error processing frame ${frameIndex}:`, error);
@@ -3020,10 +3812,80 @@
                 tabVideoElement.currentTime = originalTime;
                 
                 if (tab.loop3DPoses.length > 0) {
+                    // Filter frames to only include exact shot sequence: gray(neutral) → blue(pre_shot) → green(follow_through) → blue(pre_shot)
+                    const filteredPoses = [];
+                    const filteredStages = [];
+                    
+                    let sequenceStartIndex = -1;
+                    let sequenceEndIndex = -1;
+                    let state = "looking_for_neutral_to_blue"; // State machine for sequence detection
+                    
+                    // Find the exact sequence: neutral → pre_shot → follow_through → pre_shot
+                    for (let i = 0; i < tab.loop3DPoses.length; i++) {
+                        const currentStage = tab.loop3DStages[i] || "neutral";
+                        const prevStage = i > 0 ? (tab.loop3DStages[i - 1] || "neutral") : "neutral";
+                        
+                        if (state === "looking_for_neutral_to_blue") {
+                            // Step 1: Find transition from neutral (gray) to pre_shot (blue)
+                            if (prevStage === "neutral" && currentStage === "pre_shot") {
+                                sequenceStartIndex = i - 1; // Include the neutral frame before transition
+                                state = "looking_for_green";
+                            }
+                        } else if (state === "looking_for_green") {
+                            // Step 2: Find follow_through (green) after pre_shot (blue)
+                            if (currentStage === "follow_through") {
+                                state = "looking_for_final_blue";
+                            }
+                        } else if (state === "looking_for_final_blue") {
+                            // Step 3: Find pre_shot (blue) again after follow_through (green)
+                            if (currentStage === "pre_shot") {
+                                sequenceEndIndex = i;
+                                break; // Found complete sequence
+                            }
+                        }
+                    }
+                    
+                    // If we found a complete shot sequence, clip to only those frames
+                    if (sequenceStartIndex !== -1 && sequenceEndIndex !== -1 && sequenceEndIndex > sequenceStartIndex) {
+                        for (let i = sequenceStartIndex; i <= sequenceEndIndex; i++) {
+                            filteredPoses.push(tab.loop3DPoses[i]);
+                            filteredStages.push(tab.loop3DStages[i] || "neutral");
+                        }
+                        tab.loop3DPoses = filteredPoses;
+                        tab.loop3DStages = filteredStages;
+                        
+                        if (tabLoopGenerationStatus) {
+                            tabLoopGenerationStatus.textContent = `✓ Shot sequence clipped: ${filteredPoses.length} frames (gray→blue→green→blue, frames ${sequenceStartIndex} to ${sequenceEndIndex})`;
+                        }
+                    } else {
+                        // If no complete sequence found, use all frames but log a warning
+                        if (tabLoopGenerationStatus) {
+                            tabLoopGenerationStatus.textContent = `⚠ No complete shot sequence found (gray→blue→green→blue), using all ${tab.loop3DPoses.length} frames`;
+                        }
+                    }
+                    
                     const interpolationFactor = 16;
                     const originalFrameCount = tab.loop3DPoses.length;
                     const interpolatedPoses = interpolateFrames(tab.loop3DPoses, interpolationFactor);
                     tab.loop3DPoses = interpolatedPoses;
+                    
+                    // Interpolate stages as well (preserve stage for interpolated frames)
+                    if (tab.loop3DStages && tab.loop3DStages.length > 0) {
+                        const interpolatedStages = [];
+                        for (let i = 0; i < interpolatedPoses.length; i++) {
+                            const originalFrameIndex = Math.floor(i / interpolationFactor);
+                            const stage = tab.loop3DStages[Math.min(originalFrameIndex, tab.loop3DStages.length - 1)] || "neutral";
+                            interpolatedStages.push(stage);
+                        }
+                        tab.loop3DStages = interpolatedStages;
+                    }
+                    
+                    // Reset basketball metrics for new loop
+                    if (tab.id === 'shot-comparison-tab') {
+                        tab.maxElbowExtension = null;
+                        tab.maxReleaseHeight = null;
+                        tab.poseHistory = [];
+                    }
                     
                     if (tabLoopGenerationStatus) {
                         tabLoopGenerationStatus.textContent = `✓ Loop generated! ${tab.loop3DPoses.length} frames (${originalFrameCount} original, ${tab.loop3DPoses.length - originalFrameCount} interpolated)`;
@@ -3044,6 +3906,31 @@
                             const defaultPlayer = 'steph_curry';
                             tab.selectedPlayer = defaultPlayer;
                             loadBenchmarkAnglesForTab(tab, defaultPlayer);
+                        }
+                        
+                        // Set up background video for shot comparison tab
+                        const backgroundVideo = tab.querySelector('#loopBackgroundVideo');
+                        if (backgroundVideo && tabVideoElement && tabVideoElement.src) {
+                            backgroundVideo.src = tabVideoElement.src;
+                            backgroundVideo.style.display = 'block';
+                            backgroundVideo.muted = true;
+                            backgroundVideo.loop = true;
+                            backgroundVideo.playsInline = true;
+                            
+                            // Wait for video metadata to load before playing
+                            const playVideo = () => {
+                                backgroundVideo.play().catch(e => {
+                                    console.log('Background video play error:', e);
+                                });
+                            };
+                            
+                            if (backgroundVideo.readyState >= 2) {
+                                // Metadata already loaded
+                                playVideo();
+                            } else {
+                                // Wait for metadata
+                                backgroundVideo.addEventListener('loadedmetadata', playVideo, { once: true });
+                            }
                         }
                     }
                     
@@ -3355,6 +4242,9 @@
                     : 0;
             });
             
+            // Store user angles on tab for feedback generation
+            tab.userAnglesForFeedback = userAngles;
+            
             // Display similarity score with non-identical frame count
             displaySimilarityScore(overallScore, individualAverages, framesWithNonIdenticalAngles.size, compareLength, tab);
         }
@@ -3405,6 +4295,216 @@
             if (rightElbowSim) rightElbowSim.textContent = Math.round(individualScores.right_elbow || 0) + '%';
             if (leftKneeSim) leftKneeSim.textContent = Math.round(individualScores.left_knee || 0) + '%';
             if (rightKneeSim) rightKneeSim.textContent = Math.round(individualScores.right_knee || 0) + '%';
+            
+            // Generate and display feedback after score is shown
+            // Always try to generate feedback, even if userAnglesForFeedback isn't set
+            console.log('Displaying similarity score, attempting to generate feedback...');
+            console.log('userAnglesForFeedback:', targetTab.userAnglesForFeedback);
+            console.log('individualScores:', individualScores);
+            console.log('overallScore:', overallScore);
+            
+            // Generate feedback - use available data
+            generateShotFeedback(targetTab, targetTab.userAnglesForFeedback || [], individualScores, overallScore);
+        }
+        
+        // Generate shot feedback after completion (strengths and improvements)
+        function generateShotFeedback(tab, userAngles, individualScores, overallScore) {
+            console.log('generateShotFeedback called with:', { tab, userAngles, individualScores, overallScore });
+            
+            const feedbackPanel = tab.querySelector('#improvementFeedbackPanel');
+            const strengthsList = tab.querySelector('#strengthsList');
+            const improvementsList = tab.querySelector('#improvementsList');
+            
+            console.log('Found elements:', { feedbackPanel, strengthsList, improvementsList });
+            
+            if (!feedbackPanel) {
+                console.error('Feedback panel not found in tab:', tab.id);
+                // Try finding it in the document
+                const globalPanel = document.querySelector('#improvementFeedbackPanel');
+                console.log('Global panel found:', globalPanel);
+                return;
+            }
+            if (!strengthsList || !improvementsList) {
+                console.error('Strengths or improvements list not found. Strengths:', strengthsList, 'Improvements:', improvementsList);
+                return;
+            }
+            
+            console.log('All elements found, generating feedback...');
+            
+            const strengths = [];
+            const improvements = [];
+            
+            // Analyze individual angle scores to determine strengths and weaknesses
+            const angleLabels = {
+                'left_elbow': 'Left Elbow',
+                'right_elbow': 'Right Elbow',
+                'left_knee': 'Left Knee',
+                'right_knee': 'Right Knee'
+            };
+            
+            // Determine strengths (scores >= 85%)
+            Object.keys(individualScores).forEach(key => {
+                const score = individualScores[key];
+                if (score >= 85) {
+                    strengths.push(`<strong>${angleLabels[key]}:</strong> Excellent form at ${score.toFixed(1)}% similarity. Keep this up!`);
+                } else if (score >= 75) {
+                    strengths.push(`<strong>${angleLabels[key]}:</strong> Good form at ${score.toFixed(1)}% similarity.`);
+                }
+            });
+            
+            // Determine areas for improvement (scores < 75%)
+            Object.keys(individualScores).forEach(key => {
+                const score = individualScores[key];
+                if (score < 75) {
+                    if (key === 'right_elbow') {
+                        improvements.push(`<strong>Right Elbow:</strong> ${score.toFixed(1)}% similarity. Focus on keeping your shooting elbow aligned and at the correct angle throughout your shot.`);
+                    } else if (key === 'left_elbow') {
+                        improvements.push(`<strong>Left Elbow:</strong> ${score.toFixed(1)}% similarity. Work on maintaining consistent left arm positioning.`);
+                    } else if (key === 'right_knee') {
+                        improvements.push(`<strong>Right Knee:</strong> ${score.toFixed(1)}% similarity. Focus on consistent knee bend and power transfer from your legs.`);
+                    } else if (key === 'left_knee') {
+                        improvements.push(`<strong>Left Knee:</strong> ${score.toFixed(1)}% similarity. Maintain balanced knee positioning throughout your shot.`);
+                    }
+                }
+            });
+            
+            // Analyze overall form metrics from the shot
+            if (tab.loop3DPoses && tab.loop3DPoses.length > 0) {
+                // Calculate average metrics across all frames
+                let totalElbowFlare = 0;
+                let totalTrunkLean = 0;
+                let totalKneeBend = 0;
+                let validElbowFlare = 0;
+                let validTrunkLean = 0;
+                let validKneeBend = 0;
+                
+                tab.loop3DPoses.forEach(landmarks => {
+                    if (!landmarks || landmarks.length < 33) return;
+                    
+                    // Elbow Flare
+                    if (landmarks[14] && landmarks[12] && landmarks[24] &&
+                        landmarks[14].visibility > 0.3 && landmarks[12].visibility > 0.3 && landmarks[24].visibility > 0.3) {
+                        const elbowFlare = calculateAngle(landmarks[14], landmarks[12], landmarks[24]);
+                        if (elbowFlare !== null) {
+                            totalElbowFlare += elbowFlare;
+                            validElbowFlare++;
+                        }
+                    }
+                    
+                    // Trunk Lean
+                    if (landmarks[11] && landmarks[12] && landmarks[23] && landmarks[24]) {
+                        const shoulderMid = {
+                            x: (landmarks[11].x + landmarks[12].x) / 2,
+                            y: (landmarks[11].y + landmarks[12].y) / 2
+                        };
+                        const hipMid = {
+                            x: (landmarks[23].x + landmarks[24].x) / 2,
+                            y: (landmarks[23].y + landmarks[24].y) / 2
+                        };
+                        const dx = shoulderMid.x - hipMid.x;
+                        const dy = shoulderMid.y - hipMid.y;
+                        const trunkLean = Math.abs(Math.atan2(dx, Math.abs(dy)) * (180 / Math.PI));
+                        totalTrunkLean += trunkLean;
+                        validTrunkLean++;
+                    }
+                    
+                    // Knee Bend
+                    if (landmarks[24] && landmarks[26] && landmarks[28] &&
+                        landmarks[24].visibility > 0.3 && landmarks[26].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                        const kneeBend = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+                        if (kneeBend !== null) {
+                            totalKneeBend += kneeBend;
+                            validKneeBend++;
+                        }
+                    }
+                });
+                
+                // Analyze averages
+                if (validElbowFlare > 0) {
+                    const avgElbowFlare = totalElbowFlare / validElbowFlare;
+                    if (avgElbowFlare >= 8 && avgElbowFlare <= 12) {
+                        strengths.push(`<strong>Elbow Position:</strong> Great elbow flare at ${avgElbowFlare.toFixed(1)}° (target: ~10°).`);
+                    } else if (avgElbowFlare < 5) {
+                        improvements.push(`<strong>Elbow Position:</strong> Your elbow is too close at ${avgElbowFlare.toFixed(1)}° (target: ~10°). Keep your shooting arm slightly away from your body.`);
+                    } else if (avgElbowFlare > 20) {
+                        improvements.push(`<strong>Elbow Position:</strong> Your elbow is flaring out at ${avgElbowFlare.toFixed(1)}° (target: ~10°). Bring it closer to your body.`);
+                    }
+                }
+                
+                if (validTrunkLean > 0) {
+                    const avgTrunkLean = totalTrunkLean / validTrunkLean;
+                    if (avgTrunkLean >= 8 && avgTrunkLean <= 12) {
+                        strengths.push(`<strong>Body Lean:</strong> Excellent forward lean at ${avgTrunkLean.toFixed(1)}° (target: ~10°).`);
+                    } else if (avgTrunkLean < 5) {
+                        improvements.push(`<strong>Body Lean:</strong> Add more forward lean (currently ${avgTrunkLean.toFixed(1)}°, target: ~10°) to generate power.`);
+                    } else if (avgTrunkLean > 20) {
+                        improvements.push(`<strong>Body Lean:</strong> Reduce your forward lean (currently ${avgTrunkLean.toFixed(1)}°, target: ~10°) for better balance.`);
+                    }
+                }
+                
+                if (validKneeBend > 0) {
+                    const avgKneeBend = totalKneeBend / validKneeBend;
+                    if (avgKneeBend >= 120 && avgKneeBend <= 140) {
+                        strengths.push(`<strong>Knee Bend:</strong> Optimal knee bend at ${avgKneeBend.toFixed(1)}° (target: 120-140°).`);
+                    } else if (avgKneeBend > 160) {
+                        improvements.push(`<strong>Knee Bend:</strong> Increase knee bend (currently ${avgKneeBend.toFixed(1)}°, target: 120-140°) for more power.`);
+                    } else if (avgKneeBend < 100) {
+                        improvements.push(`<strong>Knee Bend:</strong> Reduce knee bend (currently ${avgKneeBend.toFixed(1)}°, target: 120-140°) for better balance.`);
+                    }
+                }
+            }
+            
+            // Overall score feedback
+            if (overallScore >= 90) {
+                strengths.unshift(`<strong>Overall Form:</strong> Excellent! Your shot form is ${overallScore.toFixed(1)}% similar to the benchmark.`);
+            } else if (overallScore >= 75) {
+                strengths.unshift(`<strong>Overall Form:</strong> Good form at ${overallScore.toFixed(1)}% similarity.`);
+            } else if (overallScore < 60) {
+                improvements.unshift(`<strong>Overall Form:</strong> Your form is ${overallScore.toFixed(1)}% similar. Focus on the key areas below to improve.`);
+            }
+            
+            // Display feedback
+            if (strengths.length === 0) {
+                strengths.push('Keep practicing to build your strengths!');
+            }
+            if (improvements.length === 0) {
+                improvements.push('Great job! Your form looks solid. Keep maintaining consistency!');
+            }
+            
+            strengthsList.innerHTML = '<ul style="margin: 0; padding-left: 20px; list-style: none;">' +
+                strengths.slice(0, 4).map(s => `<li style="margin-bottom: 10px; padding-left: 10px; border-left: 3px solid rgba(74,222,128,0.5);">${s}</li>`).join('') +
+                '</ul>';
+            
+            improvementsList.innerHTML = '<ul style="margin: 0; padding-left: 20px; list-style: none;">' +
+                improvements.slice(0, 4).map(i => `<li style="margin-bottom: 10px; padding-left: 10px; border-left: 3px solid rgba(251,191,36,0.5);">${i}</li>`).join('') +
+                '</ul>';
+            
+            // Force display with multiple methods
+            feedbackPanel.style.display = 'block';
+            feedbackPanel.style.visibility = 'visible';
+            feedbackPanel.style.opacity = '1';
+            feedbackPanel.removeAttribute('hidden');
+            
+            // Also ensure parent similarity score panel is visible
+            const similarityPanel = tab.querySelector('#similarityScorePanel');
+            if (similarityPanel) {
+                similarityPanel.style.display = 'block';
+            }
+            
+            console.log('Feedback panel displayed with', strengths.length, 'strengths and', improvements.length, 'improvements');
+            console.log('Panel element:', feedbackPanel);
+            console.log('Panel display style:', feedbackPanel.style.display);
+            console.log('Panel computed display:', window.getComputedStyle(feedbackPanel).display);
+            console.log('Panel parent:', feedbackPanel.parentElement);
+            
+            // Scroll to feedback panel if needed
+            setTimeout(() => {
+                try {
+                    feedbackPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } catch (e) {
+                    console.log('Scroll error:', e);
+                }
+            }, 100);
         }
         
         // Calculate angle between three points (joint angle)
@@ -3439,14 +4539,114 @@
             return angleDeg;
         }
         
+        // Calculate 3D distance between two points
+        function calculateDistance3D(point1, point2) {
+            const dx = point1.x - point2.x;
+            const dy = point1.y - point2.y;
+            const dz = (point1.z || 0) - (point2.z || 0);
+            return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        }
+        
+        // Detect shot stage from landmarks (matching app.py get_arm_state logic)
+        function detectShotStage(landmarks, width = 640, height = 480) {
+            if (!landmarks || landmarks.length < 25) return "neutral";
+            
+            const rightShoulder = landmarks[12];
+            const rightElbow = landmarks[14];
+            const rightWrist = landmarks[16];
+            const leftWrist = landmarks[15];
+            const leftHip = landmarks[23];
+            const rightHip = landmarks[24];
+            
+            // Check visibility
+            if (!rightShoulder || !rightWrist || rightShoulder.visibility < 0.3 || rightWrist.visibility < 0.3) {
+                return "neutral";
+            }
+            
+            // Convert normalized coordinates to pixel coordinates for comparison
+            // In normalized: lower y = higher on screen
+            // In pixels: lower y = higher on screen (same)
+            const rightWristY = rightWrist.y * height;
+            const rightShoulderY = rightShoulder.y * height;
+            
+            // Pre-shot: wrists close together, above waist, and right wrist below right shoulder
+            if (leftWrist && leftHip && rightHip && 
+                leftWrist.visibility > 0.3 && leftHip.visibility > 0.3 && rightHip.visibility > 0.3) {
+                const waistY = ((leftHip.y + rightHip.y) / 2) * height;
+                const avgWristY = ((rightWrist.y + leftWrist.y) / 2) * height;
+                
+                // Calculate distance between wrists
+                const distWrists = Math.sqrt(
+                    Math.pow((rightWrist.x - leftWrist.x) * width, 2) +
+                    Math.pow((rightWrist.y - leftWrist.y) * height, 2)
+                );
+                
+                // Pre-shot conditions: wrists close together (< 15% of width), above waist, and wrist below shoulder
+                if (distWrists < 0.15 * width && 
+                    avgWristY < waistY && 
+                    rightWristY > rightShoulderY) {
+                    return "pre_shot";
+                }
+            }
+            
+            // Follow-through: right wrist above right shoulder
+            if (rightShoulderY > rightWristY) {
+                return "follow_through";
+            }
+            
+            // Neutral: right wrist below right shoulder
+            if (rightWristY > rightShoulderY) {
+                return "neutral";
+            }
+            
+            return "neutral";
+        }
+        
+        // Get color for shot stage
+        function getStageColor(stage) {
+            switch(stage) {
+                case "pre_shot":
+                    return 0x0088ff; // Blue
+                case "follow_through":
+                    return 0x00ff00; // Green
+                case "neutral":
+                default:
+                    return 0x888888; // Gray
+            }
+        }
+        
         // Update angles display for Shot Comparison tab
         function updateAnglesDisplay(landmarks) {
             if (!landmarks || landmarks.length < 29) return;
             
-            const leftElbowAngleEl = document.getElementById('leftElbowAngle');
-            const rightElbowAngleEl = document.getElementById('rightElbowAngle');
-            const leftKneeAngleEl = document.getElementById('leftKneeAngle');
-            const rightKneeAngleEl = document.getElementById('rightKneeAngle');
+            // Get the tab to scope element queries
+            const shotComparisonTab = document.getElementById('shot-comparison-tab');
+            if (!shotComparisonTab) return;
+            
+            const leftElbowAngleEl = shotComparisonTab.querySelector('#leftElbowAngle');
+            const rightElbowAngleEl = shotComparisonTab.querySelector('#rightElbowAngle');
+            const leftKneeAngleEl = shotComparisonTab.querySelector('#leftKneeAngle');
+            const rightKneeAngleEl = shotComparisonTab.querySelector('#rightKneeAngle');
+            const ankleDistanceEl = shotComparisonTab.querySelector('#ankleDistance');
+            const eyeToHeelDistanceEl = shotComparisonTab.querySelector('#eyeToHeelDistance');
+            
+            // Basketball shot analysis metrics
+            const elbowFlareEl = shotComparisonTab.querySelector('#elbowFlare');
+            const trunkLeanEl = shotComparisonTab.querySelector('#trunkLean');
+            const elbowExtensionEl = shotComparisonTab.querySelector('#elbowExtension');
+            const releaseHeightEl = shotComparisonTab.querySelector('#releaseHeight');
+            const wristSnapEl = shotComparisonTab.querySelector('#wristSnap');
+            const kneeBendEl = shotComparisonTab.querySelector('#kneeBend');
+            const footAlignmentEl = shotComparisonTab.querySelector('#footAlignment');
+            const footStanceEl = shotComparisonTab.querySelector('#footStance');
+            const rhythmEl = shotComparisonTab.querySelector('#rhythm');
+            const consistencyScoreEl = shotComparisonTab.querySelector('#consistencyScore');
+            
+            // Get user inputs for height and shoulder width
+            const userHeightInput = shotComparisonTab.querySelector('#userHeight');
+            const shoulderWidthInput = shotComparisonTab.querySelector('#shoulderWidth');
+            const userHeight = userHeightInput ? parseFloat(userHeightInput.value) : 72; // Default 72 inches
+            const shoulderWidth = shoulderWidthInput ? parseFloat(shoulderWidthInput.value) : 18; // Default 18 inches
             
             // Left Elbow: shoulder(11) - elbow(13) - wrist(15)
             if (landmarks[11] && landmarks[13] && landmarks[15] &&
@@ -3491,6 +4691,436 @@
             } else if (rightKneeAngleEl) {
                 rightKneeAngleEl.textContent = '--°';
             }
+            
+            // Calculate distance measurements
+            // 1. Ankle Distance (using shoulder width ratio)
+            if (landmarks[27] && landmarks[28] && landmarks[11] && landmarks[12] &&
+                landmarks[27].visibility > 0.3 && landmarks[28].visibility > 0.3 &&
+                landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3) {
+                // Calculate pixel distances
+                const shoulderPixelDistance = calculateDistance3D(landmarks[11], landmarks[12]);
+                const anklePixelDistance = calculateDistance3D(landmarks[27], landmarks[28]);
+                
+                if (shoulderPixelDistance > 0 && ankleDistanceEl) {
+                    // Ratio: shoulderWidth (inches) / shoulderPixelDistance = inches per pixel
+                    const inchesPerPixel = shoulderWidth / shoulderPixelDistance;
+                    const ankleDistanceInches = anklePixelDistance * inchesPerPixel;
+                    ankleDistanceEl.textContent = ankleDistanceInches.toFixed(1) + ' in';
+                }
+            } else if (ankleDistanceEl) {
+                ankleDistanceEl.textContent = '-- in';
+            }
+            
+            // 2. Eye to Heel Distance (using height ratio)
+            // Use average of left and right eye, and average of left and right ankle
+            const leftEye = landmarks[2]; // Left eye inner
+            const rightEye = landmarks[5]; // Right eye inner
+            const leftAnkle = landmarks[27];
+            const rightAnkle = landmarks[28];
+            const nose = landmarks[0];
+            
+            if (leftEye && rightEye && leftAnkle && rightAnkle && nose &&
+                leftEye.visibility > 0.3 && rightEye.visibility > 0.3 &&
+                leftAnkle.visibility > 0.3 && rightAnkle.visibility > 0.3 &&
+                nose.visibility > 0.3) {
+                // Calculate average eye position
+                const avgEye = {
+                    x: (leftEye.x + rightEye.x) / 2,
+                    y: (leftEye.y + rightEye.y) / 2,
+                    z: ((leftEye.z || 0) + (rightEye.z || 0)) / 2
+                };
+                
+                // Calculate average ankle position (use as heel reference)
+                const avgAnkle = {
+                    x: (leftAnkle.x + rightAnkle.x) / 2,
+                    y: (leftAnkle.y + rightAnkle.y) / 2,
+                    z: ((leftAnkle.z || 0) + (rightAnkle.z || 0)) / 2
+                };
+                
+                // Calculate vertical distance from nose to ankle (as reference for full height)
+                // Nose to ankle represents approximately 95% of total body height
+                const noseToAnklePixelDistance = calculateDistance3D(nose, avgAnkle);
+                
+                // Calculate vertical distance from eye to ankle (heel)
+                const eyeToAnklePixelDistance = calculateDistance3D(avgEye, avgAnkle);
+                
+                if (noseToAnklePixelDistance > 0 && eyeToHeelDistanceEl) {
+                    // Convert pixel distance to inches using height ratio
+                    // noseToAnkle represents ~95% of total height, so:
+                    // userHeight * 0.95 / noseToAnklePixelDistance = inches per pixel
+                    const verticalInchesPerPixel = (userHeight * 0.95) / noseToAnklePixelDistance;
+                    const eyeToHeelInches = eyeToAnklePixelDistance * verticalInchesPerPixel;
+                    eyeToHeelDistanceEl.textContent = eyeToHeelInches.toFixed(1) + ' in';
+                } else if (eyeToHeelDistanceEl) {
+                    eyeToHeelDistanceEl.textContent = '-- in';
+                }
+            } else if (eyeToHeelDistanceEl) {
+                eyeToHeelDistanceEl.textContent = '-- in';
+            }
+            
+            // ========== BASKETBALL SHOT ANALYSIS METRICS ==========
+            
+            // 1. Elbow Flare: angle of right elbow to right shoulder to right hip (target: ~10°)
+            if (landmarks[14] && landmarks[12] && landmarks[24] &&
+                landmarks[14].visibility > 0.3 && landmarks[12].visibility > 0.3 && landmarks[24].visibility > 0.3) {
+                const angle = calculateAngle(landmarks[14], landmarks[12], landmarks[24]);
+                if (angle !== null && elbowFlareEl) {
+                    elbowFlareEl.textContent = Math.round(angle) + '°';
+                    // Color code: green if close to 10°, yellow if close, red if far
+                    const diff = Math.abs(angle - 10);
+                    if (diff <= 5) elbowFlareEl.style.color = '#4ade80';
+                    else if (diff <= 10) elbowFlareEl.style.color = '#fbbf24';
+                    else elbowFlareEl.style.color = '#f87171';
+                }
+            } else if (elbowFlareEl) {
+                elbowFlareEl.textContent = '--°';
+                elbowFlareEl.style.color = '#333';
+            }
+            
+            // 2. Trunk Lean: angle of torso relative to vertical (target: ~10°)
+            if (landmarks[11] && landmarks[12] && landmarks[23] && landmarks[24]) {
+                // Calculate shoulder midpoint and hip midpoint
+                const shoulderMid = {
+                    x: (landmarks[11].x + landmarks[12].x) / 2,
+                    y: (landmarks[11].y + landmarks[12].y) / 2,
+                    z: ((landmarks[11].z || 0) + (landmarks[12].z || 0)) / 2
+                };
+                const hipMid = {
+                    x: (landmarks[23].x + landmarks[24].x) / 2,
+                    y: (landmarks[23].y + landmarks[24].y) / 2,
+                    z: ((landmarks[23].z || 0) + (landmarks[24].z || 0)) / 2
+                };
+                
+                // Calculate angle from vertical (using y-axis as reference)
+                const dx = shoulderMid.x - hipMid.x;
+                const dy = shoulderMid.y - hipMid.y;
+                const angle = Math.abs(Math.atan2(dx, Math.abs(dy)) * (180 / Math.PI));
+                
+                if (trunkLeanEl) {
+                    trunkLeanEl.textContent = Math.round(angle) + '°';
+                    const diff = Math.abs(angle - 10);
+                    if (diff <= 5) trunkLeanEl.style.color = '#4ade80';
+                    else if (diff <= 10) trunkLeanEl.style.color = '#fbbf24';
+                    else trunkLeanEl.style.color = '#f87171';
+                }
+            } else if (trunkLeanEl) {
+                trunkLeanEl.textContent = '--°';
+                trunkLeanEl.style.color = '#333';
+            }
+            
+            // 3. Elbow Extension: right elbow angle (already calculated, but show max extension)
+            if (landmarks[12] && landmarks[14] && landmarks[16] &&
+                landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3) {
+                const angle = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+                if (angle !== null && elbowExtensionEl) {
+                    elbowExtensionEl.textContent = Math.round(angle) + '°';
+                    // Track max extension (store on tab)
+                    if (!shotComparisonTab.maxElbowExtension || angle > shotComparisonTab.maxElbowExtension) {
+                        shotComparisonTab.maxElbowExtension = angle;
+                    }
+                }
+            } else if (elbowExtensionEl) {
+                elbowExtensionEl.textContent = '--°';
+            }
+            
+            // 4. Release Height: height of right wrist (highest point)
+            if (landmarks[16] && landmarks[16].visibility > 0.3) {
+                // Use nose to ankle as reference for height conversion
+                if (nose && leftAnkle && rightAnkle && nose.visibility > 0.3) {
+                    const avgAnkle = {
+                        y: (leftAnkle.y + rightAnkle.y) / 2
+                    };
+                    const noseToAnklePixelDistance = Math.abs(nose.y - avgAnkle.y);
+                    if (noseToAnklePixelDistance > 0) {
+                        const verticalInchesPerPixel = (userHeight * 0.95) / noseToAnklePixelDistance;
+                        const wristHeightFromAnkle = Math.abs(landmarks[16].y - avgAnkle.y);
+                        const wristHeightInches = wristHeightFromAnkle * verticalInchesPerPixel;
+                        
+                        if (releaseHeightEl) {
+                            // Track max release height
+                            if (!shotComparisonTab.maxReleaseHeight || wristHeightInches > shotComparisonTab.maxReleaseHeight) {
+                                shotComparisonTab.maxReleaseHeight = wristHeightInches;
+                            }
+                            releaseHeightEl.textContent = shotComparisonTab.maxReleaseHeight.toFixed(1) + ' in';
+                        }
+                    }
+                }
+            } else if (releaseHeightEl && !shotComparisonTab.maxReleaseHeight) {
+                releaseHeightEl.textContent = '-- in';
+            }
+            
+            // 5. Wrist Snap: angle of wrist relative to forearm (follow through)
+            if (landmarks[14] && landmarks[16] && landmarks[16].visibility > 0.3 && landmarks[14].visibility > 0.3) {
+                // Calculate angle between forearm and vertical (wrist extension)
+                const forearmVec = {
+                    x: landmarks[16].x - landmarks[14].x,
+                    y: landmarks[16].y - landmarks[14].y
+                };
+                const angle = Math.abs(Math.atan2(forearmVec.x, Math.abs(forearmVec.y)) * (180 / Math.PI));
+                if (wristSnapEl) {
+                    wristSnapEl.textContent = Math.round(angle) + '°';
+                }
+            } else if (wristSnapEl) {
+                wristSnapEl.textContent = '--';
+            }
+            
+            // 6. Knee Bend: right knee angle (already calculated)
+            if (landmarks[24] && landmarks[26] && landmarks[28] &&
+                landmarks[24].visibility > 0.3 && landmarks[26].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                const angle = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+                if (angle !== null && kneeBendEl) {
+                    kneeBendEl.textContent = Math.round(angle) + '°';
+                }
+            } else if (kneeBendEl) {
+                kneeBendEl.textContent = '--°';
+            }
+            
+            // 7. Foot Alignment: check if dominant foot (right) is forward
+            if (landmarks[27] && landmarks[28] &&
+                landmarks[27].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                // Compare z-coordinate (depth) - more negative z means more forward
+                const rightFootForward = (landmarks[28].z || 0) < (landmarks[27].z || 0);
+                const diff = Math.abs((landmarks[28].z || 0) - (landmarks[27].z || 0));
+                
+                if (footAlignmentEl) {
+                    if (diff < 0.01) {
+                        footAlignmentEl.textContent = 'Aligned';
+                        footAlignmentEl.style.color = '#f87171'; // Red - not ideal
+                    } else if (rightFootForward) {
+                        footAlignmentEl.textContent = 'Right Forward';
+                        footAlignmentEl.style.color = '#4ade80'; // Green - good
+                    } else {
+                        footAlignmentEl.textContent = 'Left Forward';
+                        footAlignmentEl.style.color = '#fbbf24'; // Yellow - not ideal for right-handed
+                    }
+                }
+            } else if (footAlignmentEl) {
+                footAlignmentEl.textContent = '--';
+                footAlignmentEl.style.color = '#333';
+            }
+            
+            // 8. Foot Stance: distance between feet relative to shoulder width
+            if (landmarks[27] && landmarks[28] && landmarks[11] && landmarks[12] &&
+                landmarks[27].visibility > 0.3 && landmarks[28].visibility > 0.3 &&
+                landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3) {
+                const shoulderPixelDistance = calculateDistance3D(landmarks[11], landmarks[12]);
+                const anklePixelDistance = calculateDistance3D(landmarks[27], landmarks[28]);
+                
+                if (shoulderPixelDistance > 0 && footStanceEl) {
+                    const ratio = anklePixelDistance / shoulderPixelDistance;
+                    if (ratio <= 1.0) {
+                        footStanceEl.textContent = 'Good';
+                        footStanceEl.style.color = '#4ade80';
+                    } else if (ratio <= 1.2) {
+                        footStanceEl.textContent = 'Wide';
+                        footStanceEl.style.color = '#fbbf24';
+                    } else {
+                        footStanceEl.textContent = 'Too Wide';
+                        footStanceEl.style.color = '#f87171';
+                    }
+                }
+            } else if (footStanceEl) {
+                footStanceEl.textContent = '--';
+                footStanceEl.style.color = '#333';
+            }
+            
+            // 9. Rhythm: Check if knee extension and elbow extension happen simultaneously
+            // This requires tracking over time, so we'll calculate based on current frame
+            // For now, show a simple indicator based on current angles
+            if (rhythmEl) {
+                // Track extension timing would require frame-by-frame analysis
+                // For now, show if both are extending (knee angle increasing, elbow angle increasing)
+                rhythmEl.textContent = 'Tracked';
+                rhythmEl.style.color = '#667eea';
+            }
+            
+            // 10. Consistency Score: Calculate frame-to-frame variation
+            // This requires storing previous frames, so we'll initialize it
+            if (!shotComparisonTab.poseHistory) {
+                shotComparisonTab.poseHistory = [];
+            }
+            
+            // Store current pose angles
+            const currentPose = {
+                rightElbow: landmarks[12] && landmarks[14] && landmarks[16] ? 
+                    calculateAngle(landmarks[12], landmarks[14], landmarks[16]) : null,
+                rightKnee: landmarks[24] && landmarks[26] && landmarks[28] ? 
+                    calculateAngle(landmarks[24], landmarks[26], landmarks[28]) : null,
+                leftElbow: landmarks[11] && landmarks[13] && landmarks[15] ? 
+                    calculateAngle(landmarks[11], landmarks[13], landmarks[15]) : null,
+                leftKnee: landmarks[23] && landmarks[25] && landmarks[27] ? 
+                    calculateAngle(landmarks[23], landmarks[25], landmarks[27]) : null
+            };
+            
+            shotComparisonTab.poseHistory.push(currentPose);
+            // Keep only last 30 frames for consistency calculation
+            if (shotComparisonTab.poseHistory.length > 30) {
+                shotComparisonTab.poseHistory.shift();
+            }
+            
+            // Calculate consistency (lower variation = higher consistency)
+            if (shotComparisonTab.poseHistory.length > 5 && consistencyScoreEl) {
+                let totalVariation = 0;
+                let validComparisons = 0;
+                
+                for (let i = 1; i < shotComparisonTab.poseHistory.length; i++) {
+                    const prev = shotComparisonTab.poseHistory[i - 1];
+                    const curr = shotComparisonTab.poseHistory[i];
+                    
+                    ['rightElbow', 'rightKnee', 'leftElbow', 'leftKnee'].forEach(key => {
+                        if (prev[key] !== null && curr[key] !== null) {
+                            totalVariation += Math.abs(prev[key] - curr[key]);
+                            validComparisons++;
+                        }
+                    });
+                }
+                
+                if (validComparisons > 0) {
+                    const avgVariation = totalVariation / validComparisons;
+                    // Convert variation to consistency score (lower variation = higher score)
+                    // Max variation of 30 degrees = 0% consistency, 0 degrees = 100% consistency
+                    const consistency = Math.max(0, 100 - (avgVariation / 30 * 100));
+                    consistencyScoreEl.textContent = Math.round(consistency) + '%';
+                    
+                    if (consistency >= 80) consistencyScoreEl.style.color = '#4ade80';
+                    else if (consistency >= 60) consistencyScoreEl.style.color = '#fbbf24';
+                    else consistencyScoreEl.style.color = '#f87171';
+                }
+            } else if (consistencyScoreEl && shotComparisonTab.poseHistory.length <= 5) {
+                consistencyScoreEl.textContent = 'Calculating...';
+                consistencyScoreEl.style.color = '#667eea';
+            }
+            
+            // Generate improvement feedback based on all metrics
+            generateImprovementFeedback(shotComparisonTab, landmarks);
+        }
+        
+        // Generate improvement feedback based on metrics
+        function generateImprovementFeedback(tab, landmarks) {
+            const feedbackPanel = tab.querySelector('#improvementFeedbackPanel');
+            const feedbackList = tab.querySelector('#improvementFeedbackList');
+            
+            if (!feedbackPanel || !feedbackList || !landmarks || landmarks.length < 33) {
+                if (feedbackPanel) feedbackPanel.style.display = 'none';
+                return;
+            }
+            
+            const improvements = [];
+            
+            // Calculate angles directly from landmarks for more accurate feedback
+            // 1. Elbow Flare: angle of right elbow to right shoulder to right hip (target: ~10°)
+            if (landmarks[14] && landmarks[12] && landmarks[24] &&
+                landmarks[14].visibility > 0.3 && landmarks[12].visibility > 0.3 && landmarks[24].visibility > 0.3) {
+                const elbowFlare = calculateAngle(landmarks[14], landmarks[12], landmarks[24]);
+                if (elbowFlare !== null) {
+                    if (elbowFlare < 5) {
+                        improvements.push('🔵 <strong>Elbow too close:</strong> Your elbow is at ' + Math.round(elbowFlare) + '° (target: ~10°). Keep your shooting arm slightly away from your body for better power and accuracy.');
+                    } else if (elbowFlare > 20) {
+                        improvements.push('🔵 <strong>Elbow flaring out:</strong> Your elbow is at ' + Math.round(elbowFlare) + '° (target: ~10°). Bring it closer to your body to improve shot consistency and reduce side spin.');
+                    }
+                }
+            }
+            
+            // 2. Trunk Lean: angle of torso relative to vertical (target: ~10°)
+            if (landmarks[11] && landmarks[12] && landmarks[23] && landmarks[24]) {
+                const shoulderMid = {
+                    x: (landmarks[11].x + landmarks[12].x) / 2,
+                    y: (landmarks[11].y + landmarks[12].y) / 2,
+                    z: ((landmarks[11].z || 0) + (landmarks[12].z || 0)) / 2
+                };
+                const hipMid = {
+                    x: (landmarks[23].x + landmarks[24].x) / 2,
+                    y: (landmarks[23].y + landmarks[24].y) / 2,
+                    z: ((landmarks[23].z || 0) + (landmarks[24].z || 0)) / 2
+                };
+                const dx = shoulderMid.x - hipMid.x;
+                const dy = shoulderMid.y - hipMid.y;
+                const trunkLean = Math.abs(Math.atan2(dx, Math.abs(dy)) * (180 / Math.PI));
+                
+                if (trunkLean < 5) {
+                    improvements.push('📐 <strong>Add forward lean:</strong> You\'re at ' + Math.round(trunkLean) + '° (target: ~10°). Lean slightly forward to generate more power and maintain balance during your shot.');
+                } else if (trunkLean > 20) {
+                    improvements.push('📐 <strong>Reduce trunk lean:</strong> You\'re leaning ' + Math.round(trunkLean) + '° forward (target: ~10°). Reduce the lean to maintain better balance and control.');
+                }
+            }
+            
+            // 3. Right Elbow Angle (extension) - should be around 150-170° when extended
+            if (landmarks[12] && landmarks[14] && landmarks[16] &&
+                landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3) {
+                const elbowAngle = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+                if (elbowAngle !== null) {
+                    if (elbowAngle < 120) {
+                        improvements.push('💪 <strong>Extend your arm more:</strong> Your elbow angle is ' + Math.round(elbowAngle) + '°. Fully extend your shooting arm (target: 150-170°) for maximum power and consistency.');
+                    } else if (elbowAngle > 180) {
+                        improvements.push('💪 <strong>Over-extending:</strong> Your elbow angle is ' + Math.round(elbowAngle) + '°. Avoid hyperextending - aim for 150-170° at release.');
+                    }
+                }
+            }
+            
+            // 4. Right Knee Bend - should be around 120-140° for optimal power
+            if (landmarks[24] && landmarks[26] && landmarks[28] &&
+                landmarks[24].visibility > 0.3 && landmarks[26].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                const kneeBend = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+                if (kneeBend !== null) {
+                    if (kneeBend > 160) {
+                        improvements.push('🦵 <strong>Increase knee bend:</strong> Your knee is at ' + Math.round(kneeBend) + '° (target: 120-140°). Bend your knees more to generate power from your legs and improve shot consistency.');
+                    } else if (kneeBend < 100) {
+                        improvements.push('🦵 <strong>Reduce knee bend:</strong> Your knee is at ' + Math.round(kneeBend) + '° (target: 120-140°). You\'re bending too much - aim for a moderate bend for optimal power transfer.');
+                    }
+                }
+            }
+            
+            // 5. Foot Alignment - check if right foot is forward
+            if (landmarks[27] && landmarks[28] &&
+                landmarks[27].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                const rightFootForward = (landmarks[28].z || 0) < (landmarks[27].z || 0);
+                const diff = Math.abs((landmarks[28].z || 0) - (landmarks[27].z || 0));
+                
+                if (diff < 0.01) {
+                    improvements.push('👣 <strong>Foot positioning:</strong> Your feet are aligned. Stagger your feet slightly with your shooting-side foot forward for better balance and power transfer.');
+                } else if (!rightFootForward) {
+                    improvements.push('👣 <strong>Foot alignment:</strong> Your left foot is forward. For right-handed shots, your right foot should be slightly forward for optimal alignment and power.');
+                }
+            }
+            
+            // 6. Foot Stance width
+            if (landmarks[27] && landmarks[28] && landmarks[11] && landmarks[12] &&
+                landmarks[27].visibility > 0.3 && landmarks[28].visibility > 0.3 &&
+                landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3) {
+                const shoulderPixelDistance = calculateDistance3D(landmarks[11], landmarks[12]);
+                const anklePixelDistance = calculateDistance3D(landmarks[27], landmarks[28]);
+                
+                if (shoulderPixelDistance > 0) {
+                    const ratio = anklePixelDistance / shoulderPixelDistance;
+                    if (ratio > 1.2) {
+                        improvements.push('👣 <strong>Narrow your stance:</strong> Your feet are ' + (ratio * 100).toFixed(0) + '% of shoulder width apart. Keep them shoulder-width or slightly narrower for better balance and power.');
+                    }
+                }
+            }
+            
+            // Display feedback (limit to 3-4 most important)
+            if (improvements.length > 0) {
+                // Sort by priority (elbow flare and extension first, then others)
+                improvements.sort((a, b) => {
+                    if (a.includes('Elbow')) return -1;
+                    if (b.includes('Elbow')) return 1;
+                    if (a.includes('knee')) return 1;
+                    if (b.includes('knee')) return -1;
+                    return 0;
+                });
+                
+                // Take top 3-4 improvements
+                const topImprovements = improvements.slice(0, 4);
+                
+                feedbackList.innerHTML = '<ul style="margin: 0; padding-left: 20px; list-style: none;">' +
+                    topImprovements.map(imp => `<li style="margin-bottom: 12px; padding-left: 10px; border-left: 3px solid rgba(255,255,255,0.5);">${imp}</li>`).join('') +
+                    '</ul>';
+                feedbackPanel.style.display = 'block';
+            } else {
+                // All metrics are good!
+                feedbackList.innerHTML = '<div style="color: rgba(255,255,255,0.95); font-size: 1.1em;">✅ <strong>Great form!</strong> Your shot mechanics look solid. Keep practicing to maintain consistency.</div>';
+                feedbackPanel.style.display = 'block';
+            }
         }
         
         // Update loop 3D skeleton for a specific tab - EXACT COPY of updateLoop3DSkeleton
@@ -3500,6 +5130,12 @@
             // Clear previous skeleton
             tab.loopSkeletonObjects.forEach(obj => tab.loopScene.remove(obj));
             tab.loopSkeletonObjects = [];
+            
+            // Get current stage for color coding
+            const currentStage = tab.loop3DStages && tab.loop3DStages[tab.currentLoopFrameIndex] 
+                ? tab.loop3DStages[tab.currentLoopFrameIndex] 
+                : "neutral";
+            const stageColor = getStageColor(currentStage);
 
             // Complete MediaPipe Pose connections (all main body connections) - SAME AS MAIN VIEWER
             const connections = [
@@ -3570,10 +5206,10 @@
                 }
 
                 const geometry = new THREE.SphereGeometry(0.04, 12, 12);
-                const color = lm.visibility > 0.8 ? 0x00ff00 : lm.visibility > 0.6 ? 0xffff00 : 0xff6600;
+                // Use stage color instead of visibility-based color
                 const material = new THREE.MeshPhongMaterial({ 
-                    color: color, 
-                    emissive: color, 
+                    color: stageColor, 
+                    emissive: stageColor, 
                     emissiveIntensity: 0.4,
                     shininess: 30
                 });
@@ -3611,9 +5247,9 @@
                     new THREE.Vector3(end.pos3d.x, end.pos3d.y, end.pos3d.z)
                 ]);
 
-                // Make connections more visible - SAME AS MAIN VIEWER
+                // Make connections more visible - use stage color
                 const material = new THREE.LineBasicMaterial({ 
-                    color: 0x00ffff, 
+                    color: stageColor, 
                     linewidth: 3,
                     opacity: 0.95,
                     transparent: true
@@ -3640,6 +5276,26 @@
             // Update angles display if this is the Shot Comparison tab
             if (tab.id === 'shot-comparison-tab') {
                 updateAnglesDisplay(landmarks);
+                
+                // Sync background video with loop animation
+                const backgroundVideo = tab.querySelector('#loopBackgroundVideo');
+                if (backgroundVideo && tab.loop3DPoses && tab.loop3DPoses.length > 0 && backgroundVideo.readyState >= 2) {
+                    const totalFrames = tab.loop3DPoses.length;
+                    const videoDuration = backgroundVideo.duration;
+                    if (videoDuration && !isNaN(videoDuration) && videoDuration > 0) {
+                        // Calculate which original frame this corresponds to (before interpolation)
+                        // The loop has been interpolated 16x, so we need to map back to original frames
+                        const originalFrameCount = Math.floor(totalFrames / 16);
+                        const currentOriginalFrame = Math.floor(tab.currentLoopFrameIndex / 16);
+                        const frameProgress = currentOriginalFrame / originalFrameCount;
+                        const targetTime = frameProgress * videoDuration;
+                        
+                        // Only update if difference is significant to avoid jitter
+                        if (Math.abs(backgroundVideo.currentTime - targetTime) > 0.05) {
+                            backgroundVideo.currentTime = targetTime;
+                        }
+                    }
+                }
         }
         }
         
@@ -3649,17 +5305,44 @@
                 const tab = btn.closest('.tab-content');
                 if (!tab) return;
                 
-                const tabVideoElement = tab.querySelector('video#videoPlayer') || tab.querySelector('video');
+                // Try to get video element - check stored reference first, then query
+                let tabVideoElement = tab.uploadedVideo || tab.querySelector('video#videoPlayer') || tab.querySelector('video');
                 const tabCanvas = tab.querySelector('canvas#overlayCanvas') || tab.querySelector('canvas');
                 const tabLoop3DSection = tab.querySelector('#loop3DSection');
                 const tabLoopGenerationStatus = tab.querySelector('#loopGenerationStatus');
-                const tabLoopCanvas3d = tab.querySelector('#loopCanvas3d');
+                const tabLoopCanvas3d = tab.querySelector('#loopCanvas3d') || tab.querySelector('#canvas3d');
                 const tabPoseMethod = tab.querySelector('#poseMethod');
                 const tabUserHeight = tab.querySelector('#userHeight');
                 const tabShoulderWidth = tab.querySelector('#shoulderWidth');
                 
-                if (!tabVideoElement || !tabVideoElement.src) {
-                    alert('Please upload a video first');
+                // Check if video is loaded - check both src and readyState
+                if (!tabVideoElement) {
+                    alert('Video element not found. Please refresh the page.');
+                    return;
+                }
+                
+                // Check if video has a source (blob URL or regular URL)
+                const hasVideoSource = tabVideoElement.src && 
+                                      tabVideoElement.src !== '' && 
+                                      tabVideoElement.src !== window.location.href &&
+                                      !tabVideoElement.src.includes('data:') &&
+                                      (tabVideoElement.readyState >= 1 || tabVideoElement.src.startsWith('blob:') || tab.videoLoaded);
+                
+                if (!hasVideoSource) {
+                    // Wait a bit and check again (video might still be loading)
+                    setTimeout(() => {
+                        const retryCheck = tabVideoElement.src && 
+                                          tabVideoElement.src !== '' && 
+                                          tabVideoElement.src !== window.location.href &&
+                                          !tabVideoElement.src.includes('data:') &&
+                                          (tabVideoElement.readyState >= 1 || tabVideoElement.src.startsWith('blob:') || tab.videoLoaded);
+                        if (!retryCheck) {
+                            alert('Please upload a video first. Make sure the video appears in the player above and wait for it to load.');
+                        } else {
+                            // Retry the generation
+                            generateLoopForTab(tab, tabVideoElement, tabCanvas, btn, tabLoop3DSection, tabLoopGenerationStatus, tabLoopCanvas3d, tabPoseMethod, tabUserHeight, tabShoulderWidth);
+                        }
+                    }, 500);
                     return;
                 }
                 
@@ -4235,7 +5918,8 @@
 
                         // Draw frame to canvas
                         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        const frameData = canvas.toDataURL('image/jpeg', 0.9);
+                        // Use maximum quality for frame extraction
+                        const frameData = canvas.toDataURL('image/jpeg', 1.0);
 
                         // Send frame to API for processing
                         try {
