@@ -4206,15 +4206,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 100); // Small delay to ensure DOM is ready
     
-    // Ensure step 0.5 (player selection) is shown by default
+    // Step0 (sign-in) is shown by default via HTML
     const step0 = document.getElementById('step0');
-    const step0_5 = document.getElementById('step0_5');
-    if (step0 && step0_5) {
-        step0.classList.remove('active');
-        step0.style.display = 'none';
-        step0_5.classList.add('active');
-        step0_5.style.display = 'block';
-    }
     
     // Google Sign-In button handlers (both on step0 and player selection page)
     const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -4263,8 +4256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.onAuthStateChangedHandler && window.firebaseAuth) {
         window.onAuthStateChangedHandler(window.firebaseAuth, (user) => {
             const step0 = document.getElementById('step0');
-            const step0_5 = document.getElementById('step0_5');
-            
+
             if (user) {
                 // User is signed in, update profile and show it
                 updateProfileUI(user);
@@ -4294,45 +4286,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     playerSignInSection.style.display = 'none';
                 }
                 
-                // Auto-advance to player selection if user is already signed in
-                if (step0 && step0_5) {
-                    const currentActiveStep = document.querySelector('.step.active');
-                    // Only auto-advance if we're on the landing page
-                    if (currentActiveStep && currentActiveStep.id === 'step0') {
-                        step0.classList.remove('active');
-                        step0.style.display = 'none';
-                        step0_5.classList.add('active');
-                        step0_5.style.display = 'block';
+                // Auto-advance to recording step if user is already signed in
+                const step1 = document.getElementById('step1');
+                const step2 = document.getElementById('step2');
+                const currentActiveStep = document.querySelector('.step.active');
+                // Only auto-advance if we're on the sign-in page (step0)
+                if (currentActiveStep && currentActiveStep.id === 'step0') {
+                    step0.classList.remove('active');
+                    step0.style.display = 'none';
+                    // Go to step2 (record your shot)
+                    if (step2) {
+                        step2.classList.add('active');
+                        step2.style.display = 'block';
                     }
                 }
             } else {
-                // User is signed out, hide profile but keep showing player selection
+                // User is signed out - show sign-in page
                 hideProfileUI();
+
+                // Show step0 with sign-in section
+                if (step0) {
+                    step0.classList.add('active');
+                    step0.style.display = 'block';
+                }
 
                 // Show sign-in button
                 const signInSection = document.getElementById('signInSection');
                 if (signInSection) {
                     signInSection.style.display = 'block';
                 }
-
-                // Keep player selection visible even when not signed in
-                if (step0 && step0_5) {
-                    step0.classList.remove('active');
-                    step0.style.display = 'none';
-                    step0_5.classList.add('active');
-                    step0_5.style.display = 'block';
-                }
             }
         });
     } else {
-        // Firebase not initialized or not available - show player selection page
+        // Firebase not initialized or not available - show sign-in page
         const step0 = document.getElementById('step0');
-        const step0_5 = document.getElementById('step0_5');
-        if (step0 && step0_5) {
-            step0.classList.remove('active');
-            step0.style.display = 'none';
-            step0_5.classList.add('active');
-            step0_5.style.display = 'block';
+        if (step0) {
+            step0.classList.add('active');
+            step0.style.display = 'block';
         }
     }
     
@@ -4493,11 +4483,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 step.style.display = 'none';
             });
             
-            // Show player selection
-            const step0_5 = document.getElementById('step0_5');
-            if (step0_5) {
-                step0_5.classList.add('active');
-                step0_5.style.display = 'block';
+            // Show recording step
+            const step2 = document.getElementById('step2');
+            if (step2) {
+                step2.classList.add('active');
+                step2.style.display = 'block';
             }
             });
         }
@@ -4629,13 +4619,6 @@ function selectPlayer(player) {
     console.log('🎯 selectPlayer called with player:', player);
     // Back buttons are now always visible on recording pages, no need to manually show them
     selectedPlayer = player;
-    
-    // Hide player selection (step0_5)
-    const step0_5 = document.getElementById('step0_5');
-    if (step0_5) {
-        step0_5.classList.remove('active');
-        step0_5.style.display = 'none';
-    }
     
     // Show custom explanation if custom selected
     const customExplanation = document.getElementById('customExplanation');
@@ -5007,11 +4990,11 @@ async function handleGoogleSignIn() {
             await window.updateLoginStreak(window.firebaseAuth.currentUser.uid);
         }
     
-    // Move to player selection step
+    // Move to recording step
     document.getElementById('step0').classList.remove('active');
     document.getElementById('step0').style.display = 'none';
-    document.getElementById('step0_5').classList.add('active');
-    document.getElementById('step0_5').style.display = 'block';
+    document.getElementById('step2').classList.add('active');
+    document.getElementById('step2').style.display = 'block';
     } catch (error) {
         console.error('Error signing in with Google:', error);
         console.error('Error code:', error.code);
@@ -5610,34 +5593,31 @@ function resetApp() {
         step.style.display = 'none';
     });
     
-    // Reset UI - go back to player selection if signed in, otherwise landing page
+    // Reset UI - go back to recording if signed in, otherwise sign-in page
     const step0 = document.getElementById('step0');
-    const step0_5 = document.getElementById('step0_5');
-    
-    // Check if user is signed in - check Firebase auth state synchronously
+    const step2 = document.getElementById('step2');
+
+    // Check if user is signed in
     let isSignedIn = false;
     if (window.firebaseAuth && window.firebaseAuth.currentUser) {
         isSignedIn = true;
     } else if (userInfo !== null) {
         isSignedIn = true;
     }
-    
-    // Always go to player selection, regardless of sign-in status
-    if (step0) {
-        step0.classList.remove('active');
-        step0.style.display = 'none';
+
+    if (isSignedIn) {
+        // Go to recording step
+        if (step2) {
+            step2.classList.add('active');
+            step2.style.display = 'block';
+        }
+    } else {
+        // Go to sign-in page
+        if (step0) {
+            step0.classList.add('active');
+            step0.style.display = 'block';
+        }
     }
-    if (step0_5) {
-        step0_5.classList.add('active');
-        step0_5.style.display = 'block';
-    }
-    
-    document.getElementById('step1').classList.remove('active');
-    document.getElementById('step1').style.display = 'none';
-    document.getElementById('step2').classList.remove('active');
-    document.getElementById('step2').style.display = 'none';
-    document.getElementById('step3').classList.remove('active');
-    document.getElementById('step3').style.display = 'none';
     
     document.getElementById('startBenchmark').disabled = false;
     document.getElementById('stopBenchmark').disabled = true;
