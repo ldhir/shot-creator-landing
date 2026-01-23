@@ -1386,6 +1386,9 @@ async function processUploadedUserVideo() {
                 }
             }
 
+            // Show 3D animation section after video is processed
+            showPose3dAnimationSection();
+            
             compareShots();
         } else {
             statusEl.textContent = 'No shot detected in video. Please try another video or record live.';
@@ -5638,3 +5641,332 @@ function resetApp() {
     }
 }
 
+// ====================== 3D POSE ANIMATION ======================
+
+let pose3dScene = null;
+let pose3dCamera = null;
+let pose3dRenderer = null;
+let pose3dAnimationId = null;
+let pose3dIsPlaying = false;
+let pose3dCurrentFrame = 0;
+let pose3dFrames = [];
+let pose3dSkeleton = null;
+
+// Show the 3D animation section
+function showPose3dAnimationSection() {
+    const section = document.getElementById('pose3dAnimationSection');
+    if (section && userPoseData && userPoseData.length > 0) {
+        section.style.display = 'block';
+    }
+}
+
+// Initialize 3D scene
+function initPose3dScene() {
+    const container = document.getElementById('pose3dContainer');
+    const canvas = document.getElementById('pose3dCanvas');
+    
+    if (!container || !canvas) {
+        console.error('3D animation container or canvas not found');
+        return false;
+    }
+    
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    // Create scene
+    pose3dScene = new THREE.Scene();
+    pose3dScene.background = new THREE.Color(0x1a1a1a);
+    
+    // Create camera
+    pose3dCamera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    pose3dCamera.position.set(0, 1, 3);
+    pose3dCamera.lookAt(0, 0, 0);
+    
+    // Create renderer
+    pose3dRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    pose3dRenderer.setSize(width, height);
+    pose3dRenderer.setPixelRatio(window.devicePixelRatio);
+    
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    pose3dScene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 5);
+    pose3dScene.add(directionalLight);
+    
+    // Add grid helper
+    const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+    pose3dScene.add(gridHelper);
+    
+    // Add axes helper
+    const axesHelper = new THREE.AxesHelper(2);
+    pose3dScene.add(axesHelper);
+    
+    return true;
+}
+
+// MediaPipe pose connections for 3D skeleton
+const POSE_3D_CONNECTIONS = [
+    // Face (simplified)
+    [0, 1], [1, 2], [2, 3], [3, 7],
+    // Upper body
+    [11, 12], // Shoulders
+    [11, 13], [13, 15], // Left arm
+    [12, 14], [14, 16], // Right arm
+    [11, 23], [12, 24], // Torso to hips
+    // Lower body
+    [23, 24], // Hips
+    [23, 25], [25, 27], // Left leg
+    [24, 26], [26, 28], // Right leg
+    // Additional connections
+    [15, 17], [15, 19], [15, 21], // Left hand
+    [16, 18], [16, 20], [16, 22], // Right hand
+    [27, 29], [27, 31], // Left foot
+    [28, 30], [28, 32], // Right foot
+];
+
+// Create skeleton from pose data
+function createPose3dSkeleton(landmarks) {
+    if (!landmarks || landmarks.length < 33) {
+        return null;
+    }
+    
+    const geometry = new THREE.BufferGeometry();
+    const positions = [];
+    const colors = [];
+    
+    // Add joints (spheres)
+    const joints = [];
+    landmarks.forEach((landmark, index) => {
+        if (landmark && landmark.length === 3 && !isNaN(landmark[0])) {
+            const [x, y, z] = landmark;
+            // Scale and center the pose
+            const scaledX = x * 2;
+            const scaledY = -y * 2; // Flip Y axis
+            const scaledZ = z * 2;
+            
+            const jointGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const jointMaterial = new THREE.MeshBasicMaterial({ 
+                color: index === 16 ? 0xff6b7a : 0x4a90e2 // Highlight right wrist
+            });
+            const joint = new THREE.Mesh(jointGeometry, jointMaterial);
+            joint.position.set(scaledX, scaledY, scaledZ);
+            joints.push(joint);
+            pose3dScene.add(joint);
+        }
+    });
+    
+    // Add bones (lines)
+    POSE_3D_CONNECTIONS.forEach(([start, end]) => {
+        if (landmarks[start] && landmarks[end] && 
+            landmarks[start].length === 3 && landmarks[end].length === 3) {
+            const [x1, y1, z1] = landmarks[start];
+            const [x2, y2, z2] = landmarks[end];
+            
+            positions.push(x1 * 2, -y1 * 2, z1 * 2);
+            positions.push(x2 * 2, -y2 * 2, z2 * 2);
+            
+            // Color bones
+            colors.push(0.8, 0.8, 0.8);
+            colors.push(0.8, 0.8, 0.8);
+        }
+    });
+    
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    
+    const material = new THREE.LineBasicMaterial({ 
+        vertexColors: true,
+        linewidth: 2
+    });
+    
+    const skeleton = new THREE.LineSegments(geometry, material);
+    
+    return { joints, skeleton };
+}
+
+// Update skeleton with new pose data
+function updatePose3dSkeleton(landmarks) {
+    if (!pose3dScene || !landmarks) return;
+    
+    // Remove old skeleton
+    if (pose3dSkeleton) {
+        if (pose3dSkeleton.joints) {
+            pose3dSkeleton.joints.forEach(joint => pose3dScene.remove(joint));
+        }
+        if (pose3dSkeleton.skeleton) {
+            pose3dScene.remove(pose3dSkeleton.skeleton);
+        }
+    }
+    
+    // Create new skeleton
+    pose3dSkeleton = createPose3dSkeleton(landmarks);
+    if (pose3dSkeleton && pose3dSkeleton.skeleton) {
+        pose3dScene.add(pose3dSkeleton.skeleton);
+    }
+}
+
+// Generate animation from pose data
+function generatePose3dAnimation() {
+    if (!userPoseData || userPoseData.length === 0) {
+        alert('No pose data available. Please upload and analyze a video first.');
+        return;
+    }
+    
+    const statusEl = document.getElementById('animationStatus');
+    const container = document.getElementById('pose3dContainer');
+    const generateBtn = document.getElementById('generateAnimationBtn');
+    const playPauseBtn = document.getElementById('playPauseAnimationBtn');
+    const resetBtn = document.getElementById('resetAnimationBtn');
+    
+    // Show status
+    if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.textContent = 'Generating 3D animation...';
+    }
+    
+    // Disable button
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+    }
+    
+    // Initialize scene
+    if (!initPose3dScene()) {
+        if (statusEl) statusEl.textContent = 'Error: Could not initialize 3D scene';
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.textContent = '🎬 Generate Animation';
+        }
+        return;
+    }
+    
+    // Extract landmarks from pose data
+    pose3dFrames = userPoseData
+        .filter(frame => frame.landmarks && frame.landmarks.length >= 33)
+        .map(frame => frame.landmarks);
+    
+    if (pose3dFrames.length === 0) {
+        if (statusEl) statusEl.textContent = 'Error: No valid pose landmarks found';
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.textContent = '🎬 Generate Animation';
+        }
+        return;
+    }
+    
+    // Show container
+    if (container) container.style.display = 'block';
+    
+    // Reset animation
+    pose3dCurrentFrame = 0;
+    pose3dIsPlaying = false;
+    
+    // Update skeleton with first frame
+    updatePose3dSkeleton(pose3dFrames[0]);
+    
+    // Show controls
+    if (playPauseBtn) {
+        playPauseBtn.style.display = 'inline-block';
+        playPauseBtn.textContent = '▶️ Play';
+    }
+    if (resetBtn) resetBtn.style.display = 'inline-block';
+    
+    // Update status
+    if (statusEl) {
+        statusEl.textContent = `✅ Animation ready! ${pose3dFrames.length} frames loaded. Click Play to start.`;
+        statusEl.style.color = '#4ade80';
+    }
+    
+    // Re-enable button
+    if (generateBtn) {
+        generateBtn.disabled = false;
+        generateBtn.textContent = '🎬 Regenerate Animation';
+    }
+    
+    // Start animation loop
+    animatePose3d();
+}
+
+// Animation loop
+function animatePose3d() {
+    if (!pose3dRenderer || !pose3dScene || !pose3dCamera) return;
+    
+    // Update skeleton if playing
+    if (pose3dIsPlaying && pose3dFrames.length > 0) {
+        updatePose3dSkeleton(pose3dFrames[pose3dCurrentFrame]);
+        
+        // Advance frame
+        pose3dCurrentFrame = (pose3dCurrentFrame + 1) % pose3dFrames.length;
+    }
+    
+    // Render
+    pose3dRenderer.render(pose3dScene, pose3dCamera);
+    
+    // Continue animation
+    pose3dAnimationId = requestAnimationFrame(animatePose3d);
+}
+
+// Play/Pause animation
+function togglePose3dAnimation() {
+    const playPauseBtn = document.getElementById('playPauseAnimationBtn');
+    
+    pose3dIsPlaying = !pose3dIsPlaying;
+    
+    if (playPauseBtn) {
+        playPauseBtn.textContent = pose3dIsPlaying ? '⏸️ Pause' : '▶️ Play';
+    }
+}
+
+// Reset animation
+function resetPose3dAnimation() {
+    pose3dCurrentFrame = 0;
+    pose3dIsPlaying = false;
+    
+    const playPauseBtn = document.getElementById('playPauseAnimationBtn');
+    if (playPauseBtn) {
+        playPauseBtn.textContent = '▶️ Play';
+    }
+    
+    if (pose3dFrames.length > 0) {
+        updatePose3dSkeleton(pose3dFrames[0]);
+    }
+}
+
+// Handle window resize
+function handlePose3dResize() {
+    if (!pose3dRenderer || !pose3dCamera) return;
+    
+    const container = document.getElementById('pose3dContainer');
+    if (!container) return;
+    
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    pose3dCamera.aspect = width / height;
+    pose3dCamera.updateProjectionMatrix();
+    pose3dRenderer.setSize(width, height);
+}
+
+// Event listeners for 3D animation
+document.addEventListener('DOMContentLoaded', function() {
+    const generateBtn = document.getElementById('generateAnimationBtn');
+    const playPauseBtn = document.getElementById('playPauseAnimationBtn');
+    const resetBtn = document.getElementById('resetAnimationBtn');
+    
+    if (generateBtn) {
+        generateBtn.addEventListener('click', generatePose3dAnimation);
+    }
+    
+    if (playPauseBtn) {
+        playPauseBtn.addEventListener('click', togglePose3dAnimation);
+    }
+    
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetPose3dAnimation);
+    }
+    
+    // Handle window resize
+    window.addEventListener('resize', handlePose3dResize);
+});

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         /* Athletic Theme Overrides - Consistent with Landing Page */
 
@@ -1697,6 +1698,19 @@
                     </div>
                     <div class="chart-container">
                         <canvas id="comparisonChart"></canvas>
+                    </div>
+                    <!-- 3D Pose Animation Section -->
+                    <div id="pose3dAnimationSection" style="display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px;">
+                        <h4 style="margin-top: 0; margin-bottom: 15px; font-family: 'Bebas Neue', sans-serif; color: #333;">3D Pose Animation</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
+                            <button id="generateAnimationBtn" class="btn btn-primary" style="min-width: 180px;">🎬 Generate Animation</button>
+                            <button id="playPauseAnimationBtn" class="btn btn-secondary" style="display: none; min-width: 140px;">⏸️ Pause</button>
+                            <button id="resetAnimationBtn" class="btn btn-secondary" style="display: none; min-width: 140px;">🔄 Reset</button>
+                        </div>
+                        <div id="animationStatus" style="display: none; padding: 10px; background: #fff; border-radius: 8px; margin-bottom: 15px; color: #666; font-size: 14px;"></div>
+                        <div id="pose3dContainer" style="width: 100%; height: 500px; background: #1a1a1a; border-radius: 8px; position: relative; display: none;">
+                            <canvas id="pose3dCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                        </div>
                     </div>
                     <!-- Coordinate Table (Hidden) -->
                     <div id="coordinateTableContainer" style="display: none; margin-top: 30px; overflow-x: auto; max-height: 400px; overflow-y: auto;">

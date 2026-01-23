@@ -8,7 +8,151 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
+        /* 3D Skeleton Viewer Styles */
+        .skeleton-viewer-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #1a1a1a;
+        }
+
+        #skeletonCanvas3d {
+            width: 100%;
+            flex: 1;
+            min-height: 280px;
+            background: #1a1a1a;
+            display: block;
+        }
+
+        .skeleton-controls {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            background: rgba(0,0,0,0.95);
+            border-top: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .frame-slider {
+            flex: 1;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        .frame-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .skeleton-btn {
+            background: var(--primary-color);
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .skeleton-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        #frameCounter {
+            color: #888;
+            font-size: 12px;
+            min-width: 70px;
+            text-align: right;
+            font-family: 'Work Sans', sans-serif;
+        }
+
+        .camera-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 12px;
+            padding-left: 12px;
+            border-left: 1px solid #444;
+        }
+
+        .camera-controls label {
+            color: #888;
+            font-size: 12px;
+            cursor: default;
+        }
+
+        .camera-slider {
+            width: 60px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        .camera-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Processing overlay for skeleton extraction */
+        .skeleton-processing {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 15;
+            border-radius: 12px;
+        }
+
+        .skeleton-processing .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .skeleton-processing p {
+            color: #ccc;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Athletic Theme Overrides - Consistent with Landing Page */
 
         /* Player Button Hover Effects */
@@ -608,6 +752,7 @@
         /* ========== Ideal Form Results UI ========== */
         .ideal-form-results { display: none; }
         .ideal-form-results.active { display: block; }
+
 
         .if-header {
             display: flex;
@@ -2255,6 +2400,29 @@
                             <h3>Video Ready</h3>
                             <p>Select analysis type below</p>
                         </div>
+                        <!-- Skeleton Viewer Container (shown when video is ready) -->
+                        <div class="skeleton-viewer-container" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5;">
+                            <canvas id="skeletonCanvas3d"></canvas>
+                            <div class="skeleton-controls">
+                                <button id="playPauseLoop" class="skeleton-btn">▶</button>
+                                <button id="pauseLoopBtn" class="skeleton-btn" style="display: none;">⏸</button>
+                                <input type="range" id="frameSlider" min="0" max="100" value="0" class="frame-slider">
+                                <span id="frameCounter">0 / 0</span>
+                                <div class="camera-controls">
+                                    <label title="Horizontal">↔</label>
+                                    <input type="range" id="cameraX" min="-5" max="5" value="0" step="0.1" class="camera-slider">
+                                    <label title="Vertical">↕</label>
+                                    <input type="range" id="cameraY" min="-5" max="5" value="0" step="0.1" class="camera-slider">
+                                    <label title="Zoom">🔍</label>
+                                    <input type="range" id="cameraZoom" min="2" max="10" value="5" step="0.1" class="camera-slider">
+                                </div>
+                            </div>
+                            <!-- Processing overlay -->
+                            <div id="skeletonProcessing" class="skeleton-processing" style="display: none;">
+                                <div class="spinner"></div>
+                                <p id="processingStatus">Extracting skeleton...</p>
+                            </div>
+                        </div>
                     </div>
                     <!-- Running Analysis Overlay (green - actually processing) -->
                     <div id="analysisRunningOverlay" class="analysis-overlay" style="display: none;">
@@ -2293,6 +2461,11 @@
                         Choose your analysis type:
                     </p>
                     <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; align-items: stretch;">
+                        <button id="generateAnimationBtn" class="analysis-type-btn" data-type="animation" style="display: none; background: var(--primary-color); color: white; border-color: var(--primary-color);">
+                            <span class="analysis-icon">🔄</span>
+                            <span class="analysis-title">Generate Animation</span>
+                            <span class="analysis-desc">Create 3D pose loop animation</span>
+                        </button>
                         <button id="idealFormBtn" class="analysis-type-btn" data-type="ideal">
                             <span class="analysis-icon">🎯</span>
                             <span class="analysis-title">Ideal Form</span>
@@ -2785,6 +2958,7 @@
                         <button id="ifNewAnalysis" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">New Analysis</button>
                     </div>
                 </div>
+
             </section>
 
             <!-- Shot Tracker Section - Uses ONLY AI-Basketball-Shot-Detection-Tracker -->
@@ -9989,9 +10163,56 @@
             // Hide user status
             const userStatus = document.getElementById('userStatus');
             if (userStatus) userStatus.style.display = 'none';
-            // Show "Video Ready" overlay (blue)
+            // Show skeleton viewer overlay
             const readyOverlay = document.getElementById('videoReadyOverlay');
             if (readyOverlay) readyOverlay.style.display = 'flex';
+
+            // Automatically extract angles from video (but don't show animation)
+            // This happens silently in the background
+            setTimeout(async () => {
+                try {
+                    await generateLoop(); // Extract angles silently
+                    console.log('Angles extracted automatically from video');
+                } catch (error) {
+                    console.error('Error extracting angles:', error);
+                }
+            }, 500);
+        }
+
+        // Generate demo skeleton data for fallback
+        function generateDemoSkeletonData() {
+            const frames = [];
+            const totalFrames = 60;
+
+            for (let i = 0; i < totalFrames; i++) {
+                const progress = i / totalFrames;
+                let state = progress < 0.2 ? 'neutral' : progress < 0.7 ? 'pre_shot' : 'follow_through';
+
+                const armRaise = Math.sin(progress * Math.PI) * 0.3;
+                const landmarks = [];
+
+                for (let j = 0; j < 33; j++) {
+                    let x = 0.5, y = 0.5, z = 0;
+                    switch(j) {
+                        case 11: x = 0.35; y = 0.3; break;
+                        case 12: x = 0.65; y = 0.3; break;
+                        case 13: x = 0.25; y = 0.45; break;
+                        case 14: x = 0.75; y = 0.3 - armRaise; break;
+                        case 15: x = 0.2; y = 0.55; break;
+                        case 16: x = 0.8; y = 0.2 - armRaise * 1.2; break;
+                        case 23: x = 0.4; y = 0.55; break;
+                        case 24: x = 0.6; y = 0.55; break;
+                        case 25: x = 0.38; y = 0.72; break;
+                        case 26: x = 0.62; y = 0.72; break;
+                        case 27: x = 0.36; y = 0.9; break;
+                        case 28: x = 0.64; y = 0.9; break;
+                    }
+                    landmarks.push({ x, y, z, visibility: 1.0 });
+                }
+
+                frames.push({ state, time: i / 30, landmarks });
+            }
+            return frames;
         }
 
         // Go back to recording/upload state
@@ -10026,9 +10247,12 @@
             document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
             // Clear recorded pose data
             window.recordedUserPoseData = null;
+            window.userPoseData = null;
             if (typeof userPoseData !== 'undefined') {
                 userPoseData = [];
             }
+            // Stop skeleton viewer
+            stopSkeletonViewer();
         }
 
         // Override the userVideoUpload change handler to show analysis options
@@ -10036,9 +10260,47 @@
             const userVideoUpload = document.getElementById('userVideoUpload');
             if (userVideoUpload) {
                 userVideoUpload.addEventListener('change', function(e) {
-                    if (e.target.files[0]) {
-                        // Show analysis options and blue overlay
-                        setTimeout(showAnalysisOptions, 100);
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Set video src to uploaded file
+                        const video = document.getElementById('userVideo');
+                        if (video) {
+                            // Revoke previous blob URL if it exists
+                            if (video.src && video.src.startsWith('blob:')) {
+                                URL.revokeObjectURL(video.src);
+                            }
+                            
+                            const url = URL.createObjectURL(file);
+                            console.log('Setting video src to blob URL:', url.substring(0, 50));
+                            video.src = url;
+                            video.load();
+
+                            // Store file reference for later use
+                            video.uploadedFile = file;
+                            
+                            // Wait for video to load, then show analysis options
+                            const onLoaded = function() {
+                                console.log('Video loaded:', { 
+                                    src: video.src.substring(0, 50), 
+                                    readyState: video.readyState,
+                                    width: video.videoWidth,
+                                    height: video.videoHeight,
+                                    duration: video.duration
+                                });
+                                showAnalysisOptions();
+                            };
+                            
+                            if (video.readyState >= 2) {
+                                // Already loaded
+                                onLoaded();
+                            } else {
+                                video.addEventListener('loadeddata', onLoaded, { once: true });
+                                video.addEventListener('error', function(e) {
+                                    console.error('Video load error:', e);
+                                    alert('Error loading video. Please try a different file.');
+                                }, { once: true });
+                            }
+                        }
                     }
                 });
             }
@@ -10049,12 +10311,58 @@
                     // Skip if this is the back button
                     if (this.id === 'backToRecordBtn') return;
 
+                    // Handle animation button separately
+                    const analysisType = this.dataset.type;
+                    if (analysisType === 'animation') {
+                        // Show 3D loop animation (if already generated)
+                        if (loop3DPoses.length > 0) {
+                            // Show skeleton viewer and start animation
+                            const readyOverlay = document.getElementById('videoReadyOverlay');
+                            if (readyOverlay) readyOverlay.style.display = 'flex';
+                            
+                            // Initialize and start animation
+                            if (!loopScene || !loopRenderer) {
+                                initLoop3DViewer();
+                            }
+                            
+                            // Update slider
+                            const slider = document.getElementById('frameSlider');
+                            if (slider) {
+                                slider.max = loop3DPoses.length - 1;
+                                slider.value = 0;
+                            }
+                            
+                            // Start playing
+                            isLoopPlaying = true;
+                            currentLoopFrameIndex = 0;
+                            const playBtn = document.getElementById('playPauseLoop');
+                            const pauseBtn = document.getElementById('pauseLoopBtn');
+                            if (playBtn) playBtn.style.display = 'none';
+                            if (pauseBtn) pauseBtn.style.display = 'inline-block';
+                            animateLoop();
+                        } else {
+                            // Generate animation if not already done
+                            generateLoop().then(() => {
+                                // After generation, start animation
+                                if (loop3DPoses.length > 0) {
+                                    isLoopPlaying = true;
+                                    currentLoopFrameIndex = 0;
+                                    const playBtn = document.getElementById('playPauseLoop');
+                                    const pauseBtn = document.getElementById('pauseLoopBtn');
+                                    if (playBtn) playBtn.style.display = 'none';
+                                    if (pauseBtn) pauseBtn.style.display = 'inline-block';
+                                    animateLoop();
+                                }
+                            });
+                        }
+                        return;
+                    }
+
                     // Visual feedback - select this button
                     document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
                     this.classList.add('selected');
 
                     // Store the selected type
-                    const analysisType = this.dataset.type;
                     window.selectedAnalysisType = analysisType;
 
                     // Hide "Video Ready" overlay, show "Running Analysis" overlay
@@ -10074,16 +10382,39 @@
                             document.getElementById('playerMatchResults').classList.add('active');
                             document.getElementById('idealFormResults').classList.remove('active');
                         }, 1000); // Simulate brief loading
-                    } else {
-                        // Ideal Form - show hardcoded UI for now
-                        console.log('Showing Ideal Form results...');
-                        setTimeout(() => {
-                            if (runningOverlay) runningOverlay.style.display = 'none';
-                            document.getElementById('step2').style.display = 'none';
-                            document.getElementById('step3').style.display = 'block';
-                            document.getElementById('playerMatchResults').classList.remove('active');
-                            document.getElementById('idealFormResults').classList.add('active');
-                        }, 1000); // Simulate brief loading
+                    } else if (analysisType === 'ideal') {
+                        // Ideal Form - calculate metrics from extracted angles
+                        console.log('Calculating Ideal Form metrics from angles...');
+                        
+                        // Wait for angles to be extracted if not ready yet
+                        const checkAngles = () => {
+                            if (loop3DAngles && loop3DAngles.length > 0) {
+                                calculateIdealFormMetrics();
+                                setTimeout(() => {
+                                    if (runningOverlay) runningOverlay.style.display = 'none';
+                                    document.getElementById('step2').style.display = 'none';
+                                    document.getElementById('step3').style.display = 'block';
+                                    document.getElementById('playerMatchResults').classList.remove('active');
+                                    document.getElementById('idealFormResults').classList.add('active');
+                                }, 1000);
+                            } else if (isGeneratingLoop) {
+                                // Still generating, wait a bit
+                                setTimeout(checkAngles, 500);
+                            } else {
+                                // Not generated yet, generate now
+                                generateLoop(true).then(() => {
+                                    calculateIdealFormMetrics();
+                                    setTimeout(() => {
+                                        if (runningOverlay) runningOverlay.style.display = 'none';
+                                        document.getElementById('step2').style.display = 'none';
+                                        document.getElementById('step3').style.display = 'block';
+                                        document.getElementById('playerMatchResults').classList.remove('active');
+                                        document.getElementById('idealFormResults').classList.add('active');
+                                    }, 1000);
+                                });
+                            }
+                        };
+                        checkAngles();
                     }
                 });
             });
@@ -10237,6 +10568,1318 @@
                 goBackToRecord();
             });
         }
+
+        // Calculate Ideal Form metrics from extracted angles
+        function calculateIdealFormMetrics() {
+            if (!loop3DAngles || loop3DAngles.length === 0) {
+                console.warn('No angles data available for Ideal Form metrics');
+                return;
+            }
+
+            // Find the frame with maximum knee bend (lowest knee angle = most bend)
+            let maxKneeBendFrame = 0;
+            let maxKneeBend = 180; // Start with straight leg
+            let kneeBendValues = [];
+            
+            // Find release point (follow_through stage) - this is the START of follow_through
+            let releaseFrameIndex = -1;
+            let followThroughStartIndex = -1;
+            
+            // Find the first frame with follow_through stage (start of follow_through)
+            for (let i = 0; i < loop3DStages.length; i++) {
+                if (loop3DStages[i] === 'follow_through') {
+                    followThroughStartIndex = i;
+                    releaseFrameIndex = i; // Use same frame for release point
+                    break;
+                }
+            }
+            
+            // If no follow_through found, use the frame with maximum elbow extension
+            if (releaseFrameIndex === -1) {
+                let maxElbowExt = 0;
+                for (let i = 0; i < loop3DAngles.length; i++) {
+                    const angles = loop3DAngles[i];
+                    if (angles && angles.right_elbow !== null && angles.right_elbow !== undefined) {
+                        if (angles.right_elbow > maxElbowExt) {
+                            maxElbowExt = angles.right_elbow;
+                            releaseFrameIndex = i;
+                            followThroughStartIndex = i;
+                        }
+                    }
+                }
+            }
+            
+            // Calculate metrics from angles
+            const metrics = {
+                knee_bend: null,
+                elbow_extension: null,
+                wrist_snap: null,
+                elbow_flare: null,
+                trunk_lean: null,
+                foot_alignment: null,
+                shoulder_angle: null,
+                foot_angle: null,
+                release_height: null
+            };
+            
+            // Calculate release height from wrist position at release point
+            if (releaseFrameIndex >= 0 && releaseFrameIndex < loop3DPoses.length) {
+                const releasePose = loop3DPoses[releaseFrameIndex];
+                if (releasePose && releasePose[16]) { // Right wrist is landmark 16
+                    const wrist = releasePose[16];
+                    
+                    // Get user height (default to 72 inches / 6 feet)
+                    const userHeightInput = document.getElementById('userHeight');
+                    const userHeightInches = userHeightInput ? parseFloat(userHeightInput.value) || 72 : 72;
+                    
+                    // MediaPipe landmarks are normalized (0-1), where Y=0 is top of frame, Y=1 is bottom
+                    // We need to convert this to actual height
+                    // Assuming the person takes up roughly 80-90% of the frame height
+                    // The wrist Y position relative to the person's height
+                    
+                    // Find ankle position (landmark 28 - right ankle) to establish ground level
+                    let groundY = 1.0; // Default to bottom of frame
+                    if (releasePose[28] && releasePose[28].visibility > 0.3) {
+                        groundY = releasePose[28].y;
+                    } else if (releasePose[27] && releasePose[27].visibility > 0.3) {
+                        groundY = releasePose[27].y; // Left ankle
+                    }
+                    
+                    // Find head position (landmark 0 - nose) to establish top
+                    let headY = 0.0;
+                    if (releasePose[0] && releasePose[0].visibility > 0.3) {
+                        headY = releasePose[0].y;
+                    }
+                    
+                    // Calculate person's height in normalized coordinates
+                    const personHeightNormalized = groundY - headY;
+                    
+                    if (personHeightNormalized > 0 && wrist.visibility > 0.3) {
+                        // Calculate wrist height relative to ground
+                        const wristHeightNormalized = groundY - wrist.y;
+                        
+                        // Convert to actual inches
+                        // The person's normalized height represents their actual height
+                        const scaleFactor = userHeightInches / personHeightNormalized;
+                        const wristHeightInches = wristHeightNormalized * scaleFactor;
+                        
+                        // Release height is measured from ground
+                        metrics.release_height = Math.round(wristHeightInches);
+                    }
+                }
+            }
+            
+            // Calculate average and max values across all frames
+            const validKneeBends = [];
+            const validElbowExts = [];
+            const validWristSnaps = [];
+            const validElbowFlares = [];
+            const validTrunkLeans = [];
+            const validFootAlignments = [];
+            
+            loop3DAngles.forEach((angles, index) => {
+                if (angles.right_knee !== null && angles.right_knee !== undefined) {
+                    validKneeBends.push(angles.right_knee);
+                    // Lower angle = more bend
+                    if (angles.right_knee < maxKneeBend) {
+                        maxKneeBend = angles.right_knee;
+                        maxKneeBendFrame = index;
+                    }
+                }
+                if (angles.right_elbow !== null && angles.right_elbow !== undefined) {
+                    validElbowExts.push(angles.right_elbow);
+                }
+                if (angles.wrist_snap !== null && angles.wrist_snap !== undefined) {
+                    validWristSnaps.push(angles.wrist_snap);
+                }
+                if (angles.elbow_flare !== null && angles.elbow_flare !== undefined) {
+                    validElbowFlares.push(angles.elbow_flare);
+                }
+                if (angles.trunk_lean !== null && angles.trunk_lean !== undefined) {
+                    validTrunkLeans.push(angles.trunk_lean);
+                }
+                if (angles.foot_alignment !== null && angles.foot_alignment !== undefined) {
+                    validFootAlignments.push(angles.foot_alignment);
+                }
+            });
+            
+            // Store shoulder and foot angles separately
+            const validShoulderAngles = [];
+            const validFootAngles = [];
+            
+            loop3DAngles.forEach((angles) => {
+                if (angles.shoulder_angle !== null && angles.shoulder_angle !== undefined) {
+                    validShoulderAngles.push(angles.shoulder_angle);
+                }
+                if (angles.foot_angle !== null && angles.foot_angle !== undefined) {
+                    validFootAngles.push(angles.foot_angle);
+                }
+            });
+            
+            // Foot alignment MUST be calculated at the START of follow_through stage
+            if (followThroughStartIndex >= 0 && followThroughStartIndex < loop3DAngles.length) {
+                const followThroughAngles = loop3DAngles[followThroughStartIndex];
+                metrics.shoulder_angle = followThroughAngles.shoulder_angle !== null ? followThroughAngles.shoulder_angle : null;
+                metrics.foot_angle = followThroughAngles.foot_angle !== null ? followThroughAngles.foot_angle : null;
+                metrics.foot_alignment = followThroughAngles.foot_alignment !== null ? followThroughAngles.foot_alignment : null;
+                console.log(`Foot alignment calculated at follow_through start (frame ${followThroughStartIndex}):`, {
+                    shoulder_angle: metrics.shoulder_angle,
+                    foot_angle: metrics.foot_angle,
+                    foot_alignment: metrics.foot_alignment
+                });
+            } else {
+                // Fallback to averages if no follow_through found
+                metrics.shoulder_angle = validShoulderAngles.length > 0 ? validShoulderAngles.reduce((a, b) => a + b, 0) / validShoulderAngles.length : null;
+                metrics.foot_angle = validFootAngles.length > 0 ? validFootAngles.reduce((a, b) => a + b, 0) / validFootAngles.length : null;
+                metrics.foot_alignment = validFootAlignments.length > 0 ? validFootAlignments.reduce((a, b) => a + b, 0) / validFootAlignments.length : null;
+                console.warn('No follow_through stage found, using average for foot alignment');
+            }
+            
+            // Calculate other metrics (use values at release point if available, otherwise average)
+            if (releaseFrameIndex >= 0 && releaseFrameIndex < loop3DAngles.length) {
+                const releaseAngles = loop3DAngles[releaseFrameIndex];
+                metrics.knee_bend = releaseAngles.right_knee !== null ? releaseAngles.right_knee : 
+                    (validKneeBends.length > 0 ? validKneeBends.reduce((a, b) => a + b, 0) / validKneeBends.length : null);
+                metrics.elbow_extension = releaseAngles.right_elbow !== null ? releaseAngles.right_elbow : 
+                    (validElbowExts.length > 0 ? validElbowExts.reduce((a, b) => a + b, 0) / validElbowExts.length : null);
+                metrics.wrist_snap = releaseAngles.wrist_snap !== null ? releaseAngles.wrist_snap : 
+                    (validWristSnaps.length > 0 ? validWristSnaps.reduce((a, b) => a + b, 0) / validWristSnaps.length : null);
+                metrics.elbow_flare = releaseAngles.elbow_flare !== null ? releaseAngles.elbow_flare : 
+                    (validElbowFlares.length > 0 ? validElbowFlares.reduce((a, b) => a + b, 0) / validElbowFlares.length : null);
+                metrics.trunk_lean = releaseAngles.trunk_lean !== null ? releaseAngles.trunk_lean : 
+                    (validTrunkLeans.length > 0 ? validTrunkLeans.reduce((a, b) => a + b, 0) / validTrunkLeans.length : null);
+            } else {
+                // Use averages
+                metrics.knee_bend = validKneeBends.length > 0 ? validKneeBends.reduce((a, b) => a + b, 0) / validKneeBends.length : null;
+                metrics.elbow_extension = validElbowExts.length > 0 ? validElbowExts.reduce((a, b) => a + b, 0) / validElbowExts.length : null;
+                metrics.wrist_snap = validWristSnaps.length > 0 ? validWristSnaps.reduce((a, b) => a + b, 0) / validWristSnaps.length : null;
+                metrics.elbow_flare = validElbowFlares.length > 0 ? validElbowFlares.reduce((a, b) => a + b, 0) / validElbowFlares.length : null;
+                metrics.trunk_lean = validTrunkLeans.length > 0 ? validTrunkLeans.reduce((a, b) => a + b, 0) / validTrunkLeans.length : null;
+            }
+            
+            console.log('Calculated metrics:', metrics);
+            
+            // Convert angles to scores (0-100 scale) and update UI
+            updateIdealFormUI(metrics);
+        }
+
+        // Update Ideal Form UI with calculated metrics
+        function updateIdealFormUI(metrics) {
+            // Convert angles to scores (0-100 scale)
+            // Lower knee angle = more bend = better (higher score)
+            // Higher elbow extension = better (higher score)
+            // etc.
+            
+            const scores = {
+                knee_bend: metrics.knee_bend !== null ? 
+                    Math.max(0, Math.min(100, 100 - (metrics.knee_bend - 90) * 2)) : 71,
+                elbow_extension: metrics.elbow_extension !== null ? 
+                    Math.max(0, Math.min(100, (metrics.elbow_extension / 180) * 100)) : 88,
+                wrist_snap: metrics.wrist_snap !== null ? 
+                    Math.max(0, Math.min(100, (metrics.wrist_snap / 90) * 100)) : 79,
+                elbow_flare: metrics.elbow_flare !== null ? 
+                    Math.max(0, Math.min(100, 100 - Math.abs(metrics.elbow_flare - 90) * 2)) : 82,
+                trunk_lean: metrics.trunk_lean !== null ? 
+                    Math.max(0, Math.min(100, 100 - Math.abs(metrics.trunk_lean) * 2)) : 68
+            };
+            
+            // Update radar chart scores
+            const radarScores = {
+                'Elbow Flare': Math.round(scores.elbow_flare),
+                'Trunk Lean': Math.round(scores.trunk_lean),
+                'Knee Bend': Math.round(scores.knee_bend),
+                'Elbow Ext.': Math.round(scores.elbow_extension),
+                'Wrist Snap': Math.round(scores.wrist_snap)
+            };
+            
+            // Update foot alignment (show shoulder and foot angles separately)
+            if (metrics.shoulder_angle !== null || metrics.foot_angle !== null) {
+                const footAlignmentEl = document.querySelector('.if-arc-value');
+                if (footAlignmentEl) {
+                    const shoulderAngle = metrics.shoulder_angle !== null ? Math.round(metrics.shoulder_angle) : null;
+                    const footAngle = metrics.foot_angle !== null ? Math.round(metrics.foot_angle) : null;
+                    
+                    // Display both angles
+                    let displayText = '';
+                    if (shoulderAngle !== null && footAngle !== null) {
+                        displayText = `Shoulders: ${shoulderAngle > 0 ? '+' : ''}${shoulderAngle}°<br>Feet: ${footAngle > 0 ? '+' : ''}${footAngle}°`;
+                    } else if (shoulderAngle !== null) {
+                        displayText = `Shoulders: ${shoulderAngle > 0 ? '+' : ''}${shoulderAngle}°`;
+                    } else if (footAngle !== null) {
+                        displayText = `Feet: ${footAngle > 0 ? '+' : ''}${footAngle}°`;
+                    }
+                    
+                    footAlignmentEl.innerHTML = displayText;
+                    footAlignmentEl.style.fontSize = '16px'; // Smaller font to fit both lines
+                    footAlignmentEl.style.lineHeight = '1.4';
+                    
+                    // Update SVG rotation based on offset (if both angles available)
+                    if (metrics.foot_alignment !== null) {
+                        const offsetAngle = Math.round(metrics.foot_alignment);
+                        const svgTransform = document.querySelector('.if-arc-svg g[transform]');
+                        if (svgTransform) {
+                            // Clamp rotation to visible range (-45 to +45 degrees)
+                            const clampedAngle = Math.max(-45, Math.min(45, offsetAngle));
+                            const rotation = -74 + clampedAngle; // Adjust from base rotation
+                            svgTransform.setAttribute('transform', `rotate(${rotation}, 50, 55)`);
+                            
+                            // Update color based on offset magnitude
+                            const line = svgTransform.querySelector('line');
+                            const circle = svgTransform.querySelector('circle');
+                            if (line && circle) {
+                                if (Math.abs(offsetAngle) <= 5) {
+                                    // Good alignment (within 5 degrees) - green
+                                    line.setAttribute('stroke', '#3DD68C');
+                                    circle.setAttribute('fill', '#3DD68C');
+                                } else if (Math.abs(offsetAngle) <= 15) {
+                                    // Moderate offset (5-15 degrees) - yellow
+                                    line.setAttribute('stroke', '#FFD93D');
+                                    circle.setAttribute('fill', '#FFD93D');
+                                } else {
+                                    // Large offset (>15 degrees) - red/orange
+                                    line.setAttribute('stroke', '#FF6B7A');
+                                    circle.setAttribute('fill', '#FF6B7A');
+                                }
+                            }
+                        }
+                        
+                        // Update the work-on description if it exists
+                        const workOnDesc = document.querySelector('.if-workon-desc');
+                        if (workOnDesc && Math.abs(offsetAngle) > 5) {
+                            workOnDesc.textContent = `Feet are angled ${Math.abs(offsetAngle)}° ${offsetAngle > 0 ? 'clockwise' : 'counterclockwise'} from shoulder alignment, affecting accuracy on longer shots.`;
+                        }
+                    }
+                }
+            }
+            
+            // Update release height
+            if (metrics.release_height !== null) {
+                const releaseValueEl = document.querySelector('.if-release-value');
+                const releaseFillEl = document.querySelector('.if-release-fill');
+                const releaseTargetEl = document.querySelector('.if-release-target');
+                
+                if (releaseValueEl) {
+                    releaseValueEl.textContent = `${metrics.release_height}"`;
+                }
+                
+                // Update bar visualization (target range is 92-100 inches)
+                const targetMin = 92;
+                const targetMax = 100;
+                const targetRange = targetMax - targetMin;
+                const maxHeight = 120; // Maximum expected height for visualization
+                
+                if (releaseFillEl) {
+                    // Calculate fill percentage (0-100% of bar)
+                    const fillPercent = Math.min(100, (metrics.release_height / maxHeight) * 100);
+                    releaseFillEl.style.height = `${fillPercent}%`;
+                }
+                
+                if (releaseTargetEl) {
+                    // Position target zone (92-100 inches)
+                    const targetBottom = ((maxHeight - targetMax) / maxHeight) * 100;
+                    const targetHeight = (targetRange / maxHeight) * 100;
+                    releaseTargetEl.style.bottom = `${targetBottom}%`;
+                    releaseTargetEl.style.height = `${targetHeight}%`;
+                }
+                
+                // Update status text
+                const statusText = document.querySelectorAll('.if-release-target-text');
+                if (statusText.length > 1) {
+                    if (metrics.release_height >= targetMin && metrics.release_height <= targetMax) {
+                        statusText[1].textContent = 'In range';
+                        statusText[1].style.color = 'var(--success-color)';
+                    } else if (metrics.release_height < targetMin) {
+                        statusText[1].textContent = 'Below target';
+                        statusText[1].style.color = '#FFD93D';
+                    } else {
+                        statusText[1].textContent = 'Above target';
+                        statusText[1].style.color = '#FF6B7A';
+                    }
+                }
+            }
+            
+            console.log('Updated Ideal Form UI with scores:', radarScores);
+            console.log('Release height:', metrics.release_height);
+            // Note: The radar chart SVG is hardcoded, so we'd need to update the polygon points
+            // For now, the scores are calculated and logged. The UI update would require
+            // recalculating the polygon points based on the scores.
+        }
+
+        // ====================== 3D POSE LOOP ANIMATION ======================
+        // EXACT CODE FROM videopose3d-integration BRANCH
+        let isGeneratingLoop = false;
+        let isLoopPlaying = false;
+        let loopAnimationFrameId = null;
+        let currentLoopFrameIndex = 0;
+        let loopScene = null;
+        let loopCamera = null;
+        let loopRenderer = null;
+        let loopSkeletonObjects = [];
+        let loop3DPoses = [];
+        let loop3DStages = [];
+        let loop3DAngles = []; // Store angles for each frame
+
+        // Interpolate frames to create smoother animation
+        function interpolateFrames(originalFrames, factor) {
+            if (originalFrames.length < 2) return originalFrames;
+            
+            const interpolated = [];
+            
+            // For each pair of consecutive frames
+            for (let i = 0; i < originalFrames.length; i++) {
+                const currentFrame = originalFrames[i];
+                const nextFrame = originalFrames[(i + 1) % originalFrames.length]; // Wrap around for loop
+                
+                // Add the original frame
+                interpolated.push(currentFrame);
+                
+                // Create (factor - 1) interpolated frames between current and next
+                for (let interpStep = 1; interpStep < factor; interpStep++) {
+                    const t = interpStep / factor; // Interpolation factor (0 to 1)
+                    const interpolatedFrame = [];
+                    
+                    // Interpolate each landmark
+                    for (let landmarkIdx = 0; landmarkIdx < Math.max(currentFrame.length, nextFrame.length); landmarkIdx++) {
+                        const currentLandmark = currentFrame[landmarkIdx];
+                        const nextLandmark = nextFrame[landmarkIdx];
+                        
+                        if (currentLandmark && nextLandmark) {
+                            // Linear interpolation for x, y, z, and visibility
+                            const interpolatedLandmark = {
+                                x: currentLandmark.x + (nextLandmark.x - currentLandmark.x) * t,
+                                y: currentLandmark.y + (nextLandmark.y - currentLandmark.y) * t,
+                                z: (currentLandmark.z || 0) + ((nextLandmark.z || 0) - (currentLandmark.z || 0)) * t,
+                                visibility: currentLandmark.visibility + (nextLandmark.visibility - currentLandmark.visibility) * t,
+                                index: currentLandmark.index !== undefined ? currentLandmark.index : landmarkIdx
+                            };
+                            interpolatedFrame.push(interpolatedLandmark);
+                        } else if (currentLandmark) {
+                            // If next frame doesn't have this landmark, use current
+                            interpolatedFrame.push(currentLandmark);
+                        } else if (nextLandmark) {
+                            // If current frame doesn't have this landmark, use next
+                            interpolatedFrame.push(nextLandmark);
+                        } else {
+                            // Neither frame has this landmark, create a default
+                            interpolatedFrame.push({
+                                x: 0.5,
+                                y: 0.5,
+                                z: 0,
+                                visibility: 0,
+                                index: landmarkIdx
+                            });
+                        }
+                    }
+                    
+                    interpolated.push(interpolatedFrame);
+                }
+            }
+            
+            return interpolated;
+        }
+
+        // Initialize loop 3D viewer
+        function initLoop3DViewer() {
+            const canvas = document.getElementById('skeletonCanvas3d');
+            if (!canvas) {
+                console.error('skeletonCanvas3d not found');
+                return;
+            }
+            
+            // Get actual canvas dimensions from container
+            const container = canvas.parentElement;
+            const width = container ? container.clientWidth : 800;
+            const height = container ? container.clientHeight : 600;
+            
+            console.log('Initializing loop 3D viewer:', width, 'x', height);
+            
+            // Scene
+            loopScene = new THREE.Scene();
+            loopScene.background = new THREE.Color(0x1a1a1a);
+            
+            // Camera
+            loopCamera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            loopCamera.position.set(0, 0, 5);
+            loopCamera.lookAt(0, 0, 0); // IMPORTANT: Look at origin
+            
+            // Renderer
+            loopRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            loopRenderer.setSize(width, height, false);
+            loopRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+            
+            // Set canvas size explicitly
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+            loopScene.add(gridHelper);
+            
+            // Axes
+            const axesHelper = new THREE.AxesHelper(2);
+            loopScene.add(axesHelper);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            loopScene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            loopScene.add(directionalLight);
+            
+            // Render initial empty scene
+            loopRenderer.render(loopScene, loopCamera);
+            
+            console.log('Loop 3D viewer initialized:', width, 'x', height);
+        }
+
+        // Get color based on shot stage
+        function getStageColor(stage) {
+            const colors = {
+                'neutral': 0x888888,
+                'pre_shot': 0x0000FF,  // Blue
+                'follow_through': 0x00FF00  // Green
+            };
+            return colors[stage] || 0x888888;
+        }
+
+        // Update loop 3D skeleton - use EXACT same logic as main 3D viewer
+        function updateLoop3DSkeleton(landmarks) {
+            if (!loopScene || !landmarks || landmarks.length === 0) return;
+
+            // Clear previous skeleton
+            loopSkeletonObjects.forEach(obj => loopScene.remove(obj));
+            loopSkeletonObjects = [];
+
+            // Get current stage for color coding
+            const currentStage = loop3DStages && loop3DStages[currentLoopFrameIndex] 
+                ? loop3DStages[currentLoopFrameIndex] 
+                : "neutral";
+            const stageColor = getStageColor(currentStage);
+
+            // Complete MediaPipe Pose connections (all main body connections)
+            const connections = [
+                // Torso (core skeleton)
+                [11, 12],  // Shoulders
+                [11, 23],  // Left shoulder to left hip
+                [12, 24],  // Right shoulder to right hip
+                [23, 24],  // Hips
+                // Left arm (complete chain)
+                [11, 13],  // Left shoulder to left elbow
+                [13, 15],  // Left elbow to left wrist
+                // Right arm (complete chain)
+                [12, 14],  // Right shoulder to right elbow
+                [14, 16],  // Right elbow to right wrist
+                // Left leg (complete chain)
+                [23, 25],  // Left hip to left knee
+                [25, 27],  // Left knee to left ankle
+                // Right leg (complete chain)
+                [24, 26],  // Right hip to right knee
+                [26, 28]   // Right knee to right ankle
+            ];
+
+            // First pass: calculate center for better normalization
+            let centerX = 0, centerY = 0, centerZ = 0;
+            let validCount = 0;
+            
+            landmarks.forEach((lm) => {
+                if (lm.visibility >= 0.3) {
+                    centerX += lm.x;
+                    centerY += lm.y;
+                    centerZ += (lm.z || 0);
+                    validCount++;
+                }
+            });
+            
+            if (validCount === 0) return;
+            
+            centerX /= validCount;
+            centerY /= validCount;
+            centerZ /= validCount;
+            
+            // Calculate scale based on shoulder width (more stable)
+            let scale = 4.0;
+            if (landmarks[11] && landmarks[12] && 
+                landmarks[11].visibility > 0.5 && landmarks[12].visibility > 0.5) {
+                const shoulderWidth = Math.abs(landmarks[11].x - landmarks[12].x);
+                scale = Math.max(3.0, Math.min(6.0, 1.0 / (shoulderWidth + 0.1)));
+            }
+
+            // Helper function to calculate 3D position from landmark
+            const calculatePos3D = (lm) => {
+                const x = (lm.x - centerX) * scale * 2;
+                const y = -(lm.y - centerY) * scale * 2;  // Flip Y for 3D
+                const zOffset = (lm.z || 0) - centerZ;
+                const z = zOffset * scale * 0.5;  // Reduced Z scale
+                return { x, y, z };
+            };
+
+            // Create joints (spheres) with improved coordinate transformation
+            landmarks.forEach((lm, index) => {
+                // Calculate position for all landmarks (even low visibility ones for connections)
+                const pos3d = calculatePos3D(lm);
+                landmarks[index].pos3d = pos3d;
+                
+                // Only create visible spheres for landmarks with good visibility
+                if (lm.visibility < 0.3) {
+                    return;  // Don't show sphere, but keep pos3d for connections
+                }
+
+                const geometry = new THREE.SphereGeometry(0.04, 12, 12);
+                // Use stage color instead of visibility-based color
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: stageColor, 
+                    emissive: stageColor, 
+                    emissiveIntensity: 0.4,
+                    shininess: 30
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos3d.x, pos3d.y, pos3d.z);
+                loopScene.add(sphere);
+                loopSkeletonObjects.push(sphere);
+            });
+
+            // Create connections (lines) - draw if both landmarks exist and have reasonable visibility
+            connections.forEach(([startIdx, endIdx]) => {
+                if (startIdx >= landmarks.length || endIdx >= landmarks.length) {
+                    return;
+                }
+                
+                const start = landmarks[startIdx];
+                const end = landmarks[endIdx];
+                
+                if (!start || !end) {
+                    return;
+                }
+                
+                // Draw connection if both landmarks have at least minimal visibility
+                if (start.visibility < 0.2 || end.visibility < 0.2) {
+                    return;  // Too low visibility, skip connection
+                }
+                
+                // pos3d should already be set from the joint creation loop above
+                if (!start.pos3d || !end.pos3d) {
+                    return;  // Safety check
+                }
+
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(start.pos3d.x, start.pos3d.y, start.pos3d.z),
+                    new THREE.Vector3(end.pos3d.x, end.pos3d.y, end.pos3d.z)
+                ]);
+
+                // Make connections more visible - use stage color
+                const material = new THREE.LineBasicMaterial({ 
+                    color: stageColor, 
+                    linewidth: 3,
+                    opacity: 0.95,
+                    transparent: true
+                });
+                const line = new THREE.Line(geometry, material);
+                loopScene.add(line);
+                loopSkeletonObjects.push(line);
+            });
+            
+            // Update camera aspect ratio in case canvas size changed
+            if (loopCamera && loopRenderer) {
+                const canvas = document.getElementById('skeletonCanvas3d');
+                if (canvas) {
+                    const width = canvas.clientWidth || 800;
+                    const height = canvas.clientHeight || 800;
+                    loopCamera.aspect = width / height;
+                    loopCamera.updateProjectionMatrix();
+                    loopRenderer.setSize(width, height, false);
+                }
+            }
+            
+            loopRenderer.render(loopScene, loopCamera);
+        }
+        
+        // Animate loop
+        function animateLoop() {
+            if (!isLoopPlaying || loop3DPoses.length === 0) return;
+            
+            // Update to current frame
+            if (currentLoopFrameIndex < loop3DPoses.length) {
+                updateLoop3DSkeleton(loop3DPoses[currentLoopFrameIndex]);
+                const loopFrameInfo = document.getElementById('frameCounter');
+                if (loopFrameInfo) {
+                    loopFrameInfo.textContent = `Frame: ${currentLoopFrameIndex + 1}/${loop3DPoses.length}`;
+                }
+                
+                // Move to next frame
+                currentLoopFrameIndex = (currentLoopFrameIndex + 1) % loop3DPoses.length;
+            }
+            
+            // Continue animation (ultra-fast frame-by-frame: ~256 fps for extremely smooth playback)
+            loopAnimationFrameId = setTimeout(() => {
+                requestAnimationFrame(animateLoop);
+            }, 3.90625); // 3.90625ms = ~256 fps (1/128 of original 500ms)
+        }
+
+        // Calculate angle between three points (in degrees)
+        function calculateAngle(point1, point2, point3) {
+            // point2 is the vertex
+            const v1 = {
+                x: point1.x - point2.x,
+                y: point1.y - point2.y,
+                z: (point1.z || 0) - (point2.z || 0)
+            };
+            const v2 = {
+                x: point3.x - point2.x,
+                y: point3.y - point2.y,
+                z: (point3.z || 0) - (point2.z || 0)
+            };
+            
+            // Calculate dot product
+            const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+            
+            // Calculate magnitudes
+            const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
+            const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+            
+            if (mag1 === 0 || mag2 === 0) return null;
+            
+            // Calculate angle in radians, then convert to degrees
+            const cosAngle = dot / (mag1 * mag2);
+            const angle = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+            return angle * (180 / Math.PI);
+        }
+
+        // Extract angles from landmarks for a frame
+        function extractAnglesFromLandmarks(landmarks) {
+            const angles = {};
+            
+            // Left Knee: hip(23) - knee(25) - ankle(27)
+            if (landmarks[23] && landmarks[25] && landmarks[27] &&
+                landmarks[23].visibility > 0.3 && landmarks[25].visibility > 0.3 && landmarks[27].visibility > 0.3) {
+                angles.left_knee = calculateAngle(landmarks[23], landmarks[25], landmarks[27]);
+            }
+            
+            // Right Knee: hip(24) - knee(26) - ankle(28)
+            if (landmarks[24] && landmarks[26] && landmarks[28] &&
+                landmarks[24].visibility > 0.3 && landmarks[26].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                angles.right_knee = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+            }
+            
+            // Left Elbow: shoulder(11) - elbow(13) - wrist(15)
+            if (landmarks[11] && landmarks[13] && landmarks[15] &&
+                landmarks[11].visibility > 0.3 && landmarks[13].visibility > 0.3 && landmarks[15].visibility > 0.3) {
+                angles.left_elbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
+            }
+            
+            // Right Elbow: shoulder(12) - elbow(14) - wrist(16)
+            if (landmarks[12] && landmarks[14] && landmarks[16] &&
+                landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3) {
+                angles.right_elbow = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+            }
+            
+            // Right Wrist angle (for wrist snap): elbow(14) - wrist(16) - finger tip approximation
+            // Using wrist position relative to elbow and shoulder for wrist snap
+            if (landmarks[12] && landmarks[14] && landmarks[16] &&
+                landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3) {
+                // Calculate wrist snap as angle between forearm and vertical
+                const forearm = {
+                    x: landmarks[16].x - landmarks[14].x,
+                    y: landmarks[16].y - landmarks[14].y,
+                    z: (landmarks[16].z || 0) - (landmarks[14].z || 0)
+                };
+                const vertical = { x: 0, y: -1, z: 0 };
+                const dot = forearm.x * vertical.x + forearm.y * vertical.y + forearm.z * vertical.z;
+                const mag = Math.sqrt(forearm.x * forearm.x + forearm.y * forearm.y + forearm.z * forearm.z);
+                if (mag > 0) {
+                    angles.wrist_snap = Math.acos(Math.max(-1, Math.min(1, dot / mag))) * (180 / Math.PI);
+                }
+            }
+            
+            // Elbow Flare: angle between shoulder-shoulder line and shoulder-elbow line
+            if (landmarks[11] && landmarks[12] && landmarks[14] &&
+                landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3) {
+                // Calculate angle between shoulder line and right arm
+                const shoulderLine = {
+                    x: landmarks[12].x - landmarks[11].x,
+                    y: landmarks[12].y - landmarks[11].y,
+                    z: (landmarks[12].z || 0) - (landmarks[11].z || 0)
+                };
+                const armLine = {
+                    x: landmarks[14].x - landmarks[12].x,
+                    y: landmarks[14].y - landmarks[12].y,
+                    z: (landmarks[14].z || 0) - (landmarks[12].z || 0)
+                };
+                const dot = shoulderLine.x * armLine.x + shoulderLine.y * armLine.y + shoulderLine.z * armLine.z;
+                const mag1 = Math.sqrt(shoulderLine.x * shoulderLine.x + shoulderLine.y * shoulderLine.y + shoulderLine.z * shoulderLine.z);
+                const mag2 = Math.sqrt(armLine.x * armLine.x + armLine.y * armLine.y + armLine.z * armLine.z);
+                if (mag1 > 0 && mag2 > 0) {
+                    angles.elbow_flare = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI);
+                }
+            }
+            
+            // Trunk Lean: angle between vertical and hip-shoulder line
+            if (landmarks[11] && landmarks[12] && landmarks[23] && landmarks[24] &&
+                landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3 &&
+                landmarks[23].visibility > 0.3 && landmarks[24].visibility > 0.3) {
+                const shoulderCenter = {
+                    x: (landmarks[11].x + landmarks[12].x) / 2,
+                    y: (landmarks[11].y + landmarks[12].y) / 2,
+                    z: ((landmarks[11].z || 0) + (landmarks[12].z || 0)) / 2
+                };
+                const hipCenter = {
+                    x: (landmarks[23].x + landmarks[24].x) / 2,
+                    y: (landmarks[23].y + landmarks[24].y) / 2,
+                    z: ((landmarks[23].z || 0) + (landmarks[24].z || 0)) / 2
+                };
+                const trunkLine = {
+                    x: shoulderCenter.x - hipCenter.x,
+                    y: shoulderCenter.y - hipCenter.y,
+                    z: shoulderCenter.z - hipCenter.z
+                };
+                const vertical = { x: 0, y: -1, z: 0 };
+                const dot = trunkLine.x * vertical.x + trunkLine.y * vertical.y + trunkLine.z * vertical.z;
+                const mag = Math.sqrt(trunkLine.x * trunkLine.x + trunkLine.y * trunkLine.y + trunkLine.z * trunkLine.z);
+                if (mag > 0) {
+                    const angle = Math.acos(Math.max(-1, Math.min(1, dot / mag))) * (180 / Math.PI);
+                    angles.trunk_lean = 90 - angle; // Convert to lean angle
+                }
+            }
+            
+            // Foot Alignment: Calculate based on shoulder alignment
+            // First, calculate shoulder alignment angle using x and z coordinates (3D)
+            let shoulderAlignmentAngle = null;
+            if (landmarks[11] && landmarks[12] &&
+                landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3) {
+                // Calculate shoulder line in x-z plane (top-down view)
+                const deltaX = landmarks[12].x - landmarks[11].x;  // Right shoulder - Left shoulder
+                const deltaZ = (landmarks[12].z || 0) - (landmarks[11].z || 0);
+                
+                // Calculate angle using atan2(deltaZ, deltaX)
+                // This gives the angle of the line in the x-z plane
+                // Positive angle = rotated counterclockwise (right shoulder forward/backward)
+                // Negative angle = rotated clockwise (left shoulder forward/backward)
+                // 0° = horizontal line (aligned with x-axis)
+                if (deltaX !== 0 || deltaZ !== 0) {
+                    const angle = Math.atan2(deltaZ, deltaX) * (180 / Math.PI);
+                    shoulderAlignmentAngle = angle;
+                    angles.shoulder_angle = angle; // Store shoulder angle
+                }
+            }
+            
+            // Calculate foot alignment angle using x and z coordinates (3D)
+            let footAlignmentAngle = null;
+            if (landmarks[27] && landmarks[28] &&
+                landmarks[27].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+                // Calculate foot line in x-z plane (top-down view)
+                const deltaX = landmarks[28].x - landmarks[27].x;  // Right ankle - Left ankle
+                const deltaZ = (landmarks[28].z || 0) - (landmarks[27].z || 0);
+                
+                // Calculate angle using atan2(deltaZ, deltaX)
+                // This gives the angle of the line in the x-z plane
+                // Positive angle = rotated counterclockwise (right foot forward/backward)
+                // Negative angle = rotated clockwise (left foot forward/backward)
+                // 0° = horizontal line (aligned with x-axis)
+                if (deltaX !== 0 || deltaZ !== 0) {
+                    const angle = Math.atan2(deltaZ, deltaX) * (180 / Math.PI);
+                    footAlignmentAngle = angle;
+                    angles.foot_angle = angle; // Store foot angle
+                }
+            }
+            
+            // Calculate foot alignment offset (how many degrees feet are off from shoulders)
+            if (shoulderAlignmentAngle !== null && footAlignmentAngle !== null) {
+                // The offset is the difference between foot angle and shoulder angle
+                // Positive = feet are rotated more clockwise than shoulders
+                // Negative = feet are rotated more counterclockwise than shoulders
+                angles.foot_alignment = footAlignmentAngle - shoulderAlignmentAngle;
+            } else if (footAlignmentAngle !== null) {
+                // If we can't calculate shoulder angle, just use foot angle relative to reference
+                angles.foot_alignment = footAlignmentAngle;
+            }
+            
+            return angles;
+        }
+
+        // Generate loop from video - EXACT CODE FROM videopose3d-integration BRANCH
+        async function generateLoop(silent = false) {
+            const video = document.getElementById('userVideo');
+            console.log('generateLoop called, video:', video, 'src:', video?.src, 'readyState:', video?.readyState);
+            
+            if (!video) {
+                console.error('Video element not found');
+                alert('Video element not found. Please refresh the page.');
+                return;
+            }
+            
+            if (!video.src || video.src === '' || video.src === window.location.href) {
+                console.error('Video source not set');
+                alert('Please upload a video first.');
+                return;
+            }
+            
+            if (isGeneratingLoop) {
+                console.log('Already generating loop');
+                return;
+            }
+            
+            // Wait for video to be ready
+            if (video.readyState < 2) {
+                console.log('Waiting for video metadata to load...');
+                await new Promise((resolve) => {
+                    if (video.readyState >= 2) {
+                        resolve();
+                    } else {
+                        video.addEventListener('loadedmetadata', resolve, { once: true });
+                        // Timeout after 5 seconds
+                        setTimeout(() => {
+                            console.error('Video metadata load timeout');
+                            alert('Video failed to load. Please try uploading again.');
+                            resolve();
+                        }, 5000);
+                    }
+                });
+            }
+            
+            if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+                console.error('Video not ready:', { readyState: video.readyState, width: video.videoWidth, height: video.videoHeight });
+                alert('Video is not ready. Please wait for it to load completely.');
+                return;
+            }
+            
+            console.log('Video is ready:', { 
+                src: video.src.substring(0, 50) + '...', 
+                readyState: video.readyState, 
+                width: video.videoWidth, 
+                height: video.videoHeight,
+                duration: video.duration 
+            });
+            
+            // Make sure video is visible (might be hidden)
+            if (video.style.display === 'none') {
+                video.style.display = 'block';
+            }
+            
+            isGeneratingLoop = true;
+            const generateBtn = document.getElementById('generateAnimationBtn');
+            if (!silent && generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.textContent = '⏳ Processing...';
+            }
+            
+            loop3DPoses = [];
+            loop3DStages = [];
+            loop3DAngles = [];
+            currentLoopFrameIndex = 0;
+            
+            // Show processing overlay only if not silent
+            const processingOverlay = document.getElementById('skeletonProcessing');
+            const statusEl = document.getElementById('processingStatus');
+            if (!silent) {
+                if (processingOverlay) processingOverlay.style.display = 'flex';
+                if (statusEl) statusEl.textContent = 'Processing frames... 0%';
+                
+                // Show skeleton viewer
+                const readyOverlay = document.getElementById('videoReadyOverlay');
+                if (readyOverlay) readyOverlay.style.display = 'flex';
+            }
+            
+            // Initialize loop 3D viewer if not already done
+            if (!loopScene || !loopRenderer) {
+                initLoop3DViewer();
+                // Wait a bit for canvas to be ready
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            try {
+                const originalTime = video.currentTime;
+                const originalPaused = video.paused;
+                
+                if (!video.paused) {
+                    video.pause();
+                }
+                
+                const duration = video.duration;
+                const fps = 30;
+                const frameInterval = 1 / fps;
+                const totalFrames = Math.ceil(duration * fps);
+                
+                console.log(`Generating loop: ${totalFrames} frames`);
+                
+                // Create canvas for processing
+                const processCanvas = document.createElement('canvas');
+                const ctx = processCanvas.getContext('2d');
+                
+                // Check if MediaPipe Pose is available
+                if (typeof Pose === 'undefined') {
+                    throw new Error('MediaPipe Pose not loaded');
+                }
+                
+                // Initialize MediaPipe Pose
+                const pose = new Pose({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+                });
+                
+                pose.setOptions({
+                    modelComplexity: 2,
+                    smoothLandmarks: true,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.7
+                });
+                
+                let processedCount = 0;
+                
+                pose.onResults((results) => {
+                    if (results.poseLandmarks) {
+                        const landmarks = results.poseLandmarks.map((lm, i) => ({
+                            x: lm.x,
+                            y: lm.y,
+                            z: lm.z || 0,
+                            visibility: lm.visibility || 1
+                        }));
+                        
+                        // Detect shot stage
+                        let state = 'neutral';
+                        const rightWrist = landmarks[16];
+                        const rightShoulder = landmarks[12];
+                        if (rightWrist && rightShoulder) {
+                            if (rightWrist.y < rightShoulder.y - 0.1) state = 'follow_through';
+                            else if (rightWrist.y < rightShoulder.y + 0.05) state = 'pre_shot';
+                        }
+                        
+                        loop3DPoses.push(landmarks);
+                        loop3DStages.push(state);
+                        
+                        // Extract angles for this frame
+                        const angles = extractAnglesFromLandmarks(landmarks);
+                        loop3DAngles.push(angles);
+                    }
+                    processedCount++;
+                });
+                
+                await pose.initialize();
+                
+                // Process each frame
+                for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+                    const targetTime = frameIndex * frameInterval;
+                    if (targetTime >= duration) break;
+                    
+                    // Seek to frame
+                    video.currentTime = targetTime;
+                    
+                    // Wait for seek to complete
+                    await new Promise((resolve) => {
+                        if (Math.abs(video.currentTime - targetTime) < 0.1) {
+                            // Already at target time
+                            resolve();
+                            return;
+                        }
+                        
+                        const onSeeked = () => {
+                            video.removeEventListener('seeked', onSeeked);
+                            resolve();
+                        };
+                        video.addEventListener('seeked', onSeeked);
+                        setTimeout(() => {
+                            video.removeEventListener('seeked', onSeeked);
+                            resolve();
+                        }, 1000); // Increased timeout
+                    });
+                    
+                    // Wait a bit more to ensure frame is rendered
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Capture and process frame
+                    if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
+                        processCanvas.width = video.videoWidth;
+                        processCanvas.height = video.videoHeight;
+                        
+                        try {
+                            ctx.drawImage(video, 0, 0, processCanvas.width, processCanvas.height);
+                            
+                            // Verify we actually drew something
+                            const imageData = ctx.getImageData(0, 0, 1, 1);
+                            if (imageData.data[3] === 0) {
+                                console.warn(`Frame ${frameIndex} appears to be empty`);
+                            }
+                            
+                            // Process through MediaPipe
+                            await pose.send({ image: processCanvas });
+                        } catch (error) {
+                            console.error(`Error processing frame ${frameIndex}:`, error);
+                        }
+                    } else {
+                        console.warn(`Frame ${frameIndex} skipped - video not ready:`, {
+                            width: video.videoWidth,
+                            height: video.videoHeight,
+                            readyState: video.readyState
+                        });
+                    }
+                    
+                    // Update progress (only if not silent)
+                    if (!silent) {
+                        const progress = Math.round((frameIndex + 1) / totalFrames * 100);
+                        if (statusEl) {
+                            statusEl.textContent = `Processing frames... ${progress}% (${frameIndex + 1}/${totalFrames})`;
+                        }
+                    }
+                }
+                
+                // Close pose
+                pose.close();
+                
+                // Restore original state
+                video.currentTime = originalTime;
+                
+                if (loop3DPoses.length > 0) {
+                    // Filter frames to only include exact shot sequence: neutral → pre_shot → follow_through → pre_shot
+                    const filteredPoses = [];
+                    const filteredStages = [];
+                    
+                    let sequenceStartIndex = -1;
+                    let sequenceEndIndex = -1;
+                    let state = "looking_for_neutral_to_blue";
+                    
+                    // Find the exact sequence: neutral → pre_shot → follow_through → pre_shot
+                    for (let i = 0; i < loop3DPoses.length; i++) {
+                        const currentStage = loop3DStages[i] || "neutral";
+                        const prevStage = i > 0 ? (loop3DStages[i - 1] || "neutral") : "neutral";
+                        
+                        if (state === "looking_for_neutral_to_blue") {
+                            if (prevStage === "neutral" && currentStage === "pre_shot") {
+                                sequenceStartIndex = i - 1;
+                                state = "looking_for_green";
+                            }
+                        } else if (state === "looking_for_green") {
+                            if (currentStage === "follow_through") {
+                                state = "looking_for_final_blue";
+                            }
+                        } else if (state === "looking_for_final_blue") {
+                            if (currentStage === "pre_shot") {
+                                sequenceEndIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // If we found a complete shot sequence, clip to only those frames
+                    if (sequenceStartIndex !== -1 && sequenceEndIndex !== -1 && sequenceEndIndex > sequenceStartIndex) {
+                        for (let i = sequenceStartIndex; i <= sequenceEndIndex; i++) {
+                            filteredPoses.push(loop3DPoses[i]);
+                            filteredStages.push(loop3DStages[i] || "neutral");
+                        }
+                        loop3DPoses = filteredPoses;
+                        loop3DStages = filteredStages;
+                    }
+                    
+                    // Interpolate frames to make animation smoother (16x frames)
+                    const interpolationFactor = 16;
+                    const originalFrameCount = loop3DPoses.length;
+                    const interpolatedPoses = interpolateFrames(loop3DPoses, interpolationFactor);
+                    loop3DPoses = interpolatedPoses;
+                    
+                    // Interpolate stages as well
+                    if (loop3DStages && loop3DStages.length > 0) {
+                        const interpolatedStages = [];
+                        for (let i = 0; i < interpolatedPoses.length; i++) {
+                            const originalFrameIndex = Math.floor(i / interpolationFactor);
+                            const stage = loop3DStages[Math.min(originalFrameIndex, loop3DStages.length - 1)] || "neutral";
+                            interpolatedStages.push(stage);
+                        }
+                        loop3DStages = interpolatedStages;
+                    }
+                    
+                    // Interpolate angles as well (linear interpolation)
+                    if (loop3DAngles && loop3DAngles.length > 0) {
+                        const interpolatedAngles = [];
+                        for (let i = 0; i < interpolatedPoses.length; i++) {
+                            const originalFrameIndex = Math.floor(i / interpolationFactor);
+                            const nextFrameIndex = (originalFrameIndex + 1) % loop3DAngles.length;
+                            const t = (i % interpolationFactor) / interpolationFactor;
+                            
+                            const currentAngles = loop3DAngles[originalFrameIndex] || {};
+                            const nextAngles = loop3DAngles[nextFrameIndex] || {};
+                            const interpolated = {};
+                            
+                            // Interpolate each angle
+                            Object.keys(currentAngles).forEach(key => {
+                                if (currentAngles[key] !== null && nextAngles[key] !== null) {
+                                    interpolated[key] = currentAngles[key] + (nextAngles[key] - currentAngles[key]) * t;
+                                } else if (currentAngles[key] !== null) {
+                                    interpolated[key] = currentAngles[key];
+                                } else if (nextAngles[key] !== null) {
+                                    interpolated[key] = nextAngles[key];
+                                }
+                            });
+                            
+                            interpolatedAngles.push(interpolated);
+                        }
+                        loop3DAngles = interpolatedAngles;
+                    }
+                    
+                    if (!silent) {
+                        if (statusEl) {
+                            statusEl.textContent = `✓ Loop generated! ${loop3DPoses.length} frames (${originalFrameCount} original, ${loop3DPoses.length - originalFrameCount} interpolated)`;
+                        }
+                        
+                        // Update frame slider
+                        const slider = document.getElementById('frameSlider');
+                        if (slider) {
+                            slider.max = loop3DPoses.length - 1;
+                            slider.value = 0;
+                        }
+                        
+                        // Update frame counter
+                        const counter = document.getElementById('frameCounter');
+                        if (counter) {
+                            counter.textContent = `Frame: 1/${loop3DPoses.length}`;
+                        }
+                        
+                        // Hide processing overlay
+                        if (processingOverlay) processingOverlay.style.display = 'none';
+                    }
+                    
+                    // Don't show animation automatically - just extract data for metrics
+                    // Animation will only show if user clicks "Generate Animation" button
+                    console.log('Loop generated with angles:', loop3DAngles.length, 'frames');
+                    if (loop3DAngles.length > 0) {
+                        console.log('Sample angles:', loop3DAngles[0]);
+                    }
+                    
+                    // Store that angles have been extracted
+                    window.anglesExtracted = true;
+                } else {
+                    if (statusEl) statusEl.textContent = '✗ No frames processed. Please try again.';
+                    if (processingOverlay) processingOverlay.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Error generating loop:', error);
+                const statusEl = document.getElementById('processingStatus');
+                if (statusEl) statusEl.textContent = '✗ Error: ' + error.message;
+                const processingOverlay = document.getElementById('skeletonProcessing');
+                if (processingOverlay) processingOverlay.style.display = 'none';
+            } finally {
+                isGeneratingLoop = false;
+                if (!silent) {
+                    const generateBtn = document.getElementById('generateAnimationBtn');
+                    if (generateBtn) {
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = '🔄 Generate Animation';
+                    }
+                }
+            }
+        }
+
+        // Start skeleton viewer - now generates loop from video
+        function startSkeletonViewer() {
+            // Generate loop from video
+            generateLoop();
+        }
+
+        // Stop skeleton viewer
+        function stopSkeletonViewer() {
+            isLoopPlaying = false;
+            if (loopAnimationFrameId) {
+                clearTimeout(loopAnimationFrameId);
+                loopAnimationFrameId = null;
+            }
+        }
+
+        // Setup loop animation controls on DOM load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Frame slider event - scrub through frames
+            const slider = document.getElementById('frameSlider');
+            if (slider) {
+                slider.addEventListener('input', function(e) {
+                    isLoopPlaying = false;
+                    const playBtn = document.getElementById('playPauseLoop');
+                    const pauseBtn = document.getElementById('pauseLoopBtn');
+                    if (playBtn) playBtn.style.display = 'inline-block';
+                    if (pauseBtn) pauseBtn.style.display = 'none';
+
+                    currentLoopFrameIndex = parseInt(e.target.value);
+                    if (loop3DPoses && loop3DPoses[currentLoopFrameIndex]) {
+                        updateLoop3DSkeleton(loop3DPoses[currentLoopFrameIndex]);
+
+                        const counter = document.getElementById('frameCounter');
+                        if (counter) counter.textContent = `Frame: ${currentLoopFrameIndex + 1}/${loop3DPoses.length}`;
+                    }
+                });
+            }
+
+            // Play button
+            const playBtn = document.getElementById('playPauseLoop');
+            if (playBtn) {
+                playBtn.addEventListener('click', function() {
+                    if (loop3DPoses.length > 0) {
+                        isLoopPlaying = true;
+                        this.style.display = 'none';
+                        const pauseBtn = document.getElementById('pauseLoopBtn');
+                        if (pauseBtn) pauseBtn.style.display = 'inline-block';
+                        animateLoop();
+                    }
+                });
+            }
+
+            // Pause button
+            const pauseBtn = document.getElementById('pauseLoopBtn');
+            if (pauseBtn) {
+                pauseBtn.addEventListener('click', function() {
+                    isLoopPlaying = false;
+                    if (loopAnimationFrameId) {
+                        clearTimeout(loopAnimationFrameId);
+                        loopAnimationFrameId = null;
+                    }
+                    const playBtn = document.getElementById('playPauseLoop');
+                    if (playBtn) playBtn.style.display = 'inline-block';
+                    this.style.display = 'none';
+                });
+            }
+
+            // Camera X position control (horizontal)
+            const cameraXSlider = document.getElementById('cameraX');
+            if (cameraXSlider) {
+                cameraXSlider.addEventListener('input', function(e) {
+                    if (loopCamera) {
+                        const angle = (parseFloat(e.target.value) * Math.PI) / 180;
+                        const radius = 5;
+                        loopCamera.position.x = Math.sin(angle) * radius;
+                        loopCamera.position.z = Math.cos(angle) * radius;
+                        loopCamera.lookAt(0, 0, 0);
+                        if (loopRenderer && loopScene) {
+                            loopRenderer.render(loopScene, loopCamera);
+                        }
+                    }
+                });
+            }
+
+            // Camera Y position control (vertical)
+            const cameraYSlider = document.getElementById('cameraY');
+            if (cameraYSlider) {
+                cameraYSlider.addEventListener('input', function(e) {
+                    if (loopCamera) {
+                        loopCamera.position.y = parseFloat(e.target.value);
+                        loopCamera.lookAt(0, 0, 0);
+                        if (loopRenderer && loopScene) {
+                            loopRenderer.render(loopScene, loopCamera);
+                        }
+                    }
+                });
+            }
+
+            // Camera zoom control
+            const cameraZoomSlider = document.getElementById('cameraZoom');
+            if (cameraZoomSlider) {
+                cameraZoomSlider.addEventListener('input', function(e) {
+                    if (loopCamera) {
+                        const distance = parseFloat(e.target.value);
+                        const direction = new THREE.Vector3();
+                        loopCamera.getWorldDirection(direction);
+                        direction.multiplyScalar(-distance);
+                        loopCamera.position.set(direction.x, loopCamera.position.y, direction.z);
+                        loopCamera.lookAt(0, 0, 0);
+                        if (loopRenderer && loopScene) {
+                            loopRenderer.render(loopScene, loopCamera);
+                        }
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
