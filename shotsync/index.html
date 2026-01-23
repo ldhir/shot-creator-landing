@@ -109,6 +109,30 @@
             -webkit-appearance: none;
         }
 
+        /* Shot Count Selector Styles */
+        .shot-count-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: var(--text-dark);
+        }
+
+        .shot-count-btn:hover {
+            border-color: var(--primary-color);
+            background: rgba(255, 107, 122, 0.1);
+        }
+
+        .shot-count-btn.active {
+            border-color: var(--primary-color);
+            background: rgba(255, 107, 122, 0.15);
+            color: var(--primary-color);
+        }
+
         .camera-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 10px;
@@ -2421,6 +2445,7 @@
                             <div id="skeletonProcessing" class="skeleton-processing" style="display: none;">
                                 <div class="spinner"></div>
                                 <p id="processingStatus">Extracting skeleton...</p>
+                                <p id="shotCounter" style="margin-top: 10px; font-size: 18px; font-weight: 600; color: var(--primary-color);">Shots Detected: <span id="shotCountValue">0</span> / <span id="shotCountTarget">10</span></p>
                             </div>
                         </div>
                     </div>
@@ -2434,6 +2459,15 @@
                     </div>
                 </div>
                 <div class="controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center; width: 100%;">
+                    <!-- Shot Count Selector -->
+                    <div id="shotCountSelector" style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 10px;">
+                        <label style="font-size: 14px; font-weight: 600; color: var(--text-dark);">Number of Shots to Analyze:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="shot-count-btn" data-count="1">1 Shot</button>
+                            <button class="shot-count-btn" data-count="5">5 Shots</button>
+                            <button class="shot-count-btn active" data-count="10">10 Shots</button>
+                        </div>
+                    </div>
                     <!-- All buttons in one horizontal line -->
                     <div id="recordingControls" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center;">
                         <!-- Upload Video - directly triggers file picker -->
@@ -10167,16 +10201,8 @@
             const readyOverlay = document.getElementById('videoReadyOverlay');
             if (readyOverlay) readyOverlay.style.display = 'flex';
 
-            // Automatically extract angles from video (but don't show animation)
-            // This happens silently in the background
-            setTimeout(async () => {
-                try {
-                    await generateLoop(); // Extract angles silently
-                    console.log('Angles extracted automatically from video');
-                } catch (error) {
-                    console.error('Error extracting angles:', error);
-                }
-            }, 500);
+            // Note: Angle extraction is now handled in the video upload handler
+            // to avoid duplicate calls
         }
 
         // Generate demo skeleton data for fallback
@@ -10255,6 +10281,47 @@
             stopSkeletonViewer();
         }
 
+        // Shot count selector handler - use direct event delegation (IIFE to avoid duplicates)
+        (function() {
+            let handlerAttached = false;
+            
+            function attachHandler() {
+                if (handlerAttached) return;
+                handlerAttached = true;
+                
+                // Use a single event listener on the document
+                document.addEventListener('click', function(e) {
+                    const btn = e.target.closest('.shot-count-btn');
+                    if (!btn) return;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('Shot count button clicked:', btn.dataset.count);
+                    
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.shot-count-btn').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked button
+                    btn.classList.add('active');
+                    console.log('Active class added to button', btn.dataset.count);
+                    
+                    // Store selected count
+                    selectedShotCount = parseInt(btn.dataset.count);
+                    console.log('Selected shot count updated to:', selectedShotCount);
+                }, true); // Use capture phase
+            }
+            
+            // Attach immediately if DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', attachHandler);
+            } else {
+                attachHandler();
+            }
+        })();
+
         // Override the userVideoUpload change handler to show analysis options
         document.addEventListener('DOMContentLoaded', function() {
             const userVideoUpload = document.getElementById('userVideoUpload');
@@ -10278,8 +10345,8 @@
                             // Store file reference for later use
                             video.uploadedFile = file;
                             
-                            // Wait for video to load, then show analysis options
-                            const onLoaded = function() {
+                            // Wait for video to load, then show analysis options and extract angles
+                            const onLoaded = async function() {
                                 console.log('Video loaded:', { 
                                     src: video.src.substring(0, 50), 
                                     readyState: video.readyState,
@@ -10287,19 +10354,65 @@
                                     height: video.videoHeight,
                                     duration: video.duration
                                 });
+                                
+                                // Show analysis options
                                 showAnalysisOptions();
+                                
+                                // Display file name
+                                const fileName = document.getElementById('uploadedFileName');
+                                if (fileName) {
+                                    fileName.textContent = `Selected: ${file.name}`;
+                                    fileName.style.display = 'block';
+                                }
+                                
+                                // Automatically extract angles silently (for Ideal Form metrics)
+                                try {
+                                    console.log('Starting automatic angle extraction...');
+                                    await generateLoop(true); // Extract angles silently
+                                    console.log('Angles extracted automatically from video');
+                                } catch (error) {
+                                    console.error('Error extracting angles:', error);
+                                }
                             };
                             
-                            if (video.readyState >= 2) {
-                                // Already loaded
+                            // Wait for video to be ready
+                            const waitForVideo = async () => {
+                                // Wait for metadata
+                                if (video.readyState < 2) {
+                                    await new Promise((resolve) => {
+                                        if (video.readyState >= 2) {
+                                            resolve();
+                                        } else {
+                                            video.addEventListener('loadedmetadata', resolve, { once: true });
+                                            setTimeout(resolve, 5000); // Timeout after 5 seconds
+                                        }
+                                    });
+                                }
+                                
+                                // Wait for data
+                                if (video.readyState < 3) {
+                                    await new Promise((resolve) => {
+                                        if (video.readyState >= 3) {
+                                            resolve();
+                                        } else {
+                                            video.addEventListener('loadeddata', resolve, { once: true });
+                                            setTimeout(resolve, 5000); // Timeout after 5 seconds
+                                        }
+                                    });
+                                }
+                                
+                                // Now call onLoaded
                                 onLoaded();
-                            } else {
-                                video.addEventListener('loadeddata', onLoaded, { once: true });
-                                video.addEventListener('error', function(e) {
-                                    console.error('Video load error:', e);
-                                    alert('Error loading video. Please try a different file.');
-                                }, { once: true });
-                            }
+                            };
+                            
+                            // Add error handler
+                            video.addEventListener('error', function(e) {
+                                console.error('Video load error:', e);
+                                alert('Error loading video. Please try a different file.');
+                            }, { once: true });
+                            
+                            // Start waiting
+                            waitForVideo();
                         }
                     }
                 });
@@ -10918,6 +11031,8 @@
         let loop3DPoses = [];
         let loop3DStages = [];
         let loop3DAngles = []; // Store angles for each frame
+        let selectedShotCount = 10; // Default to 10 shots
+        let detectedShots = []; // Array to store detected shot sequences
 
         // Interpolate frames to create smoother animation
         function interpolateFrames(originalFrames, factor) {
@@ -11043,17 +11158,17 @@
         }
 
         // Update loop 3D skeleton - use EXACT same logic as main 3D viewer
-        function updateLoop3DSkeleton(landmarks) {
+        function updateLoop3DSkeleton(landmarks, stage = null) {
             if (!loopScene || !landmarks || landmarks.length === 0) return;
 
             // Clear previous skeleton
             loopSkeletonObjects.forEach(obj => loopScene.remove(obj));
             loopSkeletonObjects = [];
 
-            // Get current stage for color coding
-            const currentStage = loop3DStages && loop3DStages[currentLoopFrameIndex] 
+            // Get current stage for color coding (use provided stage or fallback)
+            const currentStage = stage || (loop3DStages && loop3DStages[currentLoopFrameIndex] 
                 ? loop3DStages[currentLoopFrameIndex] 
-                : "neutral";
+                : "neutral");
             const stageColor = getStageColor(currentStage);
 
             // Complete MediaPipe Pose connections (all main body connections)
@@ -11395,7 +11510,7 @@
             return angles;
         }
 
-        // Generate loop from video - EXACT CODE FROM videopose3d-integration BRANCH
+        // Generate loop from video - with real-time 3D visualization
         async function generateLoop(silent = false) {
             const video = document.getElementById('userVideo');
             console.log('generateLoop called, video:', video, 'src:', video?.src, 'readyState:', video?.readyState);
@@ -11464,19 +11579,30 @@
             loop3DPoses = [];
             loop3DStages = [];
             loop3DAngles = [];
+            detectedShots = []; // Reset detected shots
             currentLoopFrameIndex = 0;
             
-            // Show processing overlay only if not silent
+            // Always show processing overlay and skeleton viewer for visual feedback
             const processingOverlay = document.getElementById('skeletonProcessing');
             const statusEl = document.getElementById('processingStatus');
-            if (!silent) {
-                if (processingOverlay) processingOverlay.style.display = 'flex';
-                if (statusEl) statusEl.textContent = 'Processing frames... 0%';
-                
-                // Show skeleton viewer
-                const readyOverlay = document.getElementById('videoReadyOverlay');
-                if (readyOverlay) readyOverlay.style.display = 'flex';
+            const shotCountValue = document.getElementById('shotCountValue');
+            const shotCountTarget = document.getElementById('shotCountTarget');
+            const shotCounter = document.getElementById('shotCounter');
+            
+            // Update shot count target
+            if (shotCountTarget) {
+                shotCountTarget.textContent = selectedShotCount;
             }
+            
+            // Show skeleton viewer and processing overlay (always visible during processing)
+            if (processingOverlay) processingOverlay.style.display = 'flex';
+            if (statusEl) statusEl.textContent = 'Processing frames... 0%';
+            if (shotCountValue) shotCountValue.textContent = '0';
+            if (shotCounter) shotCounter.style.display = 'block'; // Ensure shot counter is visible
+            
+            // Show skeleton viewer
+            const readyOverlay = document.getElementById('videoReadyOverlay');
+            if (readyOverlay) readyOverlay.style.display = 'flex';
             
             // Initialize loop 3D viewer if not already done
             if (!loopScene || !loopRenderer) {
@@ -11523,6 +11649,17 @@
                 
                 let processedCount = 0;
                 
+                // Shot detection state (shared object for closure)
+                const shotDetectionState = {
+                    shotsDetected: 0,
+                    currentShotFrames: [], // Store frames for current potential shot
+                    currentShotStages: [],
+                    currentShotAngles: [],
+                    state: "looking_for_pre_shot", // looking_for_pre_shot, in_shot_sequence, shot_complete
+                    shouldStop: false,
+                    lastDetectedStage: 'neutral' // Track stage for speed control
+                };
+                
                 pose.onResults((results) => {
                     if (results.poseLandmarks) {
                         const landmarks = results.poseLandmarks.map((lm, i) => ({
@@ -11541,20 +11678,112 @@
                             else if (rightWrist.y < rightShoulder.y + 0.05) state = 'pre_shot';
                         }
                         
-                        loop3DPoses.push(landmarks);
-                        loop3DStages.push(state);
+                        // Update last detected stage for speed control
+                        shotDetectionState.lastDetectedStage = state;
+                        
+                        // Update 3D skeleton in real-time (always show during processing)
+                        if (loopScene && loopRenderer) {
+                            updateLoop3DSkeleton(landmarks, state);
+                            loopRenderer.render(loopScene, loopCamera);
+                        }
                         
                         // Extract angles for this frame
                         const angles = extractAnglesFromLandmarks(landmarks);
-                        loop3DAngles.push(angles);
+                        
+                        // Shot detection state machine - only store frames when in a shot sequence
+                        if (shotDetectionState.state === "looking_for_pre_shot") {
+                            // Waiting for pre_shot to start a new sequence
+                            if (state === "pre_shot") {
+                                // Start of potential shot sequence
+                                shotDetectionState.currentShotFrames = [landmarks];
+                                shotDetectionState.currentShotStages = [state];
+                                shotDetectionState.currentShotAngles = [angles];
+                                shotDetectionState.state = "in_shot_sequence";
+                                console.log('Started potential shot sequence');
+                            }
+                            // Otherwise, skip this frame (not in a shot)
+                        } else if (shotDetectionState.state === "in_shot_sequence") {
+                            // We're in a shot sequence, keep adding frames
+                            shotDetectionState.currentShotFrames.push(landmarks);
+                            shotDetectionState.currentShotStages.push(state);
+                            shotDetectionState.currentShotAngles.push(angles);
+                            
+                            // Check if sequence is complete: pre_shot → follow_through → pre_shot
+                            const stages = shotDetectionState.currentShotStages;
+                            const lastStage = stages[stages.length - 1];
+                            const prevStage = stages.length > 1 ? stages[stages.length - 2] : null;
+                            
+                            // If we see pre_shot after follow_through, the shot is complete
+                            if (prevStage === "follow_through" && lastStage === "pre_shot") {
+                                // Shot complete! Add to detected shots
+                                // Note: The last frame (pre_shot) is the closing frame of this shot
+                                const shotStartIndex = loop3DPoses.length;
+                                
+                                // Add all frames from this shot to the main arrays (including the closing pre_shot)
+                                loop3DPoses.push(...shotDetectionState.currentShotFrames);
+                                loop3DStages.push(...shotDetectionState.currentShotStages);
+                                loop3DAngles.push(...shotDetectionState.currentShotAngles);
+                                
+                                const shotEndIndex = loop3DPoses.length - 1;
+                                
+                                shotDetectionState.shotsDetected++;
+                                detectedShots.push({
+                                    start: shotStartIndex,
+                                    end: shotEndIndex,
+                                    frames: shotDetectionState.currentShotFrames.length
+                                });
+                                
+                                console.log(`✓ Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (indices ${shotStartIndex} to ${shotEndIndex})`);
+                                
+                                // Update shot counter in real-time
+                                if (shotCountValue) {
+                                    shotCountValue.textContent = shotDetectionState.shotsDetected;
+                                }
+                                
+                                if (statusEl) {
+                                    const progress = Math.round((processedCount / totalFrames) * 100);
+                                    statusEl.textContent = `Processing... ${progress}% | Shots: ${shotDetectionState.shotsDetected}/${selectedShotCount}`;
+                                }
+                                
+                                // Check if we've reached the target
+                                if (shotDetectionState.shotsDetected >= selectedShotCount) {
+                                    shotDetectionState.shouldStop = true;
+                                    console.log(`Reached target of ${selectedShotCount} shots, will stop processing`);
+                                } else {
+                                    // Start next shot: the current pre_shot frame is the start of the next shot
+                                    // But we've already added it to the previous shot, so we need to add it again for the next shot
+                                    shotDetectionState.currentShotFrames = [landmarks];
+                                    shotDetectionState.currentShotStages = [state];
+                                    shotDetectionState.currentShotAngles = [angles];
+                                    shotDetectionState.state = "in_shot_sequence";
+                                }
+                            } else if (lastStage === "neutral" && stages.length > 3) {
+                                // Sequence broke (went to neutral), discard and reset
+                                console.log('Shot sequence broken (went to neutral), discarding and continuing...');
+                                shotDetectionState.currentShotFrames = [];
+                                shotDetectionState.currentShotStages = [];
+                                shotDetectionState.currentShotAngles = [];
+                                shotDetectionState.state = "looking_for_pre_shot";
+                            }
+                            // Otherwise, continue adding frames to current sequence
+                        }
                     }
                     processedCount++;
                 });
                 
                 await pose.initialize();
                 
-                // Process each frame
+                // Process each frame with variable speed
                 for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+                    // Check if we should stop (after previous frame was processed)
+                    if (shotDetectionState.shouldStop) {
+                        console.log(`Stopping processing at frame ${frameIndex} (reached ${shotDetectionState.shotsDetected} shots)`);
+                        if (statusEl) {
+                            statusEl.textContent = `✓ Detected ${shotDetectionState.shotsDetected} shot(s), finalizing...`;
+                        }
+                        break;
+                    }
+                    
                     const targetTime = frameIndex * frameInterval;
                     if (targetTime >= duration) break;
                     
@@ -11564,11 +11793,9 @@
                     // Wait for seek to complete
                     await new Promise((resolve) => {
                         if (Math.abs(video.currentTime - targetTime) < 0.1) {
-                            // Already at target time
                             resolve();
                             return;
                         }
-                        
                         const onSeeked = () => {
                             video.removeEventListener('seeked', onSeeked);
                             resolve();
@@ -11577,13 +11804,16 @@
                         setTimeout(() => {
                             video.removeEventListener('seeked', onSeeked);
                             resolve();
-                        }, 1000); // Increased timeout
+                        }, 1000);
                     });
                     
-                    // Wait a bit more to ensure frame is rendered
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // Capture and process frame (wait for video to be ready)
+                    // Check if video is ready - need at least HAVE_CURRENT_DATA (readyState >= 2)
+                    if (video.readyState < 2) {
+                        // Wait a bit for video to load more data
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
                     
-                    // Capture and process frame
                     if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
                         processCanvas.width = video.videoWidth;
                         processCanvas.height = video.videoHeight;
@@ -11597,10 +11827,22 @@
                                 console.warn(`Frame ${frameIndex} appears to be empty`);
                             }
                             
-                            // Process through MediaPipe
+                            // Process through MediaPipe (onResults callback will update skeleton and stage)
                             await pose.send({ image: processCanvas });
+                            
+                            // Variable delay based on detected stage: fast for neutral, slow for shot sequences
+                            // Use the stage that was just detected in onResults callback
+                            let frameDelay = 5; // Very fast for neutral (speed through)
+                            if (shotDetectionState.lastDetectedStage === 'pre_shot' || shotDetectionState.lastDetectedStage === 'follow_through') {
+                                frameDelay = 200; // Slower for shot sequences (40x slower)
+                            }
+                            
+                            // Wait for frame to render (variable delay based on stage)
+                            await new Promise(resolve => setTimeout(resolve, frameDelay));
                         } catch (error) {
                             console.error(`Error processing frame ${frameIndex}:`, error);
+                            // Continue to next frame even on error
+                            await new Promise(resolve => setTimeout(resolve, 10));
                         }
                     } else {
                         console.warn(`Frame ${frameIndex} skipped - video not ready:`, {
@@ -11608,14 +11850,14 @@
                             height: video.videoHeight,
                             readyState: video.readyState
                         });
+                        // Skip quickly if video not ready
+                        await new Promise(resolve => setTimeout(resolve, 10));
                     }
                     
-                    // Update progress (only if not silent)
-                    if (!silent) {
-                        const progress = Math.round((frameIndex + 1) / totalFrames * 100);
-                        if (statusEl) {
-                            statusEl.textContent = `Processing frames... ${progress}% (${frameIndex + 1}/${totalFrames})`;
-                        }
+                    // Update progress
+                    const progress = Math.round((frameIndex + 1) / totalFrames * 100);
+                    if (statusEl) {
+                        statusEl.textContent = `Processing... ${progress}% | Shots: ${shotDetectionState.shotsDetected}/${selectedShotCount}`;
                     }
                 }
                 
@@ -11625,46 +11867,61 @@
                 // Restore original state
                 video.currentTime = originalTime;
                 
-                if (loop3DPoses.length > 0) {
-                    // Filter frames to only include exact shot sequence: neutral → pre_shot → follow_through → pre_shot
-                    const filteredPoses = [];
-                    const filteredStages = [];
-                    
-                    let sequenceStartIndex = -1;
-                    let sequenceEndIndex = -1;
-                    let state = "looking_for_neutral_to_blue";
-                    
-                    // Find the exact sequence: neutral → pre_shot → follow_through → pre_shot
-                    for (let i = 0; i < loop3DPoses.length; i++) {
-                        const currentStage = loop3DStages[i] || "neutral";
-                        const prevStage = i > 0 ? (loop3DStages[i - 1] || "neutral") : "neutral";
+                // Handle final shot if we ended in a shot sequence (might be incomplete)
+                if (shotDetectionState.state === "in_shot_sequence" && shotDetectionState.currentShotFrames.length > 0) {
+                    // Check if the last stage is follow_through (incomplete shot, but we'll keep it)
+                    const lastStage = shotDetectionState.currentShotStages[shotDetectionState.currentShotStages.length - 1];
+                    if (lastStage === "follow_through") {
+                        // Incomplete shot (no closing pre_shot), but we'll keep it
+                        const shotStartIndex = loop3DPoses.length;
+                        loop3DPoses.push(...shotDetectionState.currentShotFrames);
+                        loop3DStages.push(...shotDetectionState.currentShotStages);
+                        loop3DAngles.push(...shotDetectionState.currentShotAngles);
+                        const shotEndIndex = loop3DPoses.length - 1;
                         
-                        if (state === "looking_for_neutral_to_blue") {
-                            if (prevStage === "neutral" && currentStage === "pre_shot") {
-                                sequenceStartIndex = i - 1;
-                                state = "looking_for_green";
-                            }
-                        } else if (state === "looking_for_green") {
-                            if (currentStage === "follow_through") {
-                                state = "looking_for_final_blue";
-                            }
-                        } else if (state === "looking_for_final_blue") {
-                            if (currentStage === "pre_shot") {
-                                sequenceEndIndex = i;
-                                break;
-                            }
+                        shotDetectionState.shotsDetected++;
+                        detectedShots.push({
+                            start: shotStartIndex,
+                            end: shotEndIndex,
+                            frames: shotDetectionState.currentShotFrames.length
+                        });
+                        console.log(`Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} detected (incomplete final): ${shotDetectionState.currentShotFrames.length} frames`);
+                    } else {
+                        // Sequence didn't complete, discard it
+                        console.log('Final sequence incomplete, discarding');
+                    }
+                }
+                
+                if (loop3DPoses.length > 0) {
+                    console.log(`Total shots detected: ${detectedShots.length}, total frames stored: ${loop3DPoses.length}`);
+                    
+                    // All frames in loop3DPoses are already from valid shot sequences
+                    // If we detected more shots than requested, we need to trim to only the first N shots
+                    if (detectedShots.length > selectedShotCount) {
+                        // Calculate how many frames to keep (first N shots)
+                        let framesToKeep = 0;
+                        for (let i = 0; i < selectedShotCount; i++) {
+                            framesToKeep += detectedShots[i].frames;
                         }
+                        
+                        // Trim arrays to only include first N shots
+                        loop3DPoses = loop3DPoses.slice(0, framesToKeep);
+                        loop3DStages = loop3DStages.slice(0, framesToKeep);
+                        loop3DAngles = loop3DAngles.slice(0, framesToKeep);
+                        
+                        console.log(`Trimmed to first ${selectedShotCount} shots: ${framesToKeep} frames`);
                     }
                     
-                    // If we found a complete shot sequence, clip to only those frames
-                    if (sequenceStartIndex !== -1 && sequenceEndIndex !== -1 && sequenceEndIndex > sequenceStartIndex) {
-                        for (let i = sequenceStartIndex; i <= sequenceEndIndex; i++) {
-                            filteredPoses.push(loop3DPoses[i]);
-                            filteredStages.push(loop3DStages[i] || "neutral");
+                    // Update status to show shot count
+                    if (statusEl && !silent) {
+                        const shotsUsed = Math.min(detectedShots.length, selectedShotCount);
+                        if (detectedShots.length >= selectedShotCount) {
+                            statusEl.textContent = `✓ Successfully detected and clipped ${shotsUsed} shot(s) (${loop3DPoses.length} frames)`;
+                        } else {
+                            statusEl.textContent = `✓ Detected ${detectedShots.length} shot(s), using all (${loop3DPoses.length} frames, requested: ${selectedShotCount})`;
                         }
-                        loop3DPoses = filteredPoses;
-                        loop3DStages = filteredStages;
                     }
+                    console.log(`Shot processing complete: ${Math.min(detectedShots.length, selectedShotCount)} shots, ${loop3DPoses.length} total frames`);
                     
                     // Interpolate frames to make animation smoother (16x frames)
                     const interpolationFactor = 16;
@@ -11743,7 +12000,10 @@
                     // Store that angles have been extracted
                     window.anglesExtracted = true;
                 } else {
-                    if (statusEl) statusEl.textContent = '✗ No frames processed. Please try again.';
+                    console.warn('No shot sequences detected');
+                    if (statusEl && !silent) {
+                        statusEl.textContent = '⚠ No shot sequences detected. Please ensure the video contains complete shot sequences (pre_shot → follow_through → pre_shot).';
+                    }
                     if (processingOverlay) processingOverlay.style.display = 'none';
                 }
                 
