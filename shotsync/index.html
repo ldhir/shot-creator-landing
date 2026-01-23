@@ -8,7 +8,150 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
+        /* 3D Skeleton Viewer Styles */
+        .skeleton-viewer-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #1a1a1a;
+        }
+
+        #skeletonCanvas3d {
+            width: 100%;
+            flex: 1;
+            min-height: 280px;
+            background: #1a1a1a;
+            display: block;
+        }
+
+        .skeleton-controls {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            background: rgba(0,0,0,0.95);
+            border-top: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .frame-slider {
+            flex: 1;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        .frame-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .skeleton-btn {
+            background: var(--primary-color);
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .skeleton-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        #frameCounter {
+            color: #888;
+            font-size: 12px;
+            min-width: 70px;
+            text-align: right;
+            font-family: 'Work Sans', sans-serif;
+        }
+
+        .camera-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 12px;
+            padding-left: 12px;
+            border-left: 1px solid #444;
+        }
+
+        .camera-controls label {
+            color: #888;
+            font-size: 12px;
+            cursor: default;
+        }
+
+        .camera-slider {
+            width: 60px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        .camera-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Processing overlay for skeleton extraction */
+        .skeleton-processing {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 15;
+            border-radius: 12px;
+        }
+
+        .skeleton-processing .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .skeleton-processing p {
+            color: #ccc;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         /* Athletic Theme Overrides - Consistent with Landing Page */
 
         /* Player Button Hover Effects */
@@ -2248,12 +2391,28 @@
                             <p>Please step back so your entire body is visible in the frame</p>
                         </div>
                     </div>
-                    <!-- Video Ready Overlay (blue - waiting for analysis selection) -->
+                    <!-- 3D Skeleton Viewer Overlay (shows shot animation loop) -->
                     <div id="videoReadyOverlay" class="video-ready-overlay" style="display: none;">
-                        <div class="ready-content">
-                            <div class="ready-icon">✓</div>
-                            <h3>Video Ready</h3>
-                            <p>Select analysis type below</p>
+                        <div class="skeleton-viewer-container">
+                            <canvas id="skeletonCanvas3d"></canvas>
+                            <div class="skeleton-controls">
+                                <button id="playPauseLoop" class="skeleton-btn">⏸</button>
+                                <input type="range" id="frameSlider" min="0" max="100" value="0" class="frame-slider">
+                                <span id="frameCounter">0 / 0</span>
+                                <div class="camera-controls">
+                                    <label title="Horizontal">↔</label>
+                                    <input type="range" id="cameraX" min="-5" max="5" value="0" step="0.1" class="camera-slider">
+                                    <label title="Vertical">↕</label>
+                                    <input type="range" id="cameraY" min="-5" max="5" value="0" step="0.1" class="camera-slider">
+                                    <label title="Zoom">🔍</label>
+                                    <input type="range" id="cameraZoom" min="2" max="10" value="5" step="0.1" class="camera-slider">
+                                </div>
+                            </div>
+                            <!-- Processing overlay -->
+                            <div id="skeletonProcessing" class="skeleton-processing" style="display: none;">
+                                <div class="spinner"></div>
+                                <p id="processingStatus">Extracting skeleton...</p>
+                            </div>
                         </div>
                     </div>
                     <!-- Running Analysis Overlay (green - actually processing) -->
@@ -9964,6 +10123,461 @@
         window.checkGoogleCalendarStatus = checkGoogleCalendarStatus;
     </script>
 
+    <!-- 3D Skeleton Viewer Logic -->
+    <script>
+        // Global variables for skeleton viewer
+        let skeletonScene, skeletonCamera, skeletonRenderer;
+        let skeletonObjects = [];
+        let currentSkeletonFrameIndex = 0;
+        let isSkeletonPlaying = true;
+        let skeletonAnimationId = null;
+
+        // Initialize Three.js scene
+        function initSkeletonViewer(canvas) {
+            const container = canvas.parentElement;
+            const width = container ? container.clientWidth : 640;
+            const height = 400;
+
+            skeletonScene = new THREE.Scene();
+            skeletonScene.background = new THREE.Color(0x1a1a1a);
+
+            skeletonCamera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            skeletonCamera.position.set(0, 0, 5);
+            skeletonCamera.lookAt(0, 0, 0);
+
+            skeletonRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            skeletonRenderer.setSize(width, height);
+            skeletonRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Set canvas size explicitly
+            canvas.width = width;
+            canvas.height = height;
+
+            // Add grid
+            const grid = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+            skeletonScene.add(grid);
+
+            // Add lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            skeletonScene.add(ambient);
+            const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+            directional.position.set(5, 5, 5);
+            skeletonScene.add(directional);
+
+            // Render initial empty scene
+            skeletonRenderer.render(skeletonScene, skeletonCamera);
+        }
+
+        // Get color based on shot stage
+        function getSkeletonStageColor(stage) {
+            const colors = {
+                'neutral': 0x888888,
+                'pre_shot': 0xFFD700,
+                'follow_through': 0x00FF00
+            };
+            return colors[stage] || 0xFF6B7A; // Default to primary color
+        }
+
+        // Update skeleton for a frame
+        function updateSkeletonFrame(landmarks, stage) {
+            if (!skeletonScene || !skeletonRenderer) return;
+
+            // Clear previous skeleton objects
+            skeletonObjects.forEach(obj => skeletonScene.remove(obj));
+            skeletonObjects = [];
+
+            if (!landmarks || landmarks.length === 0) {
+                skeletonRenderer.render(skeletonScene, skeletonCamera);
+                return;
+            }
+
+            const color = getSkeletonStageColor(stage);
+
+            // MediaPipe pose connections (main body)
+            const connections = [
+                [11, 12], [11, 23], [12, 24], [23, 24],  // Torso
+                [11, 13], [13, 15],  // Left arm
+                [12, 14], [14, 16],  // Right arm
+                [23, 25], [25, 27],  // Left leg
+                [24, 26], [26, 28]   // Right leg
+            ];
+
+            // Calculate center for normalization
+            let centerX = 0, centerY = 0, centerZ = 0;
+            let validCount = 0;
+
+            landmarks.forEach(lm => {
+                if (!lm) return;
+                const vis = lm.visibility !== undefined ? lm.visibility : 1;
+                if (vis >= 0.3) {
+                    centerX += lm.x !== undefined ? lm.x : (lm[0] || 0);
+                    centerY += lm.y !== undefined ? lm.y : (lm[1] || 0);
+                    centerZ += lm.z !== undefined ? lm.z : (lm[2] || 0);
+                    validCount++;
+                }
+            });
+
+            if (validCount === 0) {
+                skeletonRenderer.render(skeletonScene, skeletonCamera);
+                return;
+            }
+
+            centerX /= validCount;
+            centerY /= validCount;
+            centerZ /= validCount;
+
+            // Calculate scale based on shoulder width
+            let scale = 4.0;
+            if (landmarks[11] && landmarks[12]) {
+                const lx = landmarks[11].x !== undefined ? landmarks[11].x : (landmarks[11][0] || 0);
+                const rx = landmarks[12].x !== undefined ? landmarks[12].x : (landmarks[12][0] || 0);
+                const shoulderWidth = Math.abs(lx - rx);
+                scale = Math.max(3.0, Math.min(6.0, 1.0 / (shoulderWidth + 0.1)));
+            }
+
+            // Helper to get 3D position
+            const getPos3D = (lm) => {
+                if (!lm) return null;
+                const x = (lm.x !== undefined ? lm.x : (lm[0] || 0)) - centerX;
+                const y = -((lm.y !== undefined ? lm.y : (lm[1] || 0)) - centerY);  // Flip Y
+                const z = ((lm.z !== undefined ? lm.z : (lm[2] || 0)) - centerZ) * 0.5;
+                return { x: x * scale * 2, y: y * scale * 2, z: z * scale };
+            };
+
+            // Draw joints (spheres)
+            landmarks.forEach((lm, i) => {
+                if (!lm) return;
+                const vis = lm.visibility !== undefined ? lm.visibility : 1;
+                if (vis < 0.3) return;
+
+                const pos = getPos3D(lm);
+                if (!pos) return;
+
+                const geo = new THREE.SphereGeometry(0.08, 16, 16);
+                const mat = new THREE.MeshLambertMaterial({ color });
+                const sphere = new THREE.Mesh(geo, mat);
+                sphere.position.set(pos.x, pos.y, pos.z);
+                skeletonScene.add(sphere);
+                skeletonObjects.push(sphere);
+            });
+
+            // Draw bones (lines)
+            connections.forEach(([i, j]) => {
+                const a = landmarks[i], b = landmarks[j];
+                if (!a || !b) return;
+
+                const posA = getPos3D(a);
+                const posB = getPos3D(b);
+                if (!posA || !posB) return;
+
+                const points = [
+                    new THREE.Vector3(posA.x, posA.y, posA.z),
+                    new THREE.Vector3(posB.x, posB.y, posB.z)
+                ];
+                const geo = new THREE.BufferGeometry().setFromPoints(points);
+                const mat = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+                const line = new THREE.Line(geo, mat);
+                skeletonScene.add(line);
+                skeletonObjects.push(line);
+            });
+
+            skeletonRenderer.render(skeletonScene, skeletonCamera);
+        }
+
+        // Animation loop
+        function animateSkeleton() {
+            const poseData = window.userPoseData;
+            if (!isSkeletonPlaying || !poseData || poseData.length === 0) return;
+
+            const frame = poseData[currentSkeletonFrameIndex];
+            if (frame && frame.landmarks) {
+                updateSkeletonFrame(frame.landmarks, frame.state);
+            }
+
+            // Update slider and counter
+            const slider = document.getElementById('frameSlider');
+            const counter = document.getElementById('frameCounter');
+            if (slider) slider.value = currentSkeletonFrameIndex;
+            if (counter) counter.textContent = `${currentSkeletonFrameIndex + 1} / ${poseData.length}`;
+
+            currentSkeletonFrameIndex = (currentSkeletonFrameIndex + 1) % poseData.length;
+
+            if (isSkeletonPlaying) {
+                skeletonAnimationId = setTimeout(() => {
+                    requestAnimationFrame(animateSkeleton);
+                }, 33); // ~30fps
+            }
+        }
+
+        // Process uploaded video through MediaPipe to extract skeleton
+        async function processVideoForSkeleton() {
+            const video = document.getElementById('userVideo');
+            console.log('processVideoForSkeleton called, video:', video, 'src:', video?.src);
+
+            if (!video || !video.src) {
+                console.log('No video to process - video element or src missing');
+                return false;
+            }
+
+            // Show processing overlay
+            const processingOverlay = document.getElementById('skeletonProcessing');
+            const statusEl = document.getElementById('processingStatus');
+            console.log('Processing overlay:', processingOverlay);
+            if (processingOverlay) processingOverlay.style.display = 'flex';
+
+            try {
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    if (video.readyState >= 2) resolve();
+                    else video.addEventListener('loadeddata', resolve, { once: true });
+                });
+
+                // Create hidden canvas for processing
+                const processCanvas = document.createElement('canvas');
+                processCanvas.width = 640;
+                processCanvas.height = 480;
+                const ctx = processCanvas.getContext('2d');
+
+                // Check if MediaPipe Pose is available
+                if (typeof Pose === 'undefined') {
+                    console.error('MediaPipe Pose not loaded');
+                    if (statusEl) statusEl.textContent = 'Loading pose detection...';
+                    // MediaPipe should be loaded from tool/app.js or index.html
+                    return false;
+                }
+
+                console.log('Initializing MediaPipe Pose...');
+
+                // Initialize MediaPipe Pose
+                const pose = new Pose({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+                });
+
+                pose.setOptions({
+                    modelComplexity: 1,
+                    smoothLandmarks: true,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+
+                const extractedFrames = [];
+                let frameCount = 0;
+
+                // Process frames
+                pose.onResults((results) => {
+                    if (results.poseLandmarks) {
+                        // Convert landmarks to our format
+                        const landmarks = results.poseLandmarks.map((lm, i) => ({
+                            x: lm.x,
+                            y: lm.y,
+                            z: lm.z || 0,
+                            visibility: lm.visibility || 1
+                        }));
+
+                        // Detect shot stage based on arm position
+                        let state = 'neutral';
+                        const rightWrist = landmarks[16];
+                        const rightShoulder = landmarks[12];
+                        if (rightWrist && rightShoulder) {
+                            if (rightWrist.y < rightShoulder.y - 0.1) state = 'follow_through';
+                            else if (rightWrist.y < rightShoulder.y + 0.05) state = 'pre_shot';
+                        }
+
+                        extractedFrames.push({
+                            state: state,
+                            time: frameCount / 30,
+                            landmarks: landmarks
+                        });
+                    }
+                    frameCount++;
+                });
+
+                await pose.initialize();
+
+                // Sample frames from video
+                const duration = video.duration;
+                const fps = 15; // Sample at 15fps for smooth animation
+                const totalFrames = Math.min(Math.floor(duration * fps), 90); // Max 90 frames (6 seconds)
+
+                for (let i = 0; i < totalFrames; i++) {
+                    const time = (i / totalFrames) * duration;
+                    video.currentTime = time;
+
+                    await new Promise(resolve => {
+                        video.onseeked = resolve;
+                    });
+
+                    // Draw frame to canvas
+                    ctx.drawImage(video, 0, 0, processCanvas.width, processCanvas.height);
+
+                    // Process through MediaPipe
+                    await pose.send({ image: processCanvas });
+
+                    // Update status
+                    if (statusEl) {
+                        const percent = Math.round((i + 1) / totalFrames * 100);
+                        statusEl.textContent = `Extracting skeleton... ${percent}%`;
+                    }
+                }
+
+                // Close pose
+                pose.close();
+
+                // Store extracted data
+                if (extractedFrames.length > 0) {
+                    window.userPoseData = extractedFrames;
+                    console.log(`Extracted ${extractedFrames.length} skeleton frames`);
+
+                    // Hide processing overlay
+                    if (processingOverlay) processingOverlay.style.display = 'none';
+
+                    // Reset video to start
+                    video.currentTime = 0;
+
+                    return true;
+                } else {
+                    if (statusEl) statusEl.textContent = 'No pose detected in video';
+                    setTimeout(() => {
+                        if (processingOverlay) processingOverlay.style.display = 'none';
+                    }, 2000);
+                    return false;
+                }
+
+            } catch (error) {
+                console.error('Error processing video:', error);
+                if (statusEl) statusEl.textContent = 'Error processing video';
+                setTimeout(() => {
+                    if (processingOverlay) processingOverlay.style.display = 'none';
+                }, 2000);
+                return false;
+            }
+        }
+
+        // Start skeleton viewer with recorded data
+        function startSkeletonViewer() {
+            let poseData = window.userPoseData;
+
+            // If no pose data, cannot start
+            if (!poseData || poseData.length === 0) {
+                console.log('No pose data available for skeleton viewer');
+                return;
+            }
+
+            const canvas = document.getElementById('skeletonCanvas3d');
+            if (!canvas) {
+                console.log('Skeleton canvas not found');
+                return;
+            }
+
+            // Initialize if needed
+            if (!skeletonScene) {
+                initSkeletonViewer(canvas);
+            }
+
+            // Setup slider
+            const slider = document.getElementById('frameSlider');
+            if (slider) {
+                slider.max = poseData.length - 1;
+                slider.value = 0;
+            }
+
+            // Update counter
+            const counter = document.getElementById('frameCounter');
+            if (counter) counter.textContent = `1 / ${poseData.length}`;
+
+            currentSkeletonFrameIndex = 0;
+            isSkeletonPlaying = true;
+
+            // Update play button
+            const playBtn = document.getElementById('playPauseLoop');
+            if (playBtn) playBtn.textContent = '⏸';
+
+            animateSkeleton();
+            console.log(`Skeleton viewer started with ${poseData.length} frames`);
+        }
+
+        // Stop skeleton viewer
+        function stopSkeletonViewer() {
+            isSkeletonPlaying = false;
+            if (skeletonAnimationId) {
+                clearTimeout(skeletonAnimationId);
+                skeletonAnimationId = null;
+            }
+        }
+
+        // Setup skeleton viewer controls on DOM load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Slider event - scrub through frames
+            const slider = document.getElementById('frameSlider');
+            if (slider) {
+                slider.addEventListener('input', function(e) {
+                    isSkeletonPlaying = false;
+                    const playBtn = document.getElementById('playPauseLoop');
+                    if (playBtn) playBtn.textContent = '▶';
+
+                    currentSkeletonFrameIndex = parseInt(e.target.value);
+                    const poseData = window.userPoseData;
+                    if (poseData && poseData[currentSkeletonFrameIndex]) {
+                        const frame = poseData[currentSkeletonFrameIndex];
+                        updateSkeletonFrame(frame.landmarks, frame.state);
+
+                        const counter = document.getElementById('frameCounter');
+                        if (counter) counter.textContent = `${currentSkeletonFrameIndex + 1} / ${poseData.length}`;
+                    }
+                });
+            }
+
+            // Play/Pause button
+            const playBtn = document.getElementById('playPauseLoop');
+            if (playBtn) {
+                playBtn.addEventListener('click', function() {
+                    isSkeletonPlaying = !isSkeletonPlaying;
+                    this.textContent = isSkeletonPlaying ? '⏸' : '▶';
+                    if (isSkeletonPlaying) animateSkeleton();
+                });
+            }
+
+            // Camera X position control (horizontal)
+            const cameraXSlider = document.getElementById('cameraX');
+            if (cameraXSlider) {
+                cameraXSlider.addEventListener('input', function(e) {
+                    if (skeletonCamera) {
+                        skeletonCamera.position.x = parseFloat(e.target.value);
+                        if (skeletonRenderer && skeletonScene) {
+                            skeletonRenderer.render(skeletonScene, skeletonCamera);
+                        }
+                    }
+                });
+            }
+
+            // Camera Y position control (vertical)
+            const cameraYSlider = document.getElementById('cameraY');
+            if (cameraYSlider) {
+                cameraYSlider.addEventListener('input', function(e) {
+                    if (skeletonCamera) {
+                        skeletonCamera.position.y = parseFloat(e.target.value);
+                        if (skeletonRenderer && skeletonScene) {
+                            skeletonRenderer.render(skeletonScene, skeletonCamera);
+                        }
+                    }
+                });
+            }
+
+            // Camera zoom control
+            const cameraZoomSlider = document.getElementById('cameraZoom');
+            if (cameraZoomSlider) {
+                cameraZoomSlider.addEventListener('input', function(e) {
+                    if (skeletonCamera) {
+                        skeletonCamera.position.z = parseFloat(e.target.value);
+                        if (skeletonRenderer && skeletonScene) {
+                            skeletonRenderer.render(skeletonScene, skeletonCamera);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
     <!-- Analysis Type Selection Logic -->
     <script>
         // Show analysis selection after video is ready
@@ -9989,9 +10603,81 @@
             // Hide user status
             const userStatus = document.getElementById('userStatus');
             if (userStatus) userStatus.style.display = 'none';
-            // Show "Video Ready" overlay (blue)
+            // Show skeleton viewer overlay
             const readyOverlay = document.getElementById('videoReadyOverlay');
             if (readyOverlay) readyOverlay.style.display = 'flex';
+
+            // Show processing overlay immediately
+            const processingOverlay = document.getElementById('skeletonProcessing');
+            if (processingOverlay) processingOverlay.style.display = 'flex';
+
+            // Process video and extract skeleton, then start viewer
+            setTimeout(async () => {
+                try {
+                    // If we already have pose data (from webcam recording), just start viewer
+                    if (window.userPoseData && window.userPoseData.length > 0) {
+                        console.log('Using existing pose data');
+                        if (processingOverlay) processingOverlay.style.display = 'none';
+                        startSkeletonViewer();
+                    } else {
+                        // Process uploaded video to extract skeleton
+                        console.log('Processing video for skeleton...');
+                        const success = await processVideoForSkeleton();
+                        if (processingOverlay) processingOverlay.style.display = 'none';
+                        if (success) {
+                            console.log('Processing succeeded, starting viewer');
+                            startSkeletonViewer();
+                        } else {
+                            // Use demo data as fallback
+                            console.log('Processing failed, using demo data');
+                            window.userPoseData = generateDemoSkeletonData();
+                            startSkeletonViewer();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error in skeleton processing:', error);
+                    if (processingOverlay) processingOverlay.style.display = 'none';
+                    // Use demo data as fallback
+                    window.userPoseData = generateDemoSkeletonData();
+                    startSkeletonViewer();
+                }
+            }, 200);
+        }
+
+        // Generate demo skeleton data for fallback
+        function generateDemoSkeletonData() {
+            const frames = [];
+            const totalFrames = 60;
+
+            for (let i = 0; i < totalFrames; i++) {
+                const progress = i / totalFrames;
+                let state = progress < 0.2 ? 'neutral' : progress < 0.7 ? 'pre_shot' : 'follow_through';
+
+                const armRaise = Math.sin(progress * Math.PI) * 0.3;
+                const landmarks = [];
+
+                for (let j = 0; j < 33; j++) {
+                    let x = 0.5, y = 0.5, z = 0;
+                    switch(j) {
+                        case 11: x = 0.35; y = 0.3; break;
+                        case 12: x = 0.65; y = 0.3; break;
+                        case 13: x = 0.25; y = 0.45; break;
+                        case 14: x = 0.75; y = 0.3 - armRaise; break;
+                        case 15: x = 0.2; y = 0.55; break;
+                        case 16: x = 0.8; y = 0.2 - armRaise * 1.2; break;
+                        case 23: x = 0.4; y = 0.55; break;
+                        case 24: x = 0.6; y = 0.55; break;
+                        case 25: x = 0.38; y = 0.72; break;
+                        case 26: x = 0.62; y = 0.72; break;
+                        case 27: x = 0.36; y = 0.9; break;
+                        case 28: x = 0.64; y = 0.9; break;
+                    }
+                    landmarks.push({ x, y, z, visibility: 1.0 });
+                }
+
+                frames.push({ state, time: i / 30, landmarks });
+            }
+            return frames;
         }
 
         // Go back to recording/upload state
@@ -10026,9 +10712,12 @@
             document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
             // Clear recorded pose data
             window.recordedUserPoseData = null;
+            window.userPoseData = null;
             if (typeof userPoseData !== 'undefined') {
                 userPoseData = [];
             }
+            // Stop skeleton viewer
+            stopSkeletonViewer();
         }
 
         // Override the userVideoUpload change handler to show analysis options
@@ -10036,9 +10725,20 @@
             const userVideoUpload = document.getElementById('userVideoUpload');
             if (userVideoUpload) {
                 userVideoUpload.addEventListener('change', function(e) {
-                    if (e.target.files[0]) {
-                        // Show analysis options and blue overlay
-                        setTimeout(showAnalysisOptions, 100);
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Set video src to uploaded file
+                        const video = document.getElementById('userVideo');
+                        if (video) {
+                            const url = URL.createObjectURL(file);
+                            video.src = url;
+                            video.load();
+
+                            // Wait for video to load, then show analysis options
+                            video.onloadeddata = function() {
+                                showAnalysisOptions();
+                            };
+                        }
                     }
                 });
             }

@@ -1181,6 +1181,7 @@ async function stopUserRecording() {
 
         // Store pose data for analysis and show analysis type selection
         window.recordedUserPoseData = userPoseData;
+        window.userPoseData = userPoseData; // Expose for skeleton viewer
         console.log(`✅ Shot recorded: ${userPoseData.length} frames captured`);
 
         // Show analysis options instead of auto-analyzing
@@ -1357,6 +1358,9 @@ async function processUploadedUserVideo() {
                 statusEl.style.display = 'block';
             }
             document.getElementById('retakeUser').style.display = 'inline-block';
+
+            // Expose pose data for skeleton viewer
+            window.userPoseData = userPoseData;
 
             // For custom mode, automatically save user shot as global benchmark if no benchmark exists
             if (selectedPlayer === 'custom') {
