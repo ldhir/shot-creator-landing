@@ -137,6 +137,70 @@ function initializeProPlayerBenchmarks() {
 let benchmarkPose = null;
 let userPose = null;
 
+// ====================== FRAME INTERPOLATION ======================
+
+// Interpolate frames to create smoother animation and more data points
+// Based on videopose3d branch implementation
+function interpolateFrames(originalFrames, factor) {
+    if (originalFrames.length < 2) return originalFrames;
+
+    const interpolated = [];
+
+    // For each pair of consecutive frames
+    for (let i = 0; i < originalFrames.length - 1; i++) {
+        const currentFrame = originalFrames[i];
+        const nextFrame = originalFrames[i + 1];
+
+        // Add the original frame
+        interpolated.push(currentFrame);
+
+        // Create (factor - 1) interpolated frames between current and next
+        for (let interpStep = 1; interpStep < factor; interpStep++) {
+            const t = interpStep / factor; // Interpolation factor (0 to 1)
+
+            // Interpolate landmarks (array of [x, y, z] arrays)
+            const interpolatedLandmarks = [];
+            for (let landmarkIdx = 0; landmarkIdx < currentFrame.landmarks.length; landmarkIdx++) {
+                const currentLandmark = currentFrame.landmarks[landmarkIdx];
+                const nextLandmark = nextFrame.landmarks[landmarkIdx];
+
+                if (currentLandmark && nextLandmark) {
+                    // Linear interpolation for x, y, z coordinates
+                    const interpolatedLandmark = [
+                        currentLandmark[0] + (nextLandmark[0] - currentLandmark[0]) * t,
+                        currentLandmark[1] + (nextLandmark[1] - currentLandmark[1]) * t,
+                        (currentLandmark[2] || 0) + ((nextLandmark[2] || 0) - (currentLandmark[2] || 0)) * t
+                    ];
+                    interpolatedLandmarks.push(interpolatedLandmark);
+                } else if (currentLandmark) {
+                    interpolatedLandmarks.push([...currentLandmark]);
+                } else if (nextLandmark) {
+                    interpolatedLandmarks.push([...nextLandmark]);
+                } else {
+                    interpolatedLandmarks.push([0.5, 0.5, 0]);
+                }
+            }
+
+            // Interpolate angles
+            const interpolatedFrame = {
+                state: currentFrame.state,
+                time: currentFrame.time + (nextFrame.time - currentFrame.time) * t,
+                elbow_angle: currentFrame.elbow_angle + (nextFrame.elbow_angle - currentFrame.elbow_angle) * t,
+                wrist_angle: currentFrame.wrist_angle + (nextFrame.wrist_angle - currentFrame.wrist_angle) * t,
+                arm_angle: currentFrame.arm_angle + (nextFrame.arm_angle - currentFrame.arm_angle) * t,
+                landmarks: interpolatedLandmarks
+            };
+
+            interpolated.push(interpolatedFrame);
+        }
+    }
+
+    // Add the last original frame
+    interpolated.push(originalFrames[originalFrames.length - 1]);
+
+    return interpolated;
+}
+
 // ====================== MEDIAPIPE SETUP ======================
 
 // POSE_CONNECTIONS - MediaPipe Pose landmark connections
@@ -1352,13 +1416,23 @@ async function processUploadedUserVideo() {
 
         // Check if we captured any data
         if (userPoseData.length > 0) {
+            // Apply linear interpolation to get ~90 frames
+            const originalFrameCount = userPoseData.length;
+            const targetFrames = 90;
+            const interpolationFactor = Math.max(1, Math.ceil(targetFrames / originalFrameCount));
+
+            if (interpolationFactor > 1) {
+                userPoseData = interpolateFrames(userPoseData, interpolationFactor);
+                console.log(`🔄 Interpolated ${originalFrameCount} frames → ${userPoseData.length} frames (${interpolationFactor}x)`);
+            }
+
             // Expose pose data globally for angle extraction
             window.recordedUserPoseData = userPoseData;
             window.userPoseData = userPoseData;
             console.log(`✅ Video processed: ${userPoseData.length} frames captured`);
 
             if (statusEl) {
-            statusEl.textContent = `Processed ${userPoseData.length} frames. Analyzing...`;
+            statusEl.textContent = `Processed ${userPoseData.length} frames (${originalFrameCount} original, interpolated ${interpolationFactor}x). Analyzing...`;
             statusEl.className = 'status success';
                 statusEl.style.display = 'block';
             }
@@ -1581,6 +1655,16 @@ async function processUploadedBenchmarkVideo() {
 
         // Check if we captured any data
         if (benchmarkPoseData.length > 0) {
+            // Apply linear interpolation to get ~90 frames
+            const originalFrameCount = benchmarkPoseData.length;
+            const targetFrames = 90;
+            const interpolationFactor = Math.max(1, Math.ceil(targetFrames / originalFrameCount));
+
+            if (interpolationFactor > 1) {
+                benchmarkPoseData = interpolateFrames(benchmarkPoseData, interpolationFactor);
+                console.log(`🔄 Interpolated ${originalFrameCount} frames → ${benchmarkPoseData.length} frames (${interpolationFactor}x)`);
+            }
+
             // Save as global benchmark for all users
             if (window.saveGlobalBenchmark) {
                 console.log('💾 Saving global benchmark from uploaded video...', benchmarkPoseData.length, 'frames');
@@ -1811,13 +1895,25 @@ async function processVideoForBenchmark(videoFile, playerName = 'curry') {
             
             video.pause();
             URL.revokeObjectURL(video.src);
-            
+
             if (poseData.length > 0) {
+                // Apply linear interpolation to get ~90 frames
+                const originalFrameCount = poseData.length;
+                const targetFrames = 90;
+                const interpolationFactor = Math.max(1, Math.ceil(targetFrames / originalFrameCount));
+                let interpolatedData = poseData;
+
+                if (interpolationFactor > 1) {
+                    interpolatedData = interpolateFrames(poseData, interpolationFactor);
+                    console.log(`🔄 Interpolated ${originalFrameCount} frames → ${interpolatedData.length} frames (${interpolationFactor}x)`);
+                }
+
                 // Generate the benchmark file content
                 const benchmarkContent = `// ${playerName.toUpperCase()} benchmark data (extracted from video)
-const ${playerName}_data = ${JSON.stringify(poseData, null, 2)};
+// Original: ${originalFrameCount} frames, Interpolated: ${interpolatedData.length} frames (${interpolationFactor}x)
+const ${playerName}_data = ${JSON.stringify(interpolatedData, null, 2)};
 `;
-                
+
                 // Create download link
                 const blob = new Blob([benchmarkContent], { type: 'text/javascript' });
                 const url = URL.createObjectURL(blob);
@@ -1828,9 +1924,9 @@ const ${playerName}_data = ${JSON.stringify(poseData, null, 2)};
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                
-                console.log(`Generated ${playerName}_benchmark.js with ${poseData.length} frames`);
-                resolve(poseData);
+
+                console.log(`Generated ${playerName}_benchmark.js with ${interpolatedData.length} frames`);
+                resolve(interpolatedData);
             } else {
                 reject(new Error('No shot detected in video'));
             }
