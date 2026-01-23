@@ -2445,8 +2445,14 @@
                             <div id="skeletonProcessing" class="skeleton-processing" style="display: none;">
                                 <div class="spinner"></div>
                                 <p id="processingStatus">Extracting skeleton...</p>
-                                <p id="shotCounter" style="margin-top: 10px; font-size: 18px; font-weight: 600; color: var(--primary-color);">Shots Detected: <span id="shotCountValue">0</span> / <span id="shotCountTarget">10</span></p>
                             </div>
+                        </div>
+                        
+                        <!-- Translucent shot counter (outside skeleton viewer container, positioned over video) -->
+                        <div id="shotCounterOverlay" style="position: absolute; top: 20px; right: 20px; z-index: 25; background: rgba(0, 0, 0, 0.7); padding: 15px 25px; border-radius: 12px; border: 2px solid rgba(255, 107, 122, 0.5); display: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);">
+                            <p style="margin: 0; font-size: 24px; font-weight: 700; color: var(--primary-color); text-align: center; font-family: 'Work Sans', sans-serif; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);">
+                                Shots Detected: <span id="shotCountValue" style="color: #fff;">0</span> / <span id="shotCountTarget" style="color: #fff;">10</span>
+                            </p>
                         </div>
                     </div>
                     <!-- Running Analysis Overlay (green - actually processing) -->
@@ -11582,25 +11588,28 @@
             detectedShots = []; // Reset detected shots
             currentLoopFrameIndex = 0;
             
-            // Always show processing overlay and skeleton viewer for visual feedback
+            // Show skeleton viewer and shot counter (hide processing overlay to show skeleton)
             const processingOverlay = document.getElementById('skeletonProcessing');
             const statusEl = document.getElementById('processingStatus');
             const shotCountValue = document.getElementById('shotCountValue');
             const shotCountTarget = document.getElementById('shotCountTarget');
-            const shotCounter = document.getElementById('shotCounter');
+            const shotCounterOverlay = document.getElementById('shotCounterOverlay');
             
-            // Update shot count target
+            // Hide processing overlay so skeleton is visible
+            if (processingOverlay) processingOverlay.style.display = 'none';
+            
+            // Initialize and show translucent shot counter (outside processing overlay)
             if (shotCountTarget) {
                 shotCountTarget.textContent = selectedShotCount;
             }
+            if (shotCountValue) {
+                shotCountValue.textContent = '0';
+            }
+            if (shotCounterOverlay) {
+                shotCounterOverlay.style.display = 'block'; // Show translucent shot counter
+            }
             
-            // Show skeleton viewer and processing overlay (always visible during processing)
-            if (processingOverlay) processingOverlay.style.display = 'flex';
-            if (statusEl) statusEl.textContent = 'Processing frames... 0%';
-            if (shotCountValue) shotCountValue.textContent = '0';
-            if (shotCounter) shotCounter.style.display = 'block'; // Ensure shot counter is visible
-            
-            // Show skeleton viewer
+            // Show skeleton viewer (this will display the 3D skeleton during processing)
             const readyOverlay = document.getElementById('videoReadyOverlay');
             if (readyOverlay) readyOverlay.style.display = 'flex';
             
@@ -11736,14 +11745,12 @@
                                 console.log(`✓ Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (indices ${shotStartIndex} to ${shotEndIndex})`);
                                 
                                 // Update shot counter in real-time
-                                if (shotCountValue) {
-                                    shotCountValue.textContent = shotDetectionState.shotsDetected;
+                                const shotCountValueEl = document.getElementById('shotCountValue');
+                                if (shotCountValueEl) {
+                                    shotCountValueEl.textContent = shotDetectionState.shotsDetected;
                                 }
                                 
-                                if (statusEl) {
-                                    const progress = Math.round((processedCount / totalFrames) * 100);
-                                    statusEl.textContent = `Processing... ${progress}% | Shots: ${shotDetectionState.shotsDetected}/${selectedShotCount}`;
-                                }
+                                // Don't update status text - skeleton overlay shows progress visually
                                 
                                 // Check if we've reached the target
                                 if (shotDetectionState.shotsDetected >= selectedShotCount) {
@@ -11807,6 +11814,16 @@
                         }, 1000);
                     });
                     
+                    // Variable delay based on stage: fast for neutral, slow for shot sequences
+                    // Use the stage detected from the previous frame
+                    let frameDelay = 10; // Very fast for neutral (skip quickly)
+                    if (shotDetectionState.lastDetectedStage === 'pre_shot' || shotDetectionState.lastDetectedStage === 'follow_through') {
+                        frameDelay = 200; // Slower for shot sequences (20x slower)
+                    }
+                    
+                    // Wait for frame to render (variable delay)
+                    await new Promise(resolve => setTimeout(resolve, frameDelay));
+                    
                     // Capture and process frame (wait for video to be ready)
                     // Check if video is ready - need at least HAVE_CURRENT_DATA (readyState >= 2)
                     if (video.readyState < 2) {
@@ -11829,20 +11846,8 @@
                             
                             // Process through MediaPipe (onResults callback will update skeleton and stage)
                             await pose.send({ image: processCanvas });
-                            
-                            // Variable delay based on detected stage: fast for neutral, slow for shot sequences
-                            // Use the stage that was just detected in onResults callback
-                            let frameDelay = 5; // Very fast for neutral (speed through)
-                            if (shotDetectionState.lastDetectedStage === 'pre_shot' || shotDetectionState.lastDetectedStage === 'follow_through') {
-                                frameDelay = 200; // Slower for shot sequences (40x slower)
-                            }
-                            
-                            // Wait for frame to render (variable delay based on stage)
-                            await new Promise(resolve => setTimeout(resolve, frameDelay));
                         } catch (error) {
                             console.error(`Error processing frame ${frameIndex}:`, error);
-                            // Continue to next frame even on error
-                            await new Promise(resolve => setTimeout(resolve, 10));
                         }
                     } else {
                         console.warn(`Frame ${frameIndex} skipped - video not ready:`, {
@@ -11850,15 +11855,10 @@
                             height: video.videoHeight,
                             readyState: video.readyState
                         });
-                        // Skip quickly if video not ready
-                        await new Promise(resolve => setTimeout(resolve, 10));
                     }
                     
-                    // Update progress
-                    const progress = Math.round((frameIndex + 1) / totalFrames * 100);
-                    if (statusEl) {
-                        statusEl.textContent = `Processing... ${progress}% | Shots: ${shotDetectionState.shotsDetected}/${selectedShotCount}`;
-                    }
+                    // Don't show progress text - skeleton overlay is visible instead
+                    // Progress is shown through the skeleton animation
                 }
                 
                 // Close pose
