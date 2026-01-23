@@ -1181,6 +1181,7 @@ async function stopUserRecording() {
 
         // Store pose data for analysis and show analysis type selection
         window.recordedUserPoseData = userPoseData;
+        window.userPoseData = userPoseData; // Also expose as userPoseData for angle extraction
         console.log(`✅ Shot recorded: ${userPoseData.length} frames captured`);
 
         // Show analysis options instead of auto-analyzing
@@ -1351,6 +1352,11 @@ async function processUploadedUserVideo() {
 
         // Check if we captured any data
         if (userPoseData.length > 0) {
+            // Expose pose data globally for angle extraction
+            window.recordedUserPoseData = userPoseData;
+            window.userPoseData = userPoseData;
+            console.log(`✅ Video processed: ${userPoseData.length} frames captured`);
+
             if (statusEl) {
             statusEl.textContent = `Processed ${userPoseData.length} frames. Analyzing...`;
             statusEl.className = 'status success';
