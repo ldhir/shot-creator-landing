@@ -475,6 +475,73 @@ def compare_shots():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/list_player_data', methods=['GET'])
+def list_player_data():
+    try:
+        player_data_dir = os.path.join(app.root_path, 'player_data')
+        if not os.path.exists(player_data_dir):
+            return jsonify({'files': []}), 200
+        
+        # Get all .js and .json files
+        files = []
+        for filename in os.listdir(player_data_dir):
+            if filename.endswith('.js') or filename.endswith('.json'):
+                # Remove extension
+                player_id = filename.rsplit('.', 1)[0]
+                files.append(player_id)
+        
+        return jsonify({'files': files}), 200
+    except Exception as e:
+        app.logger.error(f"Error listing player data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save_player_data', methods=['POST'])
+def save_player_data():
+    """Save player data to player_data folder"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        player_id = data.get('player_id')
+        player_data = data.get('player_data')
+        first_name = data.get('first_name', '')
+        last_name = data.get('last_name', '')
+        
+        if not player_id or not player_data:
+            return jsonify({'error': 'Missing player_id or player_data'}), 400
+        
+        # Get the player_data directory path
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        player_data_dir = os.path.join(script_dir, 'player_data')
+        
+        # Create player_data directory if it doesn't exist
+        os.makedirs(player_data_dir, exist_ok=True)
+        
+        # Create filename
+        filename = f"{player_id}.js"
+        filepath = os.path.join(player_data_dir, filename)
+        
+        # Generate file content
+        file_content = f"// {first_name} {last_name} player data (extracted from video)\n"
+        file_content += f"const {player_id}_data = {json.dumps(player_data, indent=2)};\n"
+        
+        # Write to file
+        with open(filepath, 'w') as f:
+            f.write(file_content)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Player data saved to {filename}',
+            'filepath': filepath,
+            'filename': filename
+        })
+        
+    except Exception as e:
+        print(f"Error saving player data: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/send_email', methods=['POST'])
 def send_email():
     """Send analysis results via email."""

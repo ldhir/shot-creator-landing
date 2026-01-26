@@ -1494,6 +1494,7 @@
                 </div>
                 <div class="nav-tabs" style="display: flex; gap: 20px; align-items: center; justify-content: center; flex: 1;">
                     <button id="shotSyncTab" class="nav-tab active" onclick="showShotSync()">Shot Sync</button>
+                    <button id="benchmarkUploadTab" class="nav-tab" onclick="showBenchmarkUpload()" style="display: inline-block;">Benchmark Upload</button>
                     <button id="trainingDbTab" class="nav-tab" onclick="showTrainingDatabase()" style="display: none;">Training Database</button>
                     <button id="progressPicsTab" class="nav-tab" onclick="showProgressPics()" style="display: none;">Progress Pics</button>
                     <button id="badgesTab" class="nav-tab" onclick="showBadges()" style="display: none;">Badges</button>
@@ -1800,6 +1801,90 @@
                     
                     <div class="controls">
                         <button id="newComparison" class="btn btn-primary">New Comparison</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Benchmark Upload Section -->
+            <section id="benchmarkUploadSection" class="step" style="display: none;">
+                <h2 style="font-family: 'Forum', serif; text-align: center; margin-bottom: 30px;">
+                    <span style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Benchmark</span> Video Upload
+                </h2>
+                <p style="text-align: center; color: #666; margin-bottom: 30px; font-size: 16px;">
+                    Upload a benchmark video to extract and save detailed metrics
+                </p>
+
+                <div style="max-width: 1000px; margin: 0 auto;">
+                    <!-- Video Upload -->
+                    <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                        <h3 style="font-family: 'Bebas Neue', sans-serif; margin-bottom: 20px; font-size: 24px;">Upload Video</h3>
+                        <input type="file" id="benchmarkVideoInput" accept="video/*" style="display: none;">
+                        <label for="benchmarkVideoInput" class="btn btn-primary" style="cursor: pointer; display: inline-block; padding: 12px 30px; font-size: 16px; border-radius: 10px; margin-bottom: 15px;">
+                            📁 Choose Benchmark Video
+                        </label>
+                        <div id="benchmarkVideoFileName" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+                        <button id="processBenchmarkBtn" class="btn btn-success" style="padding: 12px 30px; font-size: 16px; border-radius: 10px; margin-left: 10px; display: none;">
+                            🔄 Process Video
+                        </button>
+                        <div id="benchmarkProcessingStatus" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none;"></div>
+                    </div>
+
+                    <!-- Metrics Display -->
+                    <div id="benchmarkMetricsDisplay" style="display: none;">
+                        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                            <h3 style="font-family: 'Bebas Neue', sans-serif; margin-bottom: 20px; font-size: 24px;">Extracted Metrics</h3>
+                            
+                            <!-- Toggle for single frame vs averaged -->
+                            <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                                <label style="font-weight: 600; font-size: 14px;">Display Mode:</label>
+                                <button id="showSingleFrameBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Single Frame</button>
+                                <button id="showAveragedBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Averaged</button>
+                            </div>
+
+                            <!-- Frame Selector (for single frame mode) -->
+                            <div id="frameSelectorContainer" style="margin-bottom: 20px; display: none;">
+                                <label style="font-weight: 600; font-size: 14px; margin-right: 10px;">Frame:</label>
+                                <input type="range" id="frameSlider" min="0" max="0" value="0" style="flex: 1; margin-right: 10px;">
+                                <span id="frameNumber" style="font-weight: 600; min-width: 80px;">Frame 0</span>
+                            </div>
+
+                            <!-- Metrics Table -->
+                            <div style="overflow-x: auto;">
+                                <table id="benchmarkMetricsTable" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                    <thead>
+                                        <tr style="background: #f3f4f6;">
+                                            <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Metric</th>
+                                            <th style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Value</th>
+                                            <th style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600;">Unit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="benchmarkMetricsTableBody">
+                                        <!-- Metrics will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Save Benchmark Form -->
+                        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <h3 style="font-family: 'Bebas Neue', sans-serif; margin-bottom: 20px; font-size: 24px;">Save Benchmark</h3>
+                            <form id="saveBenchmarkForm" style="display: flex; flex-direction: column; gap: 20px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">First Name *</label>
+                                        <input type="text" id="benchmarkFirstName" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Last Name *</label>
+                                        <input type="text" id="benchmarkLastName" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px; border-radius: 10px; align-self: flex-start;">
+                                    💾 Save Benchmark to Player Data
+                                </button>
+                                <div id="saveBenchmarkStatus" style="margin-top: 10px; padding: 10px; border-radius: 8px; display: none;"></div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -2515,6 +2600,32 @@
         }
         
         window.showWorkouts = showWorkouts;
+        
+        function showBenchmarkUpload() {
+            // Hide all views
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) mainContent.style.display = 'block';
+            
+            // Show ShotSync header
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'block';
+            
+            // Hide all steps
+            document.querySelectorAll('.step').forEach(step => step.style.display = 'none');
+            
+            // Show benchmark upload section
+            document.getElementById('benchmarkUploadSection').style.display = 'block';
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('benchmarkUploadTab').classList.add('active');
+            
+            // Save active tab to localStorage
+            localStorage.setItem('activeTab', 'benchmarkUpload');
+        }
+        
+        window.showBenchmarkUpload = showBenchmarkUpload;
         
         function showTrainingDatabase() {
             // Hide all views
@@ -8979,6 +9090,236 @@
         window.connectGoogleCalendar = connectGoogleCalendar;
         window.syncToGoogleCalendar = syncToGoogleCalendar;
         window.checkGoogleCalendarStatus = checkGoogleCalendarStatus;
+
+        // ====================== BENCHMARK UPLOAD FUNCTIONALITY ======================
+        
+        let benchmarkVideoData = null;
+        let currentDisplayMode = 'averaged'; // 'single' or 'averaged'
+        let currentFrameIndex = 0;
+
+        // Video file input handler
+        document.getElementById('benchmarkVideoInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('benchmarkVideoFileName').textContent = `Selected: ${file.name}`;
+                document.getElementById('processBenchmarkBtn').style.display = 'inline-block';
+                benchmarkVideoData = null; // Reset previous data
+                document.getElementById('benchmarkMetricsDisplay').style.display = 'none';
+            }
+        });
+
+        // Process video button handler
+        document.getElementById('processBenchmarkBtn')?.addEventListener('click', async function() {
+            const fileInput = document.getElementById('benchmarkVideoInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a video file first');
+                return;
+            }
+
+            const statusEl = document.getElementById('benchmarkProcessingStatus');
+            const processBtn = document.getElementById('processBenchmarkBtn');
+            
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#f0f9ff';
+            statusEl.style.color = '#0369a1';
+            statusEl.textContent = 'Processing video... This may take a moment.';
+            processBtn.disabled = true;
+
+            try {
+                // Use the processVideoForBenchmark function from app.js
+                if (window.processVideoForBenchmark) {
+                    const poseData = await window.processVideoForBenchmark(file, 'temp');
+                    benchmarkVideoData = poseData;
+                    
+                    statusEl.style.background = '#dcfce7';
+                    statusEl.style.color = '#166534';
+                    statusEl.textContent = `✓ Successfully processed ${poseData.length} frames`;
+                    
+                    // Show metrics display
+                    document.getElementById('benchmarkMetricsDisplay').style.display = 'block';
+                    
+                    // Initialize display
+                    currentDisplayMode = 'averaged';
+                    updateMetricsDisplay();
+                } else {
+                    throw new Error('processVideoForBenchmark function not available');
+                }
+            } catch (error) {
+                console.error('Error processing video:', error);
+                statusEl.style.background = '#fef2f2';
+                statusEl.style.color = '#991b1b';
+                statusEl.textContent = `✗ Error: ${error.message}`;
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        // Display mode toggle handlers
+        document.getElementById('showSingleFrameBtn')?.addEventListener('click', function() {
+            currentDisplayMode = 'single';
+            document.getElementById('showSingleFrameBtn').classList.add('active');
+            document.getElementById('showAveragedBtn').classList.remove('active');
+            document.getElementById('frameSelectorContainer').style.display = 'flex';
+            updateMetricsDisplay();
+        });
+
+        document.getElementById('showAveragedBtn')?.addEventListener('click', function() {
+            currentDisplayMode = 'averaged';
+            document.getElementById('showAveragedBtn').classList.add('active');
+            document.getElementById('showSingleFrameBtn').classList.remove('active');
+            document.getElementById('frameSelectorContainer').style.display = 'none';
+            updateMetricsDisplay();
+        });
+
+        // Frame slider handler
+        document.getElementById('frameSlider')?.addEventListener('input', function(e) {
+            currentFrameIndex = parseInt(e.target.value);
+            document.getElementById('frameNumber').textContent = `Frame ${currentFrameIndex}`;
+            updateMetricsDisplay();
+        });
+
+        // Update metrics display
+        function updateMetricsDisplay() {
+            if (!benchmarkVideoData || benchmarkVideoData.length === 0) return;
+
+            const tbody = document.getElementById('benchmarkMetricsTableBody');
+            tbody.innerHTML = '';
+
+            let metricsToDisplay = {};
+
+            if (currentDisplayMode === 'averaged') {
+                // Calculate averages across all frames
+                const metricSums = {};
+                const metricCounts = {};
+                
+                benchmarkVideoData.forEach(frame => {
+                    if (frame.metrics) {
+                        Object.keys(frame.metrics).forEach(key => {
+                            const value = frame.metrics[key];
+                            if (value !== null && value !== undefined && !isNaN(value)) {
+                                if (!metricSums[key]) {
+                                    metricSums[key] = 0;
+                                    metricCounts[key] = 0;
+                                }
+                                metricSums[key] += value;
+                                metricCounts[key]++;
+                            }
+                        });
+                    }
+                });
+
+                Object.keys(metricSums).forEach(key => {
+                    metricsToDisplay[key] = metricSums[key] / metricCounts[key];
+                });
+            } else {
+                // Show single frame
+                const frame = benchmarkVideoData[currentFrameIndex];
+                if (frame && frame.metrics) {
+                    metricsToDisplay = frame.metrics;
+                }
+            }
+
+            // Define metric labels and units
+            const metricInfo = {
+                wrist_snap: { label: 'Wrist Snap', unit: '°' },
+                elbow_extension: { label: 'Elbow Extension', unit: '°' },
+                knee_bend: { label: 'Knee Bend', unit: '°' },
+                elbow_flare: { label: 'Elbow Flare', unit: '°' },
+                trunk_lean: { label: 'Trunk Lean', unit: '°' },
+                foot_alignment: { label: 'Foot Alignment', unit: '°' },
+                shoulder_angle: { label: 'Shoulder Angle', unit: '°' },
+                foot_angle: { label: 'Foot Angle', unit: '°' },
+                release_height: { label: 'Release Height', unit: ' (relative)' }
+            };
+
+            // Populate table
+            Object.keys(metricsToDisplay).forEach(key => {
+                const value = metricsToDisplay[key];
+                if (value !== null && value !== undefined) {
+                    const info = metricInfo[key] || { label: key, unit: '' };
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 500;">${info.label}</td>
+                        <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-family: 'Courier New', monospace;">${value.toFixed(2)}</td>
+                        <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; color: #666;">${info.unit}</td>
+                    `;
+                    tbody.appendChild(row);
+                }
+            });
+
+            // Update frame slider if in single frame mode
+            if (currentDisplayMode === 'single') {
+                const slider = document.getElementById('frameSlider');
+                slider.max = benchmarkVideoData.length - 1;
+                slider.value = currentFrameIndex;
+            }
+        }
+
+        // Save benchmark form handler
+        document.getElementById('saveBenchmarkForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!benchmarkVideoData || benchmarkVideoData.length === 0) {
+                alert('Please process a video first');
+                return;
+            }
+
+            const firstName = document.getElementById('benchmarkFirstName').value.trim();
+            const lastName = document.getElementById('benchmarkLastName').value.trim();
+
+            if (!firstName || !lastName) {
+                alert('Please enter both first and last name');
+                return;
+            }
+
+            const statusEl = document.getElementById('saveBenchmarkStatus');
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#f0f9ff';
+            statusEl.style.color = '#0369a1';
+            statusEl.textContent = 'Saving benchmark...';
+
+            try {
+                // Create player identifier (lowercase, no spaces)
+                const playerId = `${firstName.toLowerCase()}_${lastName.toLowerCase()}`;
+                
+                // Generate benchmark file content
+                const benchmarkContent = `// ${firstName} ${lastName} benchmark data (extracted from video)
+const ${playerId}_data = ${JSON.stringify(benchmarkVideoData, null, 2)};
+`;
+
+                // Create blob and download
+                const blob = new Blob([benchmarkContent], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${playerId}_benchmark.js`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                statusEl.style.background = '#dcfce7';
+                statusEl.style.color = '#166534';
+                statusEl.innerHTML = `✓ Benchmark saved as <strong>${playerId}_benchmark.js</strong><br>Please save the downloaded file to: <code>tool/player_data/${playerId}_benchmark.js</code>`;
+
+                // Reset form
+                document.getElementById('benchmarkFirstName').value = '';
+                document.getElementById('benchmarkLastName').value = '';
+
+            } catch (error) {
+                console.error('Error saving benchmark:', error);
+                statusEl.style.background = '#fef2f2';
+                statusEl.style.color = '#991b1b';
+                statusEl.textContent = `✗ Error: ${error.message}`;
+            }
+        });
+
+        // Initialize display mode buttons
+        if (document.getElementById('showAveragedBtn')) {
+            document.getElementById('showAveragedBtn').classList.add('active');
+        }
     </script>
 </body>
 </html>
