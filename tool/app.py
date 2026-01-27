@@ -1,18 +1,38 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import cv2
-import numpy as np
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    print("Warning: cv2 not available. Some features may be limited.")
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    print("Warning: numpy not available. Some features may be limited.")
 import time
 import base64
 import io
 import json
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
+try:
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.image import MIMEImage
+    EMAIL_AVAILABLE = True
+except ImportError:
+    EMAIL_AVAILABLE = False
+    print("Warning: email modules not available.")
 import os
-import boto3
-from botocore.exceptions import ClientError
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+    AWS_AVAILABLE = True
+except ImportError:
+    AWS_AVAILABLE = False
+    print("Warning: boto3 not available.")
 import requests
 
 try:
@@ -373,6 +393,22 @@ def tool_index():
     tool_dir = Path(__file__).parent
     return send_from_directory(str(tool_dir), 'index.html')
 
+@app.route('/shotsync')
+@app.route('/shotsync/')
+def shotsync_index():
+    """Serve the ShotSync application from shotsync directory"""
+    return send_from_directory(str(project_root / 'shotsync'), 'index.html')
+
+@app.route('/shotsync/<path:filename>')
+def shotsync_static(filename):
+    """Serve static files from shotsync directory"""
+    shotsync_dir = project_root / 'shotsync'
+    file_path = shotsync_dir / filename
+    if file_path.exists():
+        return send_from_directory(str(shotsync_dir), filename)
+    from flask import abort
+    abort(404)
+
 @app.route('/tool/<path:filename>')
 def tool_static(filename):
     """Serve static files for the tool"""
@@ -482,13 +518,27 @@ def list_player_data():
         if not os.path.exists(player_data_dir):
             return jsonify({'files': []}), 200
         
-        # Get all .js and .json files
+        # Get all .js and .json files, but exclude test/user extraction files
         files = []
+        exclude_patterns = ['trial_data', 'user_extraction', 'test_', '_test']
+        
         for filename in os.listdir(player_data_dir):
             if filename.endswith('.js') or filename.endswith('.json'):
                 # Remove extension
                 player_id = filename.rsplit('.', 1)[0]
-                files.append(player_id)
+                
+                # Skip test/user extraction files
+                should_exclude = False
+                for pattern in exclude_patterns:
+                    if pattern in player_id.lower():
+                        should_exclude = True
+                        break
+                
+                if not should_exclude:
+                    files.append(player_id)
+        
+        # Sort files for consistent ordering
+        files.sort()
         
         return jsonify({'files': files}), 200
     except Exception as e:

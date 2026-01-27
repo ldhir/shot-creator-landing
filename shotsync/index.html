@@ -2532,6 +2532,16 @@
                         <div id="clipStatus" style="margin-top: 10px; padding: 10px; border-radius: 8px; display: none; text-align: center;"></div>
                     </div>
                     
+                    <!-- Download Extraction Button (shown after animation is generated) -->
+                    <div id="downloadExtractionContainer" style="display: none; margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--border-color); text-align: center;">
+                        <button id="downloadExtractionBtn" class="btn btn-secondary" style="padding: 12px 30px; font-size: 16px; border-radius: 10px;">
+                            📥 Download Extraction (.js)
+                        </button>
+                        <p style="margin-top: 10px; color: var(--text-gray); font-size: 14px;">
+                            Download angle data from uploaded video
+                        </p>
+                    </div>
+                    
                     <!-- Save Player Data Form (shown after animation is generated) -->
                     <div id="savePlayerDataForm" style="display: none; margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--border-color);">
                         <div style="background: var(--bg-surface); padding: 30px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto;">
@@ -2571,10 +2581,17 @@
 
                 <!-- Player Match Results UI -->
                 <div id="playerMatchResults" class="player-match-results">
-                    <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 2px; margin-bottom: 10px;">
-                        PLAYER <span style="color: var(--primary-color);">MATCH</span>
-                    </h1>
-                    <p style="color: var(--text-gray); margin-bottom: 40px;">Your top 5 most similar pro players</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                        <div>
+                            <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 2px; margin-bottom: 10px;">
+                                PLAYER <span style="color: var(--primary-color);">MATCH</span>
+                            </h1>
+                            <p style="color: var(--text-gray); margin: 0;">Your top 5 most similar pro players</p>
+                        </div>
+                        <button id="compareBenchmarksBtn" class="btn btn-secondary" style="padding: 12px 24px; font-size: 14px;">
+                            🔄 Compare Benchmarks
+                        </button>
+                    </div>
 
                     <div class="pm-grid">
                         <!-- Left Column: Player List -->
@@ -2811,7 +2828,52 @@
                         <button id="pmTryOther" class="btn btn-primary" style="padding: 18px 36px; font-size: 17px; background: linear-gradient(135deg, var(--primary-color) 0%, #ff8a9b 100%); box-shadow: 0 4px 15px rgba(255, 107, 122, 0.4);">
                             🎯 Get Personalized Form Tips
                         </button>
+                        <button id="pmDownloadExtraction" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">
+                            📥 Download Extraction
+                        </button>
                         <button id="pmNewComparison" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">New Comparison</button>
+                    </div>
+                </div>
+
+                <!-- Benchmark Comparison Modal -->
+                <div id="benchmarkComparisonModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 10000; align-items: center; justify-content: center;">
+                    <div style="background: var(--bg-primary); padding: 40px; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
+                        <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 32px; margin-bottom: 30px; text-align: center;">
+                            Compare <span style="color: var(--primary-color);">Benchmarks</span>
+                        </h2>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Player 1</label>
+                                <select id="benchmarkSelect1" style="width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; background: var(--bg-card); color: var(--text-dark);">
+                                    <option value="">Select player...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Player 2</label>
+                                <select id="benchmarkSelect2" style="width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; background: var(--bg-card); color: var(--text-dark);">
+                                    <option value="">Select player...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                            <button id="compareBenchmarksSubmitBtn" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">
+                                Compare
+                            </button>
+                            <button id="closeBenchmarkModalBtn" class="btn btn-secondary" style="padding: 12px 30px; font-size: 16px;">
+                                Cancel
+                            </button>
+                        </div>
+                        
+                        <div id="benchmarkComparisonResults" style="display: none; margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--border-color);">
+                            <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 24px; margin-bottom: 20px; text-align: center;">
+                                Similarity: <span id="benchmarkSimilarityScore" style="color: var(--primary-color);">0%</span>
+                            </h3>
+                            <div id="benchmarkComparisonDetails" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <!-- Comparison details will be populated here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -10661,47 +10723,101 @@
                     // Run the analysis based on type
                     if (analysisType === 'similarity') {
                         // Player Match - compare with all benchmarks
+                        console.log('Player Match clicked. Checking if angles have been extracted...');
+                        
+                        // Check if angles have been extracted, if not, extract them first
+                        if (!loop3DAngles || loop3DAngles.length === 0 || !window.anglesExtracted) {
+                            console.log('⚠️ Angles not extracted yet. Extracting angles from video first...');
+                            if (runningOverlay) {
+                                runningOverlay.style.display = 'flex';
+                                const statusText = runningOverlay.querySelector('p');
+                                if (statusText) {
+                                    statusText.textContent = 'Extracting angles from video...';
+                                }
+                            }
+                            
+                            // Extract angles silently
+                            generateLoop(true).then(() => {
+                                console.log('✅ Angles extracted. Now comparing with benchmarks...');
+                                // Continue with comparison below
+                                runPlayerMatchComparison();
+                            }).catch(error => {
+                                console.error('Error extracting angles:', error);
+                                alert('Error extracting angles from video: ' + error.message);
+                                if (runningOverlay) runningOverlay.style.display = 'none';
+                            });
+                            return;
+                        }
+                        
+                        // Angles already extracted, proceed with comparison
+                        runPlayerMatchComparison();
+                    }
+                    
+                    function runPlayerMatchComparison() {
+                        // Player Match - compare with all benchmarks
                         console.log('Comparing with all benchmarks...');
                         
                         // Convert loop3DPoses and loop3DAngles to format expected by compareDetailedMetrics
                         const convertToUserData = () => {
+                            console.log('convertToUserData called:', {
+                                hasLoop3DPoses: !!loop3DPoses,
+                                posesLength: loop3DPoses?.length || 0,
+                                hasLoop3DAngles: !!loop3DAngles,
+                                anglesLength: loop3DAngles?.length || 0,
+                                hasLoop3DStages: !!loop3DStages,
+                                stagesLength: loop3DStages?.length || 0
+                            });
+                            
                             if (!loop3DPoses || loop3DPoses.length === 0) {
+                                console.error('No loop3DPoses data available');
+                                return null;
+                            }
+                            
+                            if (!loop3DAngles || loop3DAngles.length === 0) {
+                                console.error('⚠️ No loop3DAngles data available! Angles were not extracted from the video.');
+                                console.error('This means the video was not processed through generateLoop() or angles were not calculated.');
                                 return null;
                             }
                             
                             const userData = [];
                             for (let i = 0; i < loop3DPoses.length; i++) {
-                                const landmarks = loop3DPoses[i];
-                                const angles = loop3DAngles && loop3DAngles[i] ? loop3DAngles[i] : {};
-                                const stage = loop3DStages && loop3DStages[i] ? loop3DStages[i] : 'neutral';
-                                
-                                // Convert landmarks to normalized format if needed
-                                let normalizedLandmarks = landmarks;
-                                if (landmarks && landmarks.length > 0 && typeof landmarks[0] === 'object' && landmarks[0].x !== undefined) {
-                                    // Already in object format, convert to array format
-                                    normalizedLandmarks = landmarks.map(lm => [lm.x, lm.y, lm.z || 0]);
-                                }
-                                
-                                // Use metrics directly from angles (they're already extracted)
-                                // The angles object contains all the metrics we need
-                                const metrics = {
-                                    wrist_snap: angles.wrist_snap !== undefined ? angles.wrist_snap : null,
-                                    elbow_extension: angles.right_elbow !== undefined ? angles.right_elbow : null,
-                                    knee_bend: angles.knee_bend !== undefined ? angles.knee_bend : null,
-                                    elbow_flare: angles.elbow_flare !== undefined ? angles.elbow_flare : null,
-                                    trunk_lean: angles.trunk_lean !== undefined ? angles.trunk_lean : null,
-                                    foot_alignment: angles.foot_alignment !== undefined ? angles.foot_alignment : null,
-                                    shoulder_angle: angles.shoulder_angle !== undefined ? angles.shoulder_angle : null,
-                                    foot_angle: angles.foot_angle !== undefined ? angles.foot_angle : null,
-                                    release_height: angles.release_height !== undefined ? angles.release_height : null
+                                const frameData = {
+                                    state: loop3DStages[i] || 'neutral',
+                                    time: i * (1/30), // Assuming 30 fps
+                                    elbow_angle: null,
+                                    wrist_angle: null,
+                                    arm_angle: null,
+                                    landmarks: loop3DPoses[i] || [],
+                                    metrics: {}
                                 };
                                 
-                                userData.push({
-                                    state: stage,
-                                    time: i * (1/30), // Approximate time based on frame index
-                                    landmarks: normalizedLandmarks,
-                                    metrics: metrics
-                                });
+                                // Extract angles from loop3DAngles if available
+                                if (loop3DAngles && loop3DAngles[i]) {
+                                    const angles = loop3DAngles[i];
+                                    
+                                    // Log first frame to verify calculations
+                                    if (i === 0) {
+                                        console.log('✅ Angles extracted from video! Sample angles from first frame:', angles);
+                                        console.log('Available angle keys:', Object.keys(angles));
+                                    }
+                                    
+                                    // Map angles to frame data
+                                    if (angles.right_elbow !== null && angles.right_elbow !== undefined) {
+                                        frameData.elbow_angle = angles.right_elbow;
+                                    }
+                                    if (angles.wrist_snap !== null && angles.wrist_snap !== undefined) {
+                                        frameData.wrist_angle = angles.wrist_snap;
+                                    }
+                                    // Add other angles if available
+                                    if (angles.left_elbow !== null && angles.left_elbow !== undefined) {
+                                        frameData.arm_angle = angles.left_elbow;
+                                    }
+                                    
+                                    // Store ALL angles in metrics (including elbow_flare, wrist_snap, etc.)
+                                    frameData.metrics = { ...angles };
+                                }
+                                
+                                userData.push(frameData);
                             }
                             
                             return userData;
@@ -10710,6 +10826,8 @@
                         const userData = convertToUserData();
                         
                         if (!userData || userData.length === 0) {
+                            console.error('❌ Failed to convert user data. Check if video was processed and angles were extracted.');
+                            alert('Error: No user data available. Please ensure the video has been processed by clicking "Generate Animation" first.');
                             console.error('No user data available for comparison');
                             if (runningOverlay) runningOverlay.style.display = 'none';
                             document.getElementById('step2').style.display = 'none';
@@ -10730,6 +10848,22 @@
                         
                         // Compare with all benchmarks (with timeout)
                         if (window.compareWithAllBenchmarks) {
+                            console.log('Starting comparison with all benchmarks...');
+                            console.log('User data:', {
+                                frames: userData.length,
+                                hasMetrics: userData[0]?.metrics ? Object.keys(userData[0].metrics).length : 0,
+                                sampleMetrics: userData[0]?.metrics || {}
+                            });
+                            
+                            // Verify benchmark files are available
+                            if (window.getAllBenchmarkFiles) {
+                                window.getAllBenchmarkFiles().then(files => {
+                                    console.log('Available benchmark files:', files);
+                                }).catch(err => {
+                                    console.error('Error getting benchmark files:', err);
+                                });
+                            }
+                            
                             // Add timeout to prevent hanging
                             const timeoutPromise = new Promise((_, reject) => {
                                 setTimeout(() => reject(new Error('Comparison timeout after 60 seconds')), 60000);
@@ -10739,15 +10873,28 @@
                                 window.compareWithAllBenchmarks(userData),
                                 timeoutPromise
                             ]).then(matches => {
-                                console.log('Top 5 matches:', matches);
+                                console.log('=== Player Match Results ===');
+                                console.log('Number of matches:', matches?.length || 0);
+                                console.log('Matches:', matches);
+                                
+                                if (!matches || matches.length === 0) {
+                                    console.warn('⚠️ No matches found. This could mean:');
+                                    console.warn('  1. All benchmark comparisons returned 0% similarity');
+                                    console.warn('  2. All benchmarks have missing/null metrics');
+                                    console.warn('  3. User data has missing/null metrics');
+                                    console.warn('  4. No benchmark files were found');
+                                    console.warn('Check the console logs above for detailed comparison results.');
+                                }
                                 
                                 // Store matches globally for Ideal Form comparison
-                                window.topPlayerMatches = matches;
+                                window.topPlayerMatches = matches || [];
                                 window.topPlayerMatch = matches && matches.length > 0 ? matches[0] : null;
                                 
-                                // Update UI with results
+                                // Update UI with results (even if empty, to clear hardcoded content)
                                 if (window.updatePlayerMatchUI) {
-                                    window.updatePlayerMatchUI(matches);
+                                    window.updatePlayerMatchUI(matches || []);
+                                } else {
+                                    console.error('updatePlayerMatchUI function not available!');
                                 }
                                 
                                 // Always hide overlay
@@ -10777,7 +10924,9 @@
                             document.getElementById('playerMatchResults').classList.add('active');
                             document.getElementById('idealFormResults').classList.remove('active');
                         }
-                    } else if (analysisType === 'ideal') {
+                    }
+                    
+                    if (analysisType === 'ideal') {
                         // Ideal Form - calculate metrics and compare with top match
                         console.log('Calculating Ideal Form metrics from angles...');
                         
@@ -10855,6 +11004,174 @@
 
         // ========== Player Match UI Event Handlers ==========
 
+        // Benchmark Comparison Button Handler
+        document.getElementById('compareBenchmarksBtn')?.addEventListener('click', async function() {
+            const modal = document.getElementById('benchmarkComparisonModal');
+            if (!modal) return;
+            
+            // Show modal
+            modal.style.display = 'flex';
+            
+            // Load benchmark files list
+            const select1 = document.getElementById('benchmarkSelect1');
+            const select2 = document.getElementById('benchmarkSelect2');
+            
+            if (!select1 || !select2) return;
+            
+            // Clear existing options
+            select1.innerHTML = '<option value="">Select player...</option>';
+            select2.innerHTML = '<option value="">Select player...</option>';
+            
+            // Load benchmark files
+            try {
+                if (window.getAllBenchmarkFiles) {
+                    const benchmarkFiles = await window.getAllBenchmarkFiles();
+                    console.log('Available benchmarks:', benchmarkFiles);
+                    
+                    // Format player names and add to selects
+                    benchmarkFiles.forEach(playerId => {
+                        const playerName = window.formatPlayerName ? window.formatPlayerName(playerId) : playerId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        const option1 = document.createElement('option');
+                        option1.value = playerId;
+                        option1.textContent = playerName;
+                        select1.appendChild(option1);
+                        
+                        const option2 = document.createElement('option');
+                        option2.value = playerId;
+                        option2.textContent = playerName;
+                        select2.appendChild(option2);
+                    });
+                } else {
+                    console.error('getAllBenchmarkFiles function not available');
+                    alert('Error: Benchmark loading function not available');
+                }
+            } catch (error) {
+                console.error('Error loading benchmarks:', error);
+                alert('Error loading benchmarks: ' + error.message);
+            }
+        });
+        
+        // Close modal button
+        document.getElementById('closeBenchmarkModalBtn')?.addEventListener('click', function() {
+            const modal = document.getElementById('benchmarkComparisonModal');
+            if (modal) {
+                modal.style.display = 'none';
+                // Reset selects
+                document.getElementById('benchmarkSelect1').value = '';
+                document.getElementById('benchmarkSelect2').value = '';
+                document.getElementById('benchmarkComparisonResults').style.display = 'none';
+            }
+        });
+        
+        // Compare button handler
+        document.getElementById('compareBenchmarksSubmitBtn')?.addEventListener('click', async function() {
+            const playerId1 = document.getElementById('benchmarkSelect1')?.value;
+            const playerId2 = document.getElementById('benchmarkSelect2')?.value;
+            
+            if (!playerId1 || !playerId2) {
+                alert('Please select both players to compare');
+                return;
+            }
+            
+            if (playerId1 === playerId2) {
+                alert('Please select two different players');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('compareBenchmarksSubmitBtn');
+            const resultsDiv = document.getElementById('benchmarkComparisonResults');
+            const detailsDiv = document.getElementById('benchmarkComparisonDetails');
+            const scoreSpan = document.getElementById('benchmarkSimilarityScore');
+            
+            // Show loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Comparing...';
+            resultsDiv.style.display = 'none';
+            
+            try {
+                // Load both benchmarks
+                if (!window.loadBenchmarkFromFile) {
+                    throw new Error('loadBenchmarkFromFile function not available');
+                }
+                
+                if (!window.compareDetailedMetrics) {
+                    throw new Error('compareDetailedMetrics function not available');
+                }
+                
+                const [benchmark1, benchmark2] = await Promise.all([
+                    window.loadBenchmarkFromFile(playerId1),
+                    window.loadBenchmarkFromFile(playerId2)
+                ]);
+                
+                if (!benchmark1 || benchmark1.length === 0) {
+                    throw new Error(`Could not load benchmark for ${playerId1}`);
+                }
+                
+                if (!benchmark2 || benchmark2.length === 0) {
+                    throw new Error(`Could not load benchmark for ${playerId2}`);
+                }
+                
+                // Compare benchmarks
+                const comparison = window.compareDetailedMetrics(benchmark1, benchmark2);
+                
+                // Display results
+                const playerName1 = window.formatPlayerName ? window.formatPlayerName(playerId1) : playerId1.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const playerName2 = window.formatPlayerName ? window.formatPlayerName(playerId2) : playerId2.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                scoreSpan.textContent = `${Math.round(comparison.overallScore)}%`;
+                
+                // Build comparison details
+                detailsDiv.innerHTML = '';
+                
+                if (comparison.metricScores) {
+                    Object.keys(comparison.metricScores).forEach(metricName => {
+                        const score = comparison.metricScores[metricName];
+                        if (score === null || score === undefined) return;
+                        
+                        const value1 = comparison.userMetrics?.[metricName];
+                        const value2 = comparison.benchmarkMetrics?.[metricName];
+                        const diff = comparison.metricDiffs?.[metricName];
+                        
+                        const metricCard = document.createElement('div');
+                        metricCard.style.cssText = 'padding: 15px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;';
+                        
+                        const metricDisplayName = metricName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        
+                        metricCard.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">${metricDisplayName}</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--primary-color); margin-bottom: 8px;">${Math.round(score)}%</div>
+                            <div style="font-size: 12px; color: var(--text-gray);">
+                                ${playerName1}: ${value1 !== null && value1 !== undefined ? value1.toFixed(1) : 'N/A'}<br>
+                                ${playerName2}: ${value2 !== null && value2 !== undefined ? value2.toFixed(1) : 'N/A'}<br>
+                                ${diff !== null && diff !== undefined ? `Diff: ${diff.toFixed(1)}` : ''}
+                            </div>
+                        `;
+                        
+                        detailsDiv.appendChild(metricCard);
+                    });
+                }
+                
+                resultsDiv.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error comparing benchmarks:', error);
+                alert('Error comparing benchmarks: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Compare';
+            }
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('benchmarkComparisonModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+                document.getElementById('benchmarkSelect1').value = '';
+                document.getElementById('benchmarkSelect2').value = '';
+                document.getElementById('benchmarkComparisonResults').style.display = 'none';
+            }
+        });
+
         // Quick Fixes toggles
         document.querySelectorAll('.pm-fix-toggle').forEach(toggle => {
             toggle.addEventListener('click', () => {
@@ -10925,6 +11242,83 @@
             });
         }
 
+        // PM Download Extraction Button Handler
+        document.getElementById('pmDownloadExtraction')?.addEventListener('click', function() {
+            if (!loop3DPoses || loop3DPoses.length === 0) {
+                alert('No extraction data available. Please generate animation first by clicking "Generate Animation"');
+                return;
+            }
+            
+            if (!loop3DAngles || loop3DAngles.length === 0) {
+                alert('No angle data found. Please ensure the video has been processed.');
+                return;
+            }
+            
+            try {
+                // Extract data from loop3DPoses, loop3DStages, and loop3DAngles
+                // Format similar to benchmarkVideoData (same as "Extract Angles & Save Player Data" button)
+                const playerData = [];
+                
+                for (let i = 0; i < loop3DPoses.length; i++) {
+                    const frameData = {
+                        state: loop3DStages[i] || 'neutral',
+                        time: i * (1/30), // Assuming 30 fps
+                        elbow_angle: null,
+                        wrist_angle: null,
+                        arm_angle: null,
+                        landmarks: loop3DPoses[i] || [],
+                        metrics: {}
+                    };
+                    
+                    // Extract angles from loop3DAngles if available
+                    if (loop3DAngles && loop3DAngles[i]) {
+                        const angles = loop3DAngles[i];
+                        
+                        // Map angles to frame data
+                        if (angles.right_elbow !== null && angles.right_elbow !== undefined) {
+                            frameData.elbow_angle = angles.right_elbow;
+                        }
+                        if (angles.wrist_snap !== null && angles.wrist_snap !== undefined) {
+                            frameData.wrist_angle = angles.wrist_snap;
+                        }
+                        // Add other angles if available
+                        if (angles.left_elbow !== null && angles.left_elbow !== undefined) {
+                            frameData.arm_angle = angles.left_elbow;
+                        }
+                        
+                        // Store ALL angles in metrics (including elbow_flare, wrist_snap, etc.)
+                        frameData.metrics = { ...angles };
+                    }
+                    
+                    playerData.push(frameData);
+                }
+                
+                // Create JS file content (same format as "Extract Angles & Save Player Data")
+                const date = new Date().toISOString().split('T')[0];
+                const jsContent = `// User extraction data (extracted from video on ${date})
+const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
+`;
+                
+                const blob = new Blob([jsContent], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `user_extraction_${date}.js`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('Downloaded extraction data from Player Match:', {
+                    frames: playerData.length,
+                    date: date
+                });
+            } catch (error) {
+                console.error('Error downloading extraction:', error);
+                alert('Error downloading extraction: ' + error.message);
+            }
+        });
+        
         // PM New Comparison button
         const pmNewComparison = document.getElementById('pmNewComparison');
         if (pmNewComparison) {
@@ -10975,13 +11369,30 @@
          */
         function updatePlayerMatchUI(matches) {
             const pmList = document.getElementById('playerMatchList');
-            if (!pmList || !matches || matches.length === 0) {
-                console.warn('Cannot update player match UI: missing list element or matches');
+            if (!pmList) {
+                console.error('Cannot update player match UI: playerMatchList element not found');
                 return;
             }
             
-            // Clear existing rows
+            // Always clear existing rows (including hardcoded content)
             pmList.innerHTML = '';
+            
+            if (!matches || matches.length === 0) {
+                console.warn('No matches found. Showing empty state.');
+                pmList.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: var(--text-gray);">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">No matches found</div>
+                        <div style="font-size: 14px;">Please ensure your video has been processed and contains valid shot data.</div>
+                        <div style="font-size: 12px; margin-top: 20px; color: var(--text-gray); opacity: 0.7;">
+                            Check the browser console for detailed comparison logs.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            console.log('Updating Player Match UI with', matches.length, 'matches:', matches.map(m => `${m.playerName}: ${m.score.toFixed(1)}%`));
             
             // Create rows for top 5 matches
             matches.forEach((match, index) => {
@@ -11076,12 +11487,164 @@
                     document.querySelectorAll('.pm-row').forEach(r => r.classList.remove('pm-row-selected'));
                     // Add selected class to clicked row
                     this.classList.add('pm-row-selected');
+                    
+                    // Update right column with this player's comparison data
+                    if (match.comparison) {
+                        updatePlayerMatchRightColumn(match);
+                    }
                 });
                 
                 pmList.appendChild(row);
             });
             
             console.log('Player Match UI updated with', matches.length, 'matches');
+            
+            // Update right column with top match data
+            if (matches.length > 0 && matches[0].comparison) {
+                updatePlayerMatchRightColumn(matches[0]);
+            }
+        }
+        
+        /**
+         * Update Player Match right column with shared traits and differences from top match
+         * @param {Object} topMatch - Top match object with playerName, score, and comparison data
+         */
+        function updatePlayerMatchRightColumn(topMatch) {
+            if (!topMatch || !topMatch.comparison) {
+                console.warn('Cannot update right column: no comparison data');
+                return;
+            }
+            
+            const comparison = topMatch.comparison;
+            const playerName = topMatch.playerName;
+            
+            // Get shared traits (high similarity >= 85%) and differences (low similarity < 70%)
+            const sharedTraits = comparison.sharedTraits || [];
+            const differences = comparison.differences || [];
+            
+            console.log(`Updating right column for ${playerName}:`, {
+                sharedTraits: sharedTraits.length,
+                differences: differences.length
+            });
+            
+            // Update shared traits section
+            const sharedTraitsContainer = document.querySelector('.pm-traits');
+            if (sharedTraitsContainer) {
+                // Clear existing content
+                sharedTraitsContainer.innerHTML = '';
+                
+                // Create header
+                const header = document.createElement('div');
+                header.className = 'pm-section-header';
+                header.innerHTML = `
+                    <span class="pm-section-title">Shared traits with</span>
+                    <span class="pm-player-name">${playerName}</span>
+                `;
+                sharedTraitsContainer.appendChild(header);
+                
+                // Add traits
+                if (sharedTraits.length > 0) {
+                    sharedTraits.forEach(trait => {
+                        const traitEl = document.createElement('div');
+                        traitEl.className = 'pm-trait-item';
+                        
+                        // Get icon based on metric name
+                        const iconMap = {
+                            'release_height': '📏',
+                            'wrist_snap': '🔄',
+                            'elbow_extension': '💪',
+                            'trunk_lean': '🧍',
+                            'knee_bend': '🦵',
+                            'elbow_flare': '🤚',
+                            'shoulder_angle': '📐',
+                            'foot_alignment': '🦶',
+                            'foot_angle': '👣'
+                        };
+                        const icon = iconMap[trait.name] || '📊';
+                        
+                        // Create description based on values
+                        const userVal = trait.userValue !== null && trait.userValue !== undefined ? trait.userValue.toFixed(1) + '°' : 'N/A';
+                        const benchVal = trait.benchmarkValue !== null && trait.benchmarkValue !== undefined ? trait.benchmarkValue.toFixed(1) + '°' : 'N/A';
+                        const detail = `You: ${userVal} | ${playerName}: ${benchVal}`;
+                        
+                        traitEl.innerHTML = `
+                            <div class="pm-trait-icon">${icon}</div>
+                            <div class="pm-trait-text">
+                                <div class="pm-trait-name">${formatMetricName(trait.name)}</div>
+                                <div class="pm-trait-detail">${detail}</div>
+                            </div>
+                            <div class="pm-trait-match">${Math.round(trait.score)}%</div>
+                        `;
+                        sharedTraitsContainer.appendChild(traitEl);
+                    });
+                } else {
+                    // Show message if no shared traits
+                    const noTraits = document.createElement('div');
+                    noTraits.style.cssText = 'padding: 20px; text-align: center; color: var(--text-gray); font-size: 14px;';
+                    noTraits.textContent = 'No shared traits found (similarity < 85%)';
+                    sharedTraitsContainer.appendChild(noTraits);
+                }
+            }
+            
+            // Update differences section
+            const differencesContainer = document.querySelector('.pm-differences');
+            if (differencesContainer) {
+                // Clear existing content
+                differencesContainer.innerHTML = '';
+                
+                // Create header
+                const header = document.createElement('div');
+                header.className = 'pm-section-header';
+                header.innerHTML = `
+                    <span class="pm-section-title">Key differences from</span>
+                    <span class="pm-player-name">${playerName}</span>
+                `;
+                differencesContainer.appendChild(header);
+                
+                // Add differences
+                if (differences.length > 0) {
+                    differences.forEach(diff => {
+                        const diffEl = document.createElement('div');
+                        diffEl.className = 'pm-diff-item';
+                        
+                        // Get icon based on metric name
+                        const iconMap = {
+                            'release_height': '📏',
+                            'wrist_snap': '🔄',
+                            'elbow_extension': '💪',
+                            'trunk_lean': '🧍',
+                            'knee_bend': '🦵',
+                            'elbow_flare': '🤚',
+                            'shoulder_angle': '📐',
+                            'foot_alignment': '🦶',
+                            'foot_angle': '👣'
+                        };
+                        const icon = iconMap[diff.name] || '📊';
+                        
+                        // Create description based on values
+                        const userVal = diff.userValue !== null && diff.userValue !== undefined ? diff.userValue.toFixed(1) + '°' : 'N/A';
+                        const benchVal = diff.benchmarkValue !== null && diff.benchmarkValue !== undefined ? diff.benchmarkValue.toFixed(1) + '°' : 'N/A';
+                        const diffAmount = diff.difference !== null && diff.difference !== undefined ? diff.difference.toFixed(1) + '°' : 'N/A';
+                        const detail = `You: ${userVal} | ${playerName}: ${benchVal} (diff: ${diffAmount})`;
+                        
+                        diffEl.innerHTML = `
+                            <div class="pm-diff-icon">${icon}</div>
+                            <div class="pm-diff-text">
+                                <div class="pm-diff-name">${formatMetricName(diff.name)}</div>
+                                <div class="pm-diff-detail">${detail}</div>
+                            </div>
+                            <div class="pm-diff-gap">${diff.score < 100 ? '-' : ''}${Math.round(Math.abs(100 - diff.score))}%</div>
+                        `;
+                        differencesContainer.appendChild(diffEl);
+                    });
+                } else {
+                    // Show message if no differences
+                    const noDiffs = document.createElement('div');
+                    noDiffs.style.cssText = 'padding: 20px; text-align: center; color: var(--text-gray); font-size: 14px;';
+                    noDiffs.textContent = 'No significant differences found (similarity >= 70%)';
+                    differencesContainer.appendChild(noDiffs);
+                }
+            }
         }
         
         // Make function available globally
@@ -12541,10 +13104,14 @@
                         loop3DAngles = interpolatedAngles;
                     }
                     
-                    // Show save player data form and clip button (always, even when silent)
+                    // Show save player data form, download button, and clip button (always, even when silent)
                     const saveForm = document.getElementById('savePlayerDataForm');
                     if (saveForm && loop3DPoses.length > 0) {
                         saveForm.style.display = 'block';
+                    }
+                    const downloadExtractionContainer = document.getElementById('downloadExtractionContainer');
+                    if (downloadExtractionContainer && loop3DPoses.length > 0) {
+                        downloadExtractionContainer.style.display = 'block';
                     }
                     const clipButtonContainer = document.getElementById('clipButtonContainer');
                     if (clipButtonContainer && loop3DPoses.length > 0) {
@@ -13701,6 +14268,83 @@ const ${playerId}_data = ${JSON.stringify(playerData, null, 2)};
                 statusEl.style.background = '#fef2f2';
                 statusEl.style.color = '#991b1b';
                 statusEl.textContent = `✗ Error: ${error.message}`;
+            }
+        });
+        
+        // Download Extraction Button Handler
+        document.getElementById('downloadExtractionBtn')?.addEventListener('click', function() {
+            if (!loop3DPoses || loop3DPoses.length === 0) {
+                alert('No extraction data available. Please generate animation first by clicking "Generate Animation"');
+                return;
+            }
+            
+            if (!loop3DAngles || loop3DAngles.length === 0) {
+                alert('No angle data found. Please ensure the video has been processed.');
+                return;
+            }
+            
+            try {
+                // Extract data from loop3DPoses, loop3DStages, and loop3DAngles
+                // Format similar to benchmarkVideoData
+                const playerData = [];
+                
+                for (let i = 0; i < loop3DPoses.length; i++) {
+                    const frameData = {
+                        state: loop3DStages[i] || 'neutral',
+                        time: i * (1/30), // Assuming 30 fps
+                        elbow_angle: null,
+                        wrist_angle: null,
+                        arm_angle: null,
+                        landmarks: loop3DPoses[i] || [],
+                        metrics: {}
+                    };
+                    
+                    // Extract angles from loop3DAngles if available
+                    if (loop3DAngles && loop3DAngles[i]) {
+                        const angles = loop3DAngles[i];
+                        
+                        // Map angles to frame data
+                        if (angles.right_elbow !== null && angles.right_elbow !== undefined) {
+                            frameData.elbow_angle = angles.right_elbow;
+                        }
+                        if (angles.wrist_snap !== null && angles.wrist_snap !== undefined) {
+                            frameData.wrist_angle = angles.wrist_snap;
+                        }
+                        // Add other angles if available
+                        if (angles.left_elbow !== null && angles.left_elbow !== undefined) {
+                            frameData.arm_angle = angles.left_elbow;
+                        }
+                        
+                        // Store ALL angles in metrics (including elbow_flare, wrist_snap, etc.)
+                        frameData.metrics = { ...angles };
+                    }
+                    
+                    playerData.push(frameData);
+                }
+                
+                // Create JS file content
+                const date = new Date().toISOString().split('T')[0];
+                const jsContent = `// User extraction data (extracted from video on ${date})
+const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
+`;
+                
+                const blob = new Blob([jsContent], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `user_extraction_${date}.js`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('Downloaded extraction data:', {
+                    frames: playerData.length,
+                    date: date
+                });
+            } catch (error) {
+                console.error('Error downloading extraction:', error);
+                alert('Error downloading extraction: ' + error.message);
             }
         });
         

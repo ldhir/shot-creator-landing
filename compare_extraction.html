@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extraction Comparison Tool</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .metric-name {
+            font-weight: bold;
+        }
+        .diff-large {
+            color: red;
+        }
+        .diff-medium {
+            color: orange;
+        }
+        .diff-small {
+            color: green;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Extraction Comparison Tool</h1>
+    
+    <div class="section">
+        <h2>Step 1: Load Anthony Edwards Benchmark</h2>
+        <button onclick="loadBenchmark()">Load Benchmark</button>
+        <div id="benchmarkStatus"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Step 2: Paste Your Extraction JSON</h2>
+        <textarea id="userExtraction" placeholder='Paste your extraction JSON here...'></textarea>
+        <button onclick="loadUserExtraction()">Load User Extraction</button>
+        <div id="userStatus"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Step 3: Compare</h2>
+        <button onclick="compare()">Compare Metrics</button>
+        <div id="comparisonResults"></div>
+    </div>
+
+    <script>
+        let benchmarkData = null;
+        let userData = null;
+        let benchmarkMetrics = null;
+        let userMetrics = null;
+
+        // Auto-load benchmark on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBenchmark();
+        });
+
+        // Load extractMetricsFromData function from app.js
+        async function loadBenchmark() {
+            try {
+                const response = await fetch('tool/player_data/anthony_edwards.js');
+                const text = await response.text();
+                const match = text.match(/const anthony_edwards_data = (\[[\s\S]*?\]);/);
+                if (match) {
+                    benchmarkData = eval(match[1]);
+                    document.getElementById('benchmarkStatus').innerHTML = 
+                        `<p style="color: green;">✓ Loaded ${benchmarkData.length} frames</p>`;
+                    
+                    // Extract metrics using the same logic as extractMetricsFromData
+                    benchmarkMetrics = extractMetricsFromData(benchmarkData);
+                    console.log('Benchmark metrics:', benchmarkMetrics);
+                    document.getElementById('benchmarkStatus').innerHTML += 
+                        `<pre style="margin-top: 10px;">${JSON.stringify(benchmarkMetrics, null, 2)}</pre>`;
+                } else {
+                    throw new Error('Could not parse benchmark file');
+                }
+            } catch (error) {
+                document.getElementById('benchmarkStatus').innerHTML = 
+                    `<p style="color: red;">✗ Error: ${error.message}</p>`;
+            }
+        }
+
+        function loadUserExtraction() {
+            try {
+                const jsonText = document.getElementById('userExtraction').value;
+                userData = JSON.parse(jsonText);
+                
+                // Handle both formats: direct array or object with frames array
+                if (userData.frames) {
+                    userData = userData.frames;
+                } else if (!Array.isArray(userData)) {
+                    throw new Error('Invalid format: expected array or object with frames array');
+                }
+                
+                document.getElementById('userStatus').innerHTML = 
+                    `<p style="color: green;">✓ Loaded ${userData.length} frames</p>`;
+                
+                // Extract metrics
+                userMetrics = extractMetricsFromData(userData);
+                console.log('User metrics:', userMetrics);
+                document.getElementById('userStatus').innerHTML += 
+                    `<pre style="margin-top: 10px;">${JSON.stringify(userMetrics, null, 2)}</pre>`;
+                
+                // Auto-compare if benchmark is already loaded
+                if (benchmarkMetrics) {
+                    setTimeout(() => compare(), 100);
+                }
+            } catch (error) {
+                document.getElementById('userStatus').innerHTML = 
+                    `<p style="color: red;">✗ Error: ${error.message}</p>`;
+            }
+        }
+
+        function compare() {
+            if (!benchmarkMetrics || !userMetrics) {
+                alert('Please load both benchmark and user extraction first');
+                return;
+            }
+
+            const results = [];
+            const metrics = ['release_height', 'wrist_snap', 'elbow_extension', 'trunk_lean', 
+                           'knee_bend', 'elbow_flare', 'shoulder_angle', 'foot_alignment', 'foot_angle'];
+
+            let html = '<h3>Metric Comparison</h3><div class="section">';
+            
+            metrics.forEach(metric => {
+                const bench = benchmarkMetrics[metric];
+                const user = userMetrics[metric];
+                const diff = (bench !== null && user !== null) ? Math.abs(bench - user) : null;
+                
+                let diffClass = '';
+                if (diff !== null) {
+                    if (diff > 20) diffClass = 'diff-large';
+                    else if (diff > 10) diffClass = 'diff-medium';
+                    else diffClass = 'diff-small';
+                }
+
+                html += `<div class="metric ${diffClass}">
+                    <span class="metric-name">${metric}:</span>
+                    <span>Benchmark: ${bench !== null ? bench.toFixed(2) : 'null'}</span>
+                    <span>User: ${user !== null ? user.toFixed(2) : 'null'}</span>
+                    <span>Diff: ${diff !== null ? diff.toFixed(2) : 'N/A'}</span>
+                </div>`;
+            });
+
+            html += '</div>';
+            
+            // Show raw metrics
+            html += '<h3>Raw Benchmark Metrics</h3><pre>' + JSON.stringify(benchmarkMetrics, null, 2) + '</pre>';
+            html += '<h3>Raw User Metrics</h3><pre>' + JSON.stringify(userMetrics, null, 2) + '</pre>';
+
+            document.getElementById('comparisonResults').innerHTML = html;
+        }
+
+        // Copy extractMetricsFromData function from app.js
+        function extractMetricsFromData(data) {
+            const metrics = {
+                release_height: null,
+                wrist_snap: null,
+                elbow_extension: null,
+                foot_alignment: null,
+                trunk_lean: null,
+                knee_bend: null,
+                elbow_flare: null,
+                shoulder_angle: null,
+                foot_angle: null
+            };
+            
+            if (!data || data.length === 0) return metrics;
+            
+            // Find key frames
+            let firstPreShotFrame = null;
+            let firstPreShotIndex = -1;
+            let firstFollowThroughFrame = null;
+            let firstFollowThroughIndex = -1;
+            let releasePointFrame = null;
+            let maxReleaseHeight = -Infinity;
+            
+            // Find first pre_shot frame that is part of a valid shot sequence
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].state === 'pre_shot') {
+                    let foundFollowThrough = false;
+                    let sequenceBroken = false;
+                    let followThroughIndex = -1;
+                    
+                    for (let j = i + 1; j < data.length; j++) {
+                        if (data[j].state === 'follow_through') {
+                            foundFollowThrough = true;
+                            followThroughIndex = j;
+                            break;
+                        } else if (data[j].state === 'neutral') {
+                            sequenceBroken = true;
+                            break;
+                        }
+                    }
+                    
+                    if (foundFollowThrough && !sequenceBroken) {
+                        firstPreShotFrame = data[i];
+                        firstPreShotIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            // Find first follow_through frame
+            const startIndex = firstPreShotIndex >= 0 ? firstPreShotIndex : 0;
+            for (let i = startIndex; i < data.length; i++) {
+                if (data[i].state === 'follow_through') {
+                    firstFollowThroughFrame = data[i];
+                    firstFollowThroughIndex = i;
+                    break;
+                }
+            }
+            
+            // Find release point (frame with maximum release_height)
+            data.forEach((frame, index) => {
+                if (frame.metrics && frame.metrics.release_height !== null && 
+                    frame.metrics.release_height !== undefined && !isNaN(frame.metrics.release_height)) {
+                    if (frame.metrics.release_height > maxReleaseHeight) {
+                        maxReleaseHeight = frame.metrics.release_height;
+                        releasePointFrame = frame;
+                    }
+                }
+            });
+            
+            // If no release point found by max height, use first follow_through frame
+            if (!releasePointFrame && firstFollowThroughFrame) {
+                releasePointFrame = firstFollowThroughFrame;
+            }
+            
+            // Calculate metrics at specific frames
+            if (firstPreShotFrame && firstPreShotFrame.metrics) {
+                metrics.elbow_flare = firstPreShotFrame.metrics.elbow_flare !== null && 
+                                      firstPreShotFrame.metrics.elbow_flare !== undefined ? 
+                                      firstPreShotFrame.metrics.elbow_flare : null;
+                metrics.knee_bend = firstPreShotFrame.metrics.knee_bend !== null && 
+                                    firstPreShotFrame.metrics.knee_bend !== undefined ? 
+                                    firstPreShotFrame.metrics.knee_bend : null;
+                metrics.trunk_lean = firstPreShotFrame.metrics.trunk_lean !== null && 
+                                     firstPreShotFrame.metrics.trunk_lean !== undefined ? 
+                                     firstPreShotFrame.metrics.trunk_lean : null;
+            }
+            
+            // Elbow extension: difference between pre_shot and follow_through
+            if (firstPreShotFrame && firstPreShotFrame.metrics && 
+                firstFollowThroughFrame && firstFollowThroughFrame.metrics) {
+                const preShotElbowExt = firstPreShotFrame.metrics.elbow_extension;
+                const followThroughElbowExt = firstFollowThroughFrame.metrics.elbow_extension;
+                
+                if (preShotElbowExt !== null && preShotElbowExt !== undefined && !isNaN(preShotElbowExt) &&
+                    followThroughElbowExt !== null && followThroughElbowExt !== undefined && !isNaN(followThroughElbowExt)) {
+                    metrics.elbow_extension = preShotElbowExt - followThroughElbowExt;
+                }
+            }
+            
+            // Wrist snap: use value at release point
+            if (releasePointFrame && releasePointFrame.metrics) {
+                const releasePointWristSnap = releasePointFrame.metrics.wrist_snap;
+                if (releasePointWristSnap !== null && releasePointWristSnap !== undefined && !isNaN(releasePointWristSnap)) {
+                    metrics.wrist_snap = releasePointWristSnap;
+                }
+            }
+            if (metrics.wrist_snap === null && firstFollowThroughFrame && firstFollowThroughFrame.metrics) {
+                const followThroughWristSnap = firstFollowThroughFrame.metrics.wrist_snap;
+                if (followThroughWristSnap !== null && followThroughWristSnap !== undefined && !isNaN(followThroughWristSnap)) {
+                    metrics.wrist_snap = followThroughWristSnap;
+                }
+            }
+            
+            // Release height: maximum value
+            if (maxReleaseHeight !== -Infinity) {
+                metrics.release_height = maxReleaseHeight;
+            }
+            
+            // Foot alignment, shoulder_angle, foot_angle: at first follow_through frame
+            if (firstFollowThroughFrame && firstFollowThroughFrame.metrics) {
+                metrics.foot_alignment = firstFollowThroughFrame.metrics.foot_alignment !== null && 
+                                         firstFollowThroughFrame.metrics.foot_alignment !== undefined ? 
+                                         firstFollowThroughFrame.metrics.foot_alignment : null;
+                metrics.shoulder_angle = firstFollowThroughFrame.metrics.shoulder_angle !== null && 
+                                         firstFollowThroughFrame.metrics.shoulder_angle !== undefined ? 
+                                         firstFollowThroughFrame.metrics.shoulder_angle : null;
+                metrics.foot_angle = firstFollowThroughFrame.metrics.foot_angle !== null && 
+                                     firstFollowThroughFrame.metrics.foot_angle !== undefined ? 
+                                     firstFollowThroughFrame.metrics.foot_angle : null;
+            }
+            
+            // Fallback to averages for any metrics that couldn't be calculated at specific frames
+            const sums = {};
+            const counts = {};
+            
+            data.forEach(frame => {
+                if (frame.metrics) {
+                    Object.keys(metrics).forEach(metricName => {
+                        if (metrics[metricName] !== null) return;
+                        
+                        const value = frame.metrics[metricName];
+                        if (value !== null && value !== undefined && !isNaN(value)) {
+                            if (!sums[metricName]) {
+                                sums[metricName] = 0;
+                                counts[metricName] = 0;
+                            }
+                            sums[metricName] += value;
+                            counts[metricName]++;
+                        }
+                    });
+                }
+            });
+            
+            Object.keys(metrics).forEach(metricName => {
+                if (metrics[metricName] === null && counts[metricName] && counts[metricName] > 0) {
+                    metrics[metricName] = sums[metricName] / counts[metricName];
+                }
+            });
+            
+            return metrics;
+        }
+    </script>
+</body>
+</html>

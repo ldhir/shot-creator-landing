@@ -2096,27 +2096,38 @@ function extractDetailedMetricsFromLandmarks(normalizedLandmarks) {
  * @returns {Promise<Array>} Benchmark data array
  */
 async function loadBenchmarkFromFile(playerId) {
+    console.log(`📂 Loading benchmark file: ${playerId}.js from /tool/player_data/`);
     try {
         // Try to load from player_data folder
-        const response = await fetch(`/tool/player_data/${playerId}.js`);
+        const url = `/tool/player_data/${playerId}.js`;
+        console.log(`  Fetching from: ${url}`);
+        const response = await fetch(url);
+        console.log(`  Response status: ${response.status} ${response.ok ? 'OK' : 'FAILED'}`);
+        
         if (!response.ok) {
             // Try .json extension
+            console.log(`  Trying .json extension instead...`);
             const jsonResponse = await fetch(`/tool/player_data/${playerId}.json`);
             if (!jsonResponse.ok) {
+                console.error(`  ❌ Benchmark file not found: ${playerId} (.js or .json)`);
                 throw new Error(`Benchmark file not found: ${playerId}`);
             }
             const data = await jsonResponse.json();
+            console.log(`  ✅ Loaded ${data.length} frames from ${playerId}.json`);
             return data;
         }
         
         // For .js files, we need to execute them to get the data
         const text = await response.text();
+        console.log(`  ✅ Fetched ${text.length} bytes from ${playerId}.js`);
         // Extract the data variable (e.g., curry_data = [...], anthony_edwards_data = [...])
         // Handle both single-line and multi-line variable declarations
         const match = text.match(/const\s+\w+_data\s*=\s*(\[[\s\S]*?\]);/);
         if (match) {
-                try {
+            console.log(`  ✅ Found data variable in ${playerId}.js`);
+            try {
                 const data = eval(match[1]); // Safely evaluate the array
+                console.log(`  ✅ Parsed ${data.length} frames from ${playerId}.js`);
                 // Convert landmarks format and ensure metrics are available
                 if (data && data.length > 0) {
                     data.forEach(frame => {
@@ -2149,11 +2160,14 @@ async function loadBenchmarkFromFile(playerId) {
                         }
                     });
                 }
+                console.log(`  ✅ Successfully loaded benchmark ${playerId}: ${data.length} frames, first frame has ${Object.keys(data[0]?.metrics || {}).length} metrics`);
                 return data;
             } catch (e) {
-                console.error('Error parsing benchmark data:', e);
+                console.error(`  ❌ Error parsing benchmark data for ${playerId}:`, e);
                 throw new Error('Could not parse benchmark file: ' + e.message);
             }
+        } else {
+            console.error(`  ❌ Could not find data variable in ${playerId}.js file`);
         }
         
         throw new Error('Could not parse benchmark file');
@@ -2225,8 +2239,67 @@ function compareDetailedMetrics(userData, benchmarkData) {
     };
     
     // Extract metrics from both datasets
+    console.log('\n=== Extracting Metrics ===');
+    console.log('USER DATA:', {
+        frames: userData.length,
+        states: userData.map(f => f.state).slice(0, 30),
+        firstFrameIndex: 0,
+        firstFrameState: userData[0]?.state,
+        firstFrameHasMetrics: !!userData[0]?.metrics,
+        firstFrameMetrics: userData[0]?.metrics || {}
+    });
+    console.log('BENCHMARK DATA:', {
+        frames: benchmarkData.length,
+        states: benchmarkData.map(f => f.state).slice(0, 30),
+        firstFrameIndex: 0,
+        firstFrameState: benchmarkData[0]?.state,
+        firstFrameHasMetrics: !!benchmarkData[0]?.metrics,
+        firstFrameMetrics: benchmarkData[0]?.metrics || {}
+    });
+    
+    // Check if data structures are identical
+    const userStates = userData.map(f => f.state);
+    const benchStates = benchmarkData.map(f => f.state);
+    const statesMatch = userStates.length === benchStates.length && 
+                       userStates.every((s, i) => s === benchStates[i]);
+    console.log(`States match: ${statesMatch} (User: ${userStates.length}, Benchmark: ${benchStates.length})`);
+    
+    if (!statesMatch) {
+        console.warn('⚠️ State sequences differ! This will cause different metrics to be extracted.');
+        const firstDiff = userStates.findIndex((s, i) => s !== benchStates[i]);
+        console.warn(`First difference at index ${firstDiff}: User="${userStates[firstDiff]}", Benchmark="${benchStates[firstDiff]}"`);
+    }
+    
+    console.log('\n--- Extracting USER metrics ---');
     const userMetrics = extractMetricsFromData(userData);
+    console.log('\n--- Extracting BENCHMARK metrics ---');
     const benchmarkMetrics = extractMetricsFromData(benchmarkData);
+    
+    console.log('=== Extracted Metrics ===');
+    console.log('User metrics:', userMetrics);
+    console.log('Benchmark metrics:', benchmarkMetrics);
+    
+    // Check if metrics are identical
+    const metricsMatch = Object.keys(userMetrics).every(key => {
+        const userVal = userMetrics[key];
+        const benchVal = benchmarkMetrics[key];
+        if (userVal === null && benchVal === null) return true;
+        if (userVal === null || benchVal === null) return false;
+        return Math.abs(userVal - benchVal) < 0.01; // Allow tiny floating point differences
+    });
+    
+    if (metricsMatch) {
+        console.log('✅ Metrics are identical! Similarity should be 100%');
+    } else {
+        console.warn('⚠️ Metrics differ even though JSON files are identical. Differences:');
+        Object.keys(userMetrics).forEach(key => {
+            const userVal = userMetrics[key];
+            const benchVal = benchmarkMetrics[key];
+            if (userVal !== benchVal && (userVal !== null || benchVal !== null)) {
+                console.warn(`  ${key}: User=${userVal}, Benchmark=${benchVal}, Diff=${Math.abs((userVal || 0) - (benchVal || 0))}`);
+            }
+        });
+    }
     
     const metricScores = {};
     const metricDiffs = {};
@@ -2236,10 +2309,14 @@ function compareDetailedMetrics(userData, benchmarkData) {
         const userValue = userMetrics[metricName];
         const benchmarkValue = benchmarkMetrics[metricName];
         
-        if (userValue === null || userValue === undefined || 
-            benchmarkValue === null || benchmarkValue === undefined) {
+        // Check for null, undefined, or NaN values
+        if (userValue === null || userValue === undefined || isNaN(userValue) ||
+            benchmarkValue === null || benchmarkValue === undefined || isNaN(benchmarkValue)) {
             metricScores[metricName] = null;
             metricDiffs[metricName] = null;
+            if (isNaN(userValue) || isNaN(benchmarkValue)) {
+                console.warn(`⚠️ ${metricName}: Skipping comparison due to NaN - User: ${userValue}, Benchmark: ${benchmarkValue}`);
+            }
             return;
         }
         
@@ -2248,22 +2325,37 @@ function compareDetailedMetrics(userData, benchmarkData) {
         
         const maxDiff = maxDiffs[metricName];
         const exponent = exponents[metricName];
-        metricScores[metricName] = nonLinearSimilarity(diff, maxDiff, exponent);
+        const score = nonLinearSimilarity(diff, maxDiff, exponent);
+        metricScores[metricName] = score;
+        
+        // Log if score is 0% to help debug
+        if (score === 0) {
+            console.warn(`⚠️ ${metricName}: 0% similarity - User: ${userValue.toFixed(2)}, Benchmark: ${benchmarkValue.toFixed(2)}, Diff: ${diff.toFixed(2)}, MaxDiff: ${maxDiff}`);
+        }
     });
     
-    // Calculate weighted overall score
+    // Calculate weighted overall score (skip NaN and null values)
     let totalWeight = 0;
     let weightedSum = 0;
     
     Object.keys(weights).forEach(metricName => {
-        if (metricScores[metricName] !== null) {
+        const score = metricScores[metricName];
+        // Only include valid, non-null, non-NaN scores
+        if (score !== null && score !== undefined && !isNaN(score)) {
             const weight = weights[metricName];
             totalWeight += weight;
-            weightedSum += metricScores[metricName] * weight;
+            weightedSum += score * weight;
         }
     });
     
     const overallScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
+    
+    // Check for NaN in final score
+    if (isNaN(overallScore) || !isFinite(overallScore)) {
+        console.error('❌ Overall score is NaN or Infinity! Metric scores:', metricScores);
+        console.error('Weighted sum:', weightedSum, 'Total weight:', totalWeight);
+        return { overallScore: 0, metricScores: metricScores, sharedTraits: [], differences: [], userMetrics: userMetrics, benchmarkMetrics: benchmarkMetrics };
+    }
     
     // Identify shared traits (high similarity) and differences (low similarity)
     const sharedTraits = [];
@@ -2323,17 +2415,195 @@ function extractMetricsFromData(data) {
         foot_angle: null
     };
     
-    if (!data || data.length === 0) return metrics;
+    if (!data || data.length === 0) {
+        console.warn('extractMetricsFromData: Empty data array');
+        return metrics;
+    }
     
-    // Calculate averages for each metric
+    console.log(`extractMetricsFromData: Processing ${data.length} frames`);
+    console.log('First few states:', data.slice(0, 10).map(f => f.state));
+    
+    // Find key frames
+    let firstPreShotFrame = null;
+    let firstPreShotIndex = -1;
+    let firstFollowThroughFrame = null;
+    let firstFollowThroughIndex = -1;
+    let releasePointFrame = null; // Frame with maximum wrist height (release point)
+    let maxReleaseHeight = -Infinity;
+    
+    // Find first pre_shot frame that is part of a valid shot sequence (followed by follow_through)
+    // We need to ensure the pre_shot is in a sequence: pre_shot → ... → follow_through (without going to neutral first)
+    // Example: pre_shot → neutral → pre_shot → follow_through
+    //          First pre_shot is invalid (goes to neutral), second pre_shot is valid (goes to follow_through)
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].state === 'pre_shot') {
+            // Check if this pre_shot is followed by follow_through (valid shot sequence)
+            // Look ahead to see if we encounter follow_through before neutral
+            let foundFollowThrough = false;
+            let sequenceBroken = false;
+            let followThroughIndex = -1;
+            
+            // Look ahead from current pre_shot frame
+            for (let j = i + 1; j < data.length; j++) {
+                if (data[j].state === 'follow_through') {
+                    // Found follow_through! This is a valid sequence
+                    foundFollowThrough = true;
+                    followThroughIndex = j;
+                    break;
+                } else if (data[j].state === 'neutral') {
+                    // If we hit neutral before follow_through, this sequence is broken
+                    // This pre_shot is NOT part of a valid shot sequence
+                    sequenceBroken = true;
+                    break;
+                }
+                // If state is still 'pre_shot', continue looking (multiple pre_shot frames in sequence is OK)
+            }
+            
+            // Only use this pre_shot if it's part of a valid sequence
+            // Valid: pre_shot → ... → follow_through (no neutral in between)
+            // Invalid: pre_shot → neutral → ... (sequence broken)
+            if (foundFollowThrough && !sequenceBroken) {
+                firstPreShotFrame = data[i];
+                firstPreShotIndex = i;
+                console.log(`Found valid pre_shot at frame ${i}, followed by follow_through at frame ${followThroughIndex}`);
+                break;
+            } else if (sequenceBroken) {
+                console.log(`Skipping pre_shot at frame ${i} - sequence broken (hit neutral before follow_through)`);
+            }
+        }
+    }
+    
+    if (!firstPreShotFrame) {
+        console.warn('No valid pre_shot frame found that is followed by follow_through');
+        console.warn('Available states in data:', [...new Set(data.map(f => f.state))]);
+    } else {
+        console.log(`Found pre_shot frame at index ${firstPreShotIndex} with metrics:`, firstPreShotFrame.metrics);
+    }
+    
+    // Find first follow_through frame (should be after the valid pre_shot)
+    // Only look after the pre_shot index to ensure it's part of the same sequence
+    const startIndex = firstPreShotIndex >= 0 ? firstPreShotIndex : 0;
+    for (let i = startIndex; i < data.length; i++) {
+        if (data[i].state === 'follow_through') {
+            firstFollowThroughFrame = data[i];
+            firstFollowThroughIndex = i;
+            break;
+        }
+    }
+    
+    // Find release point (frame with maximum release_height)
+    data.forEach((frame, index) => {
+        if (frame.metrics && frame.metrics.release_height !== null && 
+            frame.metrics.release_height !== undefined && !isNaN(frame.metrics.release_height)) {
+            if (frame.metrics.release_height > maxReleaseHeight) {
+                maxReleaseHeight = frame.metrics.release_height;
+                releasePointFrame = frame;
+            }
+        }
+    });
+    
+    // If no release point found by max height, use first follow_through frame
+    if (!releasePointFrame && firstFollowThroughFrame) {
+        releasePointFrame = firstFollowThroughFrame;
+    }
+    
+    // Calculate metrics at specific frames
+    // 1. Elbow flare, knee bend, trunk lean: at first pre_shot frame
+    if (firstPreShotFrame && firstPreShotFrame.metrics) {
+        console.log(`  Using pre_shot frame (index ${firstPreShotIndex}) for elbow_flare, knee_bend, trunk_lean`);
+        console.log(`  Pre-shot frame metrics:`, firstPreShotFrame.metrics);
+        
+        metrics.elbow_flare = firstPreShotFrame.metrics.elbow_flare !== null && 
+                              firstPreShotFrame.metrics.elbow_flare !== undefined && 
+                              !isNaN(firstPreShotFrame.metrics.elbow_flare) ? 
+                              firstPreShotFrame.metrics.elbow_flare : null;
+        metrics.knee_bend = firstPreShotFrame.metrics.knee_bend !== null && 
+                            firstPreShotFrame.metrics.knee_bend !== undefined && 
+                            !isNaN(firstPreShotFrame.metrics.knee_bend) ? 
+                            firstPreShotFrame.metrics.knee_bend : null;
+        metrics.trunk_lean = firstPreShotFrame.metrics.trunk_lean !== null && 
+                             firstPreShotFrame.metrics.trunk_lean !== undefined && 
+                             !isNaN(firstPreShotFrame.metrics.trunk_lean) ? 
+                             firstPreShotFrame.metrics.trunk_lean : null;
+        
+        console.log(`  Extracted from pre_shot: elbow_flare=${metrics.elbow_flare}, knee_bend=${metrics.knee_bend}, trunk_lean=${metrics.trunk_lean}`);
+        
+        // Check for NaN values
+        if (isNaN(firstPreShotFrame.metrics.elbow_flare)) {
+            console.warn(`  ⚠️ elbow_flare is NaN in pre_shot frame! Raw value:`, firstPreShotFrame.metrics.elbow_flare);
+        }
+    } else {
+        console.warn(`  ⚠️ No pre_shot frame found, cannot extract elbow_flare, knee_bend, trunk_lean`);
+    }
+    
+    // 2. Elbow extension: (elbow angle at start of pre_shot) - (elbow angle at start of follow_through)
+    if (firstPreShotFrame && firstPreShotFrame.metrics && 
+        firstFollowThroughFrame && firstFollowThroughFrame.metrics) {
+        const preShotElbowExt = firstPreShotFrame.metrics.elbow_extension;
+        const followThroughElbowExt = firstFollowThroughFrame.metrics.elbow_extension;
+        
+        if (preShotElbowExt !== null && preShotElbowExt !== undefined && !isNaN(preShotElbowExt) &&
+            followThroughElbowExt !== null && followThroughElbowExt !== undefined && !isNaN(followThroughElbowExt)) {
+            metrics.elbow_extension = preShotElbowExt - followThroughElbowExt;
+        }
+    }
+    
+    // 3. Wrist snap: use value at release point (or follow_through if release point not available)
+    // Wrist snap is an absolute angle (0-90°), not a difference
+    if (releasePointFrame && releasePointFrame.metrics) {
+        const releasePointWristSnap = releasePointFrame.metrics.wrist_snap;
+        console.log(`  Using release point frame for wrist_snap: ${releasePointWristSnap}`);
+        if (releasePointWristSnap !== null && releasePointWristSnap !== undefined && !isNaN(releasePointWristSnap)) {
+            metrics.wrist_snap = releasePointWristSnap;
+        }
+    }
+    // Fallback to follow_through frame if release point not available
+    if (metrics.wrist_snap === null && firstFollowThroughFrame && firstFollowThroughFrame.metrics) {
+        const followThroughWristSnap = firstFollowThroughFrame.metrics.wrist_snap;
+        console.log(`  Using follow_through frame (index ${firstFollowThroughIndex}) for wrist_snap: ${followThroughWristSnap}`);
+        if (followThroughWristSnap !== null && followThroughWristSnap !== undefined && !isNaN(followThroughWristSnap)) {
+            metrics.wrist_snap = followThroughWristSnap;
+        }
+    }
+    
+    // 4. Release height: maximum value (already found above)
+    if (maxReleaseHeight !== -Infinity) {
+        metrics.release_height = maxReleaseHeight;
+    }
+    
+    // 5. Foot alignment, shoulder_angle, foot_angle: at first follow_through frame
+    if (firstFollowThroughFrame && firstFollowThroughFrame.metrics) {
+        console.log(`  Using follow_through frame (index ${firstFollowThroughIndex}) for foot_alignment, shoulder_angle, foot_angle`);
+        console.log(`  Follow-through frame metrics:`, firstFollowThroughFrame.metrics);
+        
+        metrics.foot_alignment = firstFollowThroughFrame.metrics.foot_alignment !== null && 
+                                 firstFollowThroughFrame.metrics.foot_alignment !== undefined ? 
+                                 firstFollowThroughFrame.metrics.foot_alignment : null;
+        metrics.shoulder_angle = firstFollowThroughFrame.metrics.shoulder_angle !== null && 
+                                 firstFollowThroughFrame.metrics.shoulder_angle !== undefined ? 
+                                 firstFollowThroughFrame.metrics.shoulder_angle : null;
+        metrics.foot_angle = firstFollowThroughFrame.metrics.foot_angle !== null && 
+                             firstFollowThroughFrame.metrics.foot_angle !== undefined ? 
+                             firstFollowThroughFrame.metrics.foot_angle : null;
+        
+        console.log(`  Extracted from follow_through: foot_alignment=${metrics.foot_alignment}, shoulder_angle=${metrics.shoulder_angle}, foot_angle=${metrics.foot_angle}`);
+    } else {
+        console.warn(`  ⚠️ No follow_through frame found, cannot extract foot_alignment, shoulder_angle, foot_angle`);
+    }
+    
+    // Fallback to averages for any metrics that couldn't be calculated at specific frames
     const sums = {};
     const counts = {};
     
     data.forEach(frame => {
         if (frame.metrics) {
             Object.keys(metrics).forEach(metricName => {
+                // Skip if already calculated at specific frame
+                if (metrics[metricName] !== null) return;
+                
                 const value = frame.metrics[metricName];
-                if (value !== null && value !== undefined && !isNaN(value)) {
+                // Only include valid, non-null, non-NaN values
+                if (value !== null && value !== undefined && !isNaN(value) && isFinite(value)) {
                     if (!sums[metricName]) {
                         sums[metricName] = 0;
                         counts[metricName] = 0;
@@ -2345,21 +2615,19 @@ function extractMetricsFromData(data) {
         }
     });
     
-    // Calculate averages
+    // Calculate averages for metrics not set at specific frames
     Object.keys(metrics).forEach(metricName => {
-        if (counts[metricName] && counts[metricName] > 0) {
-            metrics[metricName] = sums[metricName] / counts[metricName];
+        if (metrics[metricName] === null && counts[metricName] && counts[metricName] > 0) {
+            const avg = sums[metricName] / counts[metricName];
+            // Only set if average is valid
+            if (!isNaN(avg) && isFinite(avg)) {
+                metrics[metricName] = avg;
+                console.log(`Using average for ${metricName}: ${metrics[metricName].toFixed(2)} (from ${counts[metricName]} frames)`);
+            }
         }
     });
     
-    // For release_height, use maximum (release point)
-    const releaseHeights = data
-        .map(frame => frame.metrics?.release_height)
-        .filter(h => h !== null && h !== undefined && !isNaN(h));
-    if (releaseHeights.length > 0) {
-        metrics.release_height = Math.max(...releaseHeights);
-    }
-    
+    console.log('Final extracted metrics:', metrics);
     return metrics;
 }
 
@@ -2439,17 +2707,32 @@ function formatPlayerName(filename) {
  */
 async function getAllBenchmarkFiles() {
     try {
-        // Try to get list from API endpoint
+        // Try to get list from API endpoint (this reads actual files from player_data folder)
         const response = await fetch('/api/list_player_data');
         if (response.ok) {
             const data = await response.json();
-            return data.files || [];
+            const files = data.files || [];
+            
+            // Filter out test/user extraction files (should already be filtered by API, but double-check)
+            const benchmarkFiles = files.filter(file => {
+                const lower = file.toLowerCase();
+                return !lower.includes('trial_data') && 
+                       !lower.includes('user_extraction') && 
+                       !lower.includes('test_') && 
+                       !lower.endsWith('_test');
+            });
+            
+            if (benchmarkFiles.length > 0) {
+                console.log(`Loaded ${benchmarkFiles.length} benchmark files from API:`, benchmarkFiles);
+                return benchmarkFiles;
+            }
         }
     } catch (error) {
         console.error('Error fetching benchmark list from API:', error);
     }
     
-    // Fallback: return known players (can be expanded)
+    // Fallback: return known players (only if API fails)
+    console.warn('API failed, using fallback list. This may not include all benchmark files.');
     return [
         'anthony_edwards',
         'curry_benchmark',
@@ -2457,8 +2740,9 @@ async function getAllBenchmarkFiles() {
         'donovan_mitchell',
         'giannis_antetokounmpo',
         'jimmy_butler',
+        'k_d',  // Kevin Durant (k_d.js)
         'kawhi_leonard',
-        'kevin_durant',
+        'kevin_durant',  // Kevin Durant (kevin_durant.js)
         'kyrie_irving',
         'lebron_benchmark',
         'lebron_james',
@@ -2482,24 +2766,58 @@ async function compareWithAllBenchmarks(userData) {
     
     try {
         const benchmarkFiles = await getAllBenchmarkFiles();
+        console.log('Benchmark files to compare:', benchmarkFiles);
         const comparisons = [];
         
         // Compare with each benchmark (with timeout protection)
+        console.log(`🔄 Starting comparison with ${benchmarkFiles.length} benchmark files...`);
         const comparisonPromises = benchmarkFiles.map(async (playerId) => {
             try {
+                console.log(`\n📊 Comparing with benchmark: ${playerId}`);
                 const benchmarkData = await loadBenchmarkFromFile(playerId);
                 if (!benchmarkData || benchmarkData.length === 0) {
+                    console.warn(`  ⚠️ Skipping ${playerId}: no benchmark data loaded`);
                     return null; // Skip if couldn't load
                 }
                 
+                console.log(`  ✅ Loaded benchmark ${playerId}:`, {
+                    frames: benchmarkData.length,
+                    hasMetrics: benchmarkData[0]?.metrics ? Object.keys(benchmarkData[0].metrics).length : 0,
+                    sampleMetrics: benchmarkData[0]?.metrics || {}
+                });
+                console.log(`  📊 User data:`, {
+                    frames: userData.length,
+                    hasMetrics: userData[0]?.metrics ? Object.keys(userData[0].metrics).length : 0,
+                    sampleMetrics: userData[0]?.metrics || {}
+                });
+                
+                console.log(`  🔄 Running compareDetailedMetrics for ${playerId}...`);
                 const comparison = compareDetailedMetrics(userData, benchmarkData);
-                if (comparison.overallScore > 0) {
+                
+                // Count how many metrics have valid scores (not null)
+                const validMetricCount = Object.values(comparison.metricScores || {}).filter(score => score !== null && score !== undefined).length;
+                
+                console.log(`  ✅ Comparison result for ${playerId}:`, {
+                    overallScore: comparison.overallScore.toFixed(2) + '%',
+                    validMetrics: validMetricCount,
+                    totalMetrics: Object.keys(comparison.metricScores || {}).length,
+                    hasScores: validMetricCount > 0,
+                    metricScores: Object.fromEntries(
+                        Object.entries(comparison.metricScores || {}).map(([k, v]) => [k, v !== null ? v.toFixed(1) + '%' : 'null'])
+                    )
+                });
+                
+                // Only include comparisons that have at least one valid metric score
+                // This filters out cases where all metrics are null (no data)
+                if (comparison.overallScore >= 0 && validMetricCount > 0) {
                     return {
                         playerId: playerId,
                         playerName: formatPlayerName(playerId),
                         score: comparison.overallScore,
                         comparison: comparison
                     };
+                } else if (validMetricCount === 0) {
+                    console.warn(`Skipping ${playerId}: No valid metrics found (all metrics are null)`);
                 }
                 return null;
             } catch (error) {
@@ -2518,9 +2836,33 @@ async function compareWithAllBenchmarks(userData) {
             }
         });
         
-        // Sort by score (highest first) and return top 5
-        comparisons.sort((a, b) => b.score - a.score);
-        return comparisons.slice(0, 5);
+        // Deduplicate by playerId (keep the one with higher score if duplicates exist)
+        const uniqueComparisons = new Map();
+        comparisons.forEach(comp => {
+            const existing = uniqueComparisons.get(comp.playerId);
+            if (!existing || comp.score > existing.score) {
+                uniqueComparisons.set(comp.playerId, comp);
+            }
+        });
+        const deduplicated = Array.from(uniqueComparisons.values());
+        
+        // Sort by score (highest first) - include 0% scores for debugging
+        deduplicated.sort((a, b) => b.score - a.score);
+        
+        // Log all scores for debugging
+        console.log(`Found ${comparisons.length} comparisons, ${deduplicated.length} unique. All scores:`, 
+            deduplicated.map(c => `${c.playerName}: ${c.score.toFixed(2)}%`));
+        
+        // If all scores are 0%, still return them (but limit to top 5) so user can see what's happening
+        // Otherwise, filter out 0% scores
+        const filtered = deduplicated.filter(comp => comp.score > 0);
+        const toReturn = filtered.length > 0 ? filtered : deduplicated.slice(0, 5);
+        
+        console.log(`Returning ${toReturn.length} matches (${filtered.length} with score > 0%). Top scores:`, 
+            toReturn.slice(0, 5).map(c => `${c.playerName}: ${c.score.toFixed(2)}%`));
+        
+        // Return top 5
+        return toReturn.slice(0, 5);
     } catch (error) {
         console.error('Error in compareWithAllBenchmarks:', error);
         return [];
