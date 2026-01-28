@@ -10725,8 +10725,21 @@
                         // Player Match - compare with all benchmarks
                         console.log('Player Match clicked. Checking if angles have been extracted...');
                         
+                        // Sync with window variables (for webcam recording)
+                        const poses = (loop3DPoses && loop3DPoses.length > 0) ? loop3DPoses : (window.loop3DPoses || []);
+                        const angles = (loop3DAngles && loop3DAngles.length > 0) ? loop3DAngles : (window.loop3DAngles || []);
+                        const anglesExtracted = window.anglesExtracted || (angles.length > 0);
+                        
                         // Check if angles have been extracted, if not, extract them first
-                        if (!loop3DAngles || loop3DAngles.length === 0 || !window.anglesExtracted) {
+                        if (!angles || angles.length === 0 || !anglesExtracted) {
+                            // Check if we have webcam data but no angles - this shouldn't happen, but handle it
+                            if (poses.length > 0 && angles.length === 0) {
+                                console.log('⚠️ Webcam data found but angles missing. Using poses directly...');
+                                // For webcam, angles should already be in metrics, so proceed
+                                runPlayerMatchComparison();
+                                return;
+                            }
+                            
                             console.log('⚠️ Angles not extracted yet. Extracting angles from video first...');
                             if (runningOverlay) {
                                 runningOverlay.style.display = 'flex';
@@ -10757,64 +10770,71 @@
                         // Player Match - compare with all benchmarks
                         console.log('Comparing with all benchmarks...');
                         
+                        // Sync with window variables (for webcam recording)
+                        const poses = (loop3DPoses && loop3DPoses.length > 0) ? loop3DPoses : (window.loop3DPoses || []);
+                        const angles = (loop3DAngles && loop3DAngles.length > 0) ? loop3DAngles : (window.loop3DAngles || []);
+                        const stages = (loop3DStages && loop3DStages.length > 0) ? loop3DStages : (window.loop3DStages || []);
+                        
                         // Convert loop3DPoses and loop3DAngles to format expected by compareDetailedMetrics
                         const convertToUserData = () => {
                             console.log('convertToUserData called:', {
-                                hasLoop3DPoses: !!loop3DPoses,
-                                posesLength: loop3DPoses?.length || 0,
-                                hasLoop3DAngles: !!loop3DAngles,
-                                anglesLength: loop3DAngles?.length || 0,
-                                hasLoop3DStages: !!loop3DStages,
-                                stagesLength: loop3DStages?.length || 0
+                                hasLoop3DPoses: !!poses,
+                                posesLength: poses?.length || 0,
+                                hasLoop3DAngles: !!angles,
+                                anglesLength: angles?.length || 0,
+                                hasLoop3DStages: !!stages,
+                                stagesLength: stages?.length || 0
                             });
                             
-                            if (!loop3DPoses || loop3DPoses.length === 0) {
+                            if (!poses || poses.length === 0) {
                                 console.error('No loop3DPoses data available');
+                                alert('No video data found. Please record a shot or upload a video first.');
                                 return null;
                             }
                             
-                            if (!loop3DAngles || loop3DAngles.length === 0) {
+                            if (!angles || angles.length === 0) {
                                 console.error('⚠️ No loop3DAngles data available! Angles were not extracted from the video.');
                                 console.error('This means the video was not processed through generateLoop() or angles were not calculated.');
+                                alert('No angle data found. Please record a shot or upload a video first.');
                                 return null;
                             }
                             
                             const userData = [];
-                            for (let i = 0; i < loop3DPoses.length; i++) {
+                            for (let i = 0; i < poses.length; i++) {
                                 const frameData = {
-                                    state: loop3DStages[i] || 'neutral',
+                                    state: stages[i] || 'neutral',
                                     time: i * (1/30), // Assuming 30 fps
                                     elbow_angle: null,
                                     wrist_angle: null,
                                     arm_angle: null,
-                                    landmarks: loop3DPoses[i] || [],
+                                    landmarks: poses[i] || [],
                                     metrics: {}
                                 };
                                 
                                 // Extract angles from loop3DAngles if available
-                                if (loop3DAngles && loop3DAngles[i]) {
-                                    const angles = loop3DAngles[i];
+                                if (angles && angles[i]) {
+                                    const angleData = angles[i];
                                     
                                     // Log first frame to verify calculations
                                     if (i === 0) {
-                                        console.log('✅ Angles extracted from video! Sample angles from first frame:', angles);
-                                        console.log('Available angle keys:', Object.keys(angles));
+                                        console.log('✅ Angles extracted from video! Sample angles from first frame:', angleData);
+                                        console.log('Available angle keys:', Object.keys(angleData));
                                     }
                                     
                                     // Map angles to frame data
-                                    if (angles.right_elbow !== null && angles.right_elbow !== undefined) {
-                                        frameData.elbow_angle = angles.right_elbow;
+                                    if (angleData.right_elbow !== null && angleData.right_elbow !== undefined) {
+                                        frameData.elbow_angle = angleData.right_elbow;
                                     }
-                                    if (angles.wrist_snap !== null && angles.wrist_snap !== undefined) {
-                                        frameData.wrist_angle = angles.wrist_snap;
+                                    if (angleData.wrist_snap !== null && angleData.wrist_snap !== undefined) {
+                                        frameData.wrist_angle = angleData.wrist_snap;
                                     }
                                     // Add other angles if available
-                                    if (angles.left_elbow !== null && angles.left_elbow !== undefined) {
-                                        frameData.arm_angle = angles.left_elbow;
+                                    if (angleData.left_elbow !== null && angleData.left_elbow !== undefined) {
+                                        frameData.arm_angle = angleData.left_elbow;
                                     }
                                     
                                     // Store ALL angles in metrics (including elbow_flare, wrist_snap, etc.)
-                                    frameData.metrics = { ...angles };
+                                    frameData.metrics = { ...angleData };
                                 }
                                 
                                 userData.push(frameData);
@@ -12124,6 +12144,31 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         let loop3DAngles = []; // Store angles for each frame
         let selectedShotCount = 10; // Default to 10 shots
         let detectedShots = []; // Array to store detected shot sequences
+        
+        // Sync variables to window for webcam recording access
+        // Create a function to sync window variables to let variables
+        function syncLoopVariablesFromWindow() {
+            if (window.loop3DPoses && window.loop3DPoses.length > 0 && loop3DPoses.length === 0) {
+                loop3DPoses = window.loop3DPoses;
+                loop3DStages = window.loop3DStages || [];
+                loop3DAngles = window.loop3DAngles || [];
+                currentLoopFrameIndex = window.currentLoopFrameIndex || 0;
+            }
+        }
+        
+        // Also sync let variables to window when they change (for generateLoop)
+        const originalPush = Array.prototype.push;
+        const createSyncedArray = (arr, windowKey) => {
+            return new Proxy(arr, {
+                set(target, prop, value) {
+                    target[prop] = value;
+                    if (window[windowKey]) {
+                        window[windowKey][prop] = value;
+                    }
+                    return true;
+                }
+            });
+        };
 
         // Interpolate frames to create smoother animation
         function interpolateFrames(originalFrames, factor) {
@@ -12401,18 +12446,32 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         
         // Animate loop
         function animateLoop() {
-            if (!isLoopPlaying || loop3DPoses.length === 0) return;
+            // Always sync with window variables (for webcam recording compatibility)
+            const poses = (loop3DPoses.length > 0 ? loop3DPoses : (window.loop3DPoses || []));
+            const stages = (loop3DStages.length > 0 ? loop3DStages : (window.loop3DStages || []));
+            const playing = isLoopPlaying || window.isLoopPlaying;
+            
+            if (!playing || poses.length === 0) return;
+            
+            // Sync current index
+            let currentIndex = (currentLoopFrameIndex !== undefined && currentLoopFrameIndex !== null) 
+                ? currentLoopFrameIndex 
+                : (window.currentLoopFrameIndex !== undefined ? window.currentLoopFrameIndex : 0);
             
             // Update to current frame
-            if (currentLoopFrameIndex < loop3DPoses.length) {
-                updateLoop3DSkeleton(loop3DPoses[currentLoopFrameIndex]);
+            if (currentIndex < poses.length) {
+                const stage = (stages[currentIndex] || 'neutral');
+                updateLoop3DSkeleton(poses[currentIndex], stage);
+                
                 const loopFrameInfo = document.getElementById('frameCounter');
                 if (loopFrameInfo) {
-                    loopFrameInfo.textContent = `Frame: ${currentLoopFrameIndex + 1}/${loop3DPoses.length}`;
+                    loopFrameInfo.textContent = `Frame: ${currentIndex + 1}/${poses.length}`;
                 }
                 
                 // Move to next frame
-                currentLoopFrameIndex = (currentLoopFrameIndex + 1) % loop3DPoses.length;
+                const nextIndex = (currentIndex + 1) % poses.length;
+                currentLoopFrameIndex = nextIndex;
+                window.currentLoopFrameIndex = nextIndex;
             }
             
             // Continue animation (ultra-fast frame-by-frame: ~256 fps for extremely smooth playback)
@@ -12835,6 +12894,11 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                 loop3DStages.push(state);
                                 loop3DAngles.push(angles);
                                 
+                                // Sync to window for webcam recording
+                                window.loop3DPoses = loop3DPoses;
+                                window.loop3DStages = loop3DStages;
+                                window.loop3DAngles = loop3DAngles;
+                                
                                 shotDetectionState.state = "in_shot_sequence";
                                 shotDetectionState.seenFollowThrough = false;
                                 shotDetectionState.elbowDropped = false;
@@ -13197,17 +13261,25 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             if (slider) {
                 slider.addEventListener('input', function(e) {
                     isLoopPlaying = false;
+                    if (window.isLoopPlaying !== undefined) window.isLoopPlaying = false;
                     const playBtn = document.getElementById('playPauseLoop');
                     const pauseBtn = document.getElementById('pauseLoopBtn');
                     if (playBtn) playBtn.style.display = 'inline-block';
                     if (pauseBtn) pauseBtn.style.display = 'none';
 
-                    currentLoopFrameIndex = parseInt(e.target.value);
-                    if (loop3DPoses && loop3DPoses[currentLoopFrameIndex]) {
-                        updateLoop3DSkeleton(loop3DPoses[currentLoopFrameIndex]);
+                    const frameIndex = parseInt(e.target.value);
+                    currentLoopFrameIndex = frameIndex;
+                    if (window.currentLoopFrameIndex !== undefined) window.currentLoopFrameIndex = frameIndex;
+                    
+                    // Sync with window if needed
+                    const poses = loop3DPoses.length > 0 ? loop3DPoses : (window.loop3DPoses || []);
+                    const stages = loop3DStages.length > 0 ? loop3DStages : (window.loop3DStages || []);
+                    
+                    if (poses && poses[frameIndex]) {
+                        updateLoop3DSkeleton(poses[frameIndex], stages[frameIndex] || 'neutral');
 
                         const counter = document.getElementById('frameCounter');
-                        if (counter) counter.textContent = `Frame: ${currentLoopFrameIndex + 1}/${loop3DPoses.length}`;
+                        if (counter) counter.textContent = `Frame: ${frameIndex + 1}/${poses.length}`;
                     }
                 });
             }
@@ -13216,8 +13288,11 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             const playBtn = document.getElementById('playPauseLoop');
             if (playBtn) {
                 playBtn.addEventListener('click', function() {
-                    if (loop3DPoses.length > 0) {
+                    // Sync with window if needed
+                    const poses = loop3DPoses.length > 0 ? loop3DPoses : (window.loop3DPoses || []);
+                    if (poses.length > 0) {
                         isLoopPlaying = true;
+                        if (window.isLoopPlaying !== undefined) window.isLoopPlaying = true;
                         this.style.display = 'none';
                         const pauseBtn = document.getElementById('pauseLoopBtn');
                         if (pauseBtn) pauseBtn.style.display = 'inline-block';

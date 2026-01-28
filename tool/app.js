@@ -5,6 +5,7 @@ let benchmarkStream = null;
 let userStream = null;
 let benchmarkCamera = null;
 let userCamera = null;
+let userCameraHealthCheck = null;
 let comparisonChart = null;
 let userInfo = null; // Store user info for email
 let benchmarkRenderLoopId = null;
@@ -243,10 +244,30 @@ function get3DPoint(landmarks, index, width, height) {
 }
 
 function calculateAngle(a, b, c) {
+    // Defensive null/undefined checks
     if (!a || !b || !c) return null;
     
-    const ba = [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-    const bc = [c[0] - b[0], c[1] - b[1], c[2] - b[2]];
+    // Handle both array format [x, y, z] and object format {x, y, z}
+    const getCoord = (point, index) => {
+        if (Array.isArray(point)) {
+            return point[index] !== undefined ? point[index] : (index === 2 ? 0 : null);
+        } else if (point && typeof point === 'object') {
+            const props = ['x', 'y', 'z'];
+            return point[props[index]] !== undefined ? point[props[index]] : (index === 2 ? 0 : null);
+        }
+        return null;
+    };
+    
+    const ax = getCoord(a, 0), ay = getCoord(a, 1), az = getCoord(a, 2);
+    const bx = getCoord(b, 0), by = getCoord(b, 1), bz = getCoord(b, 2);
+    const cx = getCoord(c, 0), cy = getCoord(c, 1), cz = getCoord(c, 2);
+    
+    if (ax === null || ay === null || bx === null || by === null || cx === null || cy === null) {
+        return null;
+    }
+    
+    const ba = [ax - bx, ay - by, (az || 0) - (bz || 0)];
+    const bc = [cx - bx, cy - by, (cz || 0) - (bz || 0)];
     
     const dot = ba[0] * bc[0] + ba[1] * bc[1] + ba[2] * bc[2];
     const magBA = Math.sqrt(ba[0] * ba[0] + ba[1] * ba[1] + ba[2] * ba[2]);
@@ -256,6 +277,155 @@ function calculateAngle(a, b, c) {
     
     const cosine = Math.max(-1, Math.min(1, dot / (magBA * magBC)));
     return Math.acos(cosine) * (180 / Math.PI);
+}
+
+/**
+ * Extract angles from MediaPipe landmarks (same as shotsync/index.html)
+ * This function works with MediaPipe landmark format: {x, y, z, visibility}
+ */
+function extractAnglesFromLandmarks(landmarks) {
+    const angles = {};
+    
+    if (!landmarks || landmarks.length < 33) {
+        return angles;
+    }
+    
+    // Left Knee: hip(23) - knee(25) - ankle(27)
+    if (landmarks[23] && landmarks[25] && landmarks[27] &&
+        landmarks[23].visibility > 0.3 && landmarks[25].visibility > 0.3 && landmarks[27].visibility > 0.3) {
+        angles.left_knee = calculateAngle(landmarks[23], landmarks[25], landmarks[27]);
+    }
+    
+    // Right Knee: hip(24) - knee(26) - ankle(28)
+    if (landmarks[24] && landmarks[26] && landmarks[28] &&
+        landmarks[24].visibility > 0.3 && landmarks[26].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+        angles.right_knee = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+    }
+    
+    // Left Elbow: shoulder(11) - elbow(13) - wrist(15)
+    if (landmarks[11] && landmarks[13] && landmarks[15] &&
+        landmarks[11].visibility > 0.3 && landmarks[13].visibility > 0.3 && landmarks[15].visibility > 0.3) {
+        angles.left_elbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
+    }
+    
+    // Right Elbow: shoulder(12) - elbow(14) - wrist(16)
+    if (landmarks[12] && landmarks[14] && landmarks[16] &&
+        landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3) {
+        angles.right_elbow = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+    }
+    
+    // Wrist Snap: angle from finger/knuckle(20) - wrist(16) - elbow(14) of right hand
+    if (landmarks[14] && landmarks[16] && landmarks[20] &&
+        landmarks[14].visibility > 0.3 && landmarks[16].visibility > 0.3 && landmarks[20].visibility > 0.3) {
+        // Calculate angle: finger tip -> wrist -> elbow (right hand)
+        angles.wrist_snap = calculateAngle(landmarks[20], landmarks[16], landmarks[14]);
+    }
+    
+    // Elbow Flare: angle between vertical line down from right shoulder and line from shoulder to elbow
+    if (landmarks[12] && landmarks[14] &&
+        landmarks[12].visibility > 0.3 && landmarks[14].visibility > 0.3) {
+        // Vertical line down from shoulder: same x and z, only y changes (pointing downward)
+        const verticalPoint = {
+            x: landmarks[12].x,
+            y: landmarks[12].y - 1, // 1 unit down (normalized coordinates)
+            z: landmarks[12].z || 0
+        };
+        
+        // Line from shoulder to elbow
+        const shoulderToElbow = {
+            x: landmarks[14].x - landmarks[12].x,
+            y: landmarks[14].y - landmarks[12].y,
+            z: (landmarks[14].z || 0) - (landmarks[12].z || 0)
+        };
+        
+        // Vertical line (pointing down)
+        const verticalLine = {
+            x: 0,
+            y: -1,
+            z: 0
+        };
+        
+        // Calculate angle between vertical line and shoulder-to-elbow line
+        const dot = verticalLine.x * shoulderToElbow.x + verticalLine.y * shoulderToElbow.y + verticalLine.z * shoulderToElbow.z;
+        const magVertical = Math.sqrt(verticalLine.x * verticalLine.x + verticalLine.y * verticalLine.y + verticalLine.z * verticalLine.z);
+        const magArm = Math.sqrt(shoulderToElbow.x * shoulderToElbow.x + shoulderToElbow.y * shoulderToElbow.y + shoulderToElbow.z * shoulderToElbow.z);
+        
+        if (magVertical > 0 && magArm > 0) {
+            angles.elbow_flare = Math.acos(Math.max(-1, Math.min(1, dot / (magVertical * magArm)))) * (180 / Math.PI);
+        }
+    }
+    
+    // Trunk Lean: angle between vertical and hip-shoulder line
+    if (landmarks[11] && landmarks[12] && landmarks[23] && landmarks[24] &&
+        landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3 &&
+        landmarks[23].visibility > 0.3 && landmarks[24].visibility > 0.3) {
+        const shoulderCenter = {
+            x: (landmarks[11].x + landmarks[12].x) / 2,
+            y: (landmarks[11].y + landmarks[12].y) / 2,
+            z: ((landmarks[11].z || 0) + (landmarks[12].z || 0)) / 2
+        };
+        const hipCenter = {
+            x: (landmarks[23].x + landmarks[24].x) / 2,
+            y: (landmarks[23].y + landmarks[24].y) / 2,
+            z: ((landmarks[23].z || 0) + (landmarks[24].z || 0)) / 2
+        };
+        const trunkLine = {
+            x: shoulderCenter.x - hipCenter.x,
+            y: shoulderCenter.y - hipCenter.y,
+            z: shoulderCenter.z - hipCenter.z
+        };
+        const vertical = { x: 0, y: -1, z: 0 };
+        const dot = trunkLine.x * vertical.x + trunkLine.y * vertical.y + trunkLine.z * vertical.z;
+        const mag = Math.sqrt(trunkLine.x * trunkLine.x + trunkLine.y * trunkLine.y + trunkLine.z * trunkLine.z);
+        if (mag > 0) {
+            const angle = Math.acos(Math.max(-1, Math.min(1, dot / mag))) * (180 / Math.PI);
+            angles.trunk_lean = 90 - angle; // Convert to lean angle
+        }
+    }
+    
+    // Foot Alignment: Calculate based on shoulder alignment
+    // First, calculate shoulder alignment angle using x and z coordinates (3D)
+    let shoulderAlignmentAngle = null;
+    if (landmarks[11] && landmarks[12] &&
+        landmarks[11].visibility > 0.3 && landmarks[12].visibility > 0.3) {
+        // Calculate shoulder line in x-z plane (top-down view)
+        const deltaX = landmarks[12].x - landmarks[11].x;  // Right shoulder - Left shoulder
+        const deltaZ = (landmarks[12].z || 0) - (landmarks[11].z || 0);
+        
+        // Calculate angle using atan2(deltaZ, deltaX)
+        if (deltaX !== 0 || deltaZ !== 0) {
+            const angle = Math.atan2(deltaZ, deltaX) * (180 / Math.PI);
+            shoulderAlignmentAngle = angle;
+            angles.shoulder_angle = angle; // Store shoulder angle
+        }
+    }
+    
+    // Calculate foot alignment angle using x and z coordinates (3D)
+    let footAlignmentAngle = null;
+    if (landmarks[27] && landmarks[28] &&
+        landmarks[27].visibility > 0.3 && landmarks[28].visibility > 0.3) {
+        // Calculate foot line in x-z plane (top-down view)
+        const deltaX = landmarks[28].x - landmarks[27].x;  // Right ankle - Left ankle
+        const deltaZ = (landmarks[28].z || 0) - (landmarks[27].z || 0);
+        
+        // Calculate angle using atan2(deltaZ, deltaX)
+        if (deltaX !== 0 || deltaZ !== 0) {
+            const angle = Math.atan2(deltaZ, deltaX) * (180 / Math.PI);
+            footAlignmentAngle = angle;
+            angles.foot_angle = angle; // Store foot angle
+        }
+    }
+    
+    // Calculate foot alignment offset (how many degrees feet are off from shoulders)
+    if (shoulderAlignmentAngle !== null && footAlignmentAngle !== null) {
+        // The offset is the difference between foot angle and shoulder angle
+        angles.foot_alignment = footAlignmentAngle - shoulderAlignmentAngle;
+    } else if (footAlignmentAngle !== null) {
+        // If we can't calculate shoulder angle, just use foot angle relative to reference
+        angles.foot_alignment = footAlignmentAngle;
+    }
+    
+    return angles;
 }
 
 /**
@@ -777,9 +947,16 @@ async function startBenchmarkRecording() {
                 const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
                 const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
                 
-                const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-                const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
-                const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
+                // Only calculate angles if all required points are available (prevent null errors)
+                const elbowAngle = (rightShoulder && rightElbow && rightWrist) 
+                    ? calculateAngle(rightShoulder, rightElbow, rightWrist) 
+                    : null;
+                const wristAngle = (rightElbow && rightWrist && rightIndex) 
+                    ? calculateAngle(rightElbow, rightWrist, rightIndex) 
+                    : null;
+                const armAngle = (leftShoulder && rightShoulder && rightElbow) 
+                    ? calculateAngle(leftShoulder, rightShoulder, rightElbow) 
+                    : null;
                 
                 // Store landmarks
                 const landmarks3D = [];
@@ -1018,6 +1195,17 @@ async function startUserRecording() {
         
         userStream = stream;
         video.srcObject = stream;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = true;
+        
+        // Ensure video starts playing
+        try {
+            await video.play();
+        } catch (error) {
+            console.warn('Video autoplay failed, but stream should still work:', error);
+        }
+        
         userPoseData = [];
         
         let previousStage = "neutral";
@@ -1035,6 +1223,14 @@ async function startUserRecording() {
             userStatusEl.style.display = 'block';
         }
         
+        // Throttle full body warning updates to avoid DOM thrashing
+        let lastWarningUpdate = 0;
+        const warningUpdateInterval = 200; // Update at most every 200ms
+        
+        // Throttle status text updates
+        let lastStatusUpdate = 0;
+        const statusUpdateInterval = 100; // Update at most every 100ms
+        
         userPose.onResults((results) => {
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1044,18 +1240,68 @@ async function startUserRecording() {
             ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
             }
 
-            // Check if full body is visible and show/hide warning
-            const bodyWarning = document.getElementById('userBodyWarning');
-            if (bodyWarning) {
-                if (!results.poseLandmarks || !isFullBodyVisible(results.poseLandmarks)) {
-                    bodyWarning.style.display = 'flex';
-                } else {
-                    bodyWarning.style.display = 'none';
+            // Check if full body is visible and show/hide warning (throttled)
+            const now = Date.now();
+            if (now - lastWarningUpdate >= warningUpdateInterval) {
+                const bodyWarning = document.getElementById('userBodyWarning');
+                if (bodyWarning) {
+                    if (!results.poseLandmarks || !isFullBodyVisible(results.poseLandmarks)) {
+                        bodyWarning.style.display = 'flex';
+                    } else {
+                        bodyWarning.style.display = 'none';
+                    }
                 }
+                lastWarningUpdate = now;
             }
             
             if (results.poseLandmarks) {
-                const state = getArmState(results.poseLandmarks, canvas.width, canvas.height);
+                // Convert MediaPipe landmarks to same format as video upload (shotsync/index.html)
+                const landmarks = results.poseLandmarks.map((lm, i) => ({
+                    x: lm.x,
+                    y: lm.y,
+                    z: lm.z || 0,
+                    visibility: lm.visibility || 1
+                }));
+                
+                // Detect shot stage (same logic as video upload)
+                let state = 'neutral';
+                const rightWrist = landmarks[16];
+                const leftWrist = landmarks[15];
+                const rightShoulder = landmarks[12];
+                const leftShoulder = landmarks[11];
+                const rightHip = landmarks[24]; // Right hip (waist)
+                
+                if (rightWrist && rightShoulder && rightHip) {
+                    // Follow-through: wrist is above shoulder (arm raised high)
+                    // In normalized coordinates, smaller y = higher on screen
+                    if (rightWrist.y < rightShoulder.y) {
+                        state = 'follow_through';
+                    }
+                    // Pre-shot: right wrist is below shoulder AND above right waist 
+                    // AND within shoulder width distance of left wrist
+                    else if (rightWrist.y > rightShoulder.y && rightWrist.y < rightHip.y) {
+                        // Check if wrists are within shoulder width distance
+                        if (leftWrist && leftShoulder) {
+                            // Calculate shoulder width distance (3D distance)
+                            const shoulderWidth = Math.sqrt(
+                                Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
+                                Math.pow((rightShoulder.z || 0) - (leftShoulder.z || 0), 2)
+                            );
+                            
+                            // Calculate distance between wrists (3D distance)
+                            const wristDistance = Math.sqrt(
+                                Math.pow(rightWrist.x - leftWrist.x, 2) + 
+                                Math.pow((rightWrist.z || 0) - (leftWrist.z || 0), 2)
+                            );
+                            
+                            // Check if wrists are within shoulder width distance (hands together)
+                            if (wristDistance <= shoulderWidth * 1.5) {
+                                state = 'pre_shot';
+                            }
+                        }
+                    }
+                }
+                
                 const overlayColor = getOverlayColor(state);
                 const currentTime = Date.now() / 1000.0;
                 
@@ -1069,24 +1315,8 @@ async function startUserRecording() {
                     radius: 3
                 });
                 
-                const rightShoulder = get3DPoint(results.poseLandmarks, 12, canvas.width, canvas.height);
-                const rightElbow = get3DPoint(results.poseLandmarks, 14, canvas.width, canvas.height);
-                const rightWrist = get3DPoint(results.poseLandmarks, 16, canvas.width, canvas.height);
-                const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
-                const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
-                
-                const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-                const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
-                const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
-                
-                const landmarks3D = [];
-                for (let i = 0; i < 33; i++) {
-                    const pt = get3DPoint(results.poseLandmarks, i, canvas.width, canvas.height);
-                    landmarks3D.push(pt || [NaN, NaN, NaN]);
-                }
-                
-                // Normalize pose orientation (align shoulders with x-axis)
-                const normalizedLandmarks = normalizePoseOrientation(landmarks3D);
+                // Extract angles using extractAnglesFromLandmarks (same as video upload)
+                const angles = extractAnglesFromLandmarks(landmarks);
                 
                 if (state !== previousStage) {
                     if (state === "pre_shot" && !recordingActive) {
@@ -1111,18 +1341,11 @@ async function startUserRecording() {
                     } else if (state === "pre_shot" && recordingActive && seenFollowThrough) {
                         const elapsed = currentTime - startTime;
                         
-                        // Extract detailed metrics from normalized landmarks
-                        const detailedMetrics = extractDetailedMetricsFromLandmarks(normalizedLandmarks);
-                        
                         userPoseData.push({
                             state: state,
                             time: elapsed,
-                            elbow_angle: elbowAngle,
-                            wrist_angle: wristAngle,
-                            arm_angle: armAngle,
-                            landmarks: normalizedLandmarks,
-                            // Add detailed metrics for multi-metric similarity comparison
-                            metrics: detailedMetrics
+                            landmarks: landmarks, // Store MediaPipe format landmarks (same as video upload)
+                            metrics: angles // Store angles from extractAnglesFromLandmarks
                         });
                         stopUserRecording();
                         return;
@@ -1133,25 +1356,22 @@ async function startUserRecording() {
                 if (recordingActive) {
                     const elapsed = currentTime - startTime;
                     
-                    // Extract detailed metrics from normalized landmarks
-                    const detailedMetrics = extractDetailedMetricsFromLandmarks(normalizedLandmarks);
-                    
                     userPoseData.push({
                         state: state,
                         time: elapsed,
-                        elbow_angle: elbowAngle,
-                        wrist_angle: wristAngle,
-                        arm_angle: armAngle,
-                        landmarks: normalizedLandmarks,
-                        // Add detailed metrics for multi-metric similarity comparison
-                        metrics: detailedMetrics
+                        landmarks: landmarks, // Store MediaPipe format landmarks (same as video upload)
+                        metrics: angles // Store angles from extractAnglesFromLandmarks
                     });
                     
-                    // Update frame count display in real-time
-                    const userStatusEl = document.getElementById('userStatus');
-                    if (userStatusEl) {
-                        userStatusEl.textContent = `Recording shot... (${userPoseData.length} frames captured)`;
-                        userStatusEl.style.display = 'block';
+                    // Update frame count display (throttled to avoid DOM thrashing)
+                    const statusNow = Date.now();
+                    if (statusNow - lastStatusUpdate >= statusUpdateInterval) {
+                        const userStatusEl = document.getElementById('userStatus');
+                        if (userStatusEl) {
+                            userStatusEl.textContent = `Recording shot... (${userPoseData.length} frames captured)`;
+                            userStatusEl.style.display = 'block';
+                        }
+                        lastStatusUpdate = statusNow;
                     }
                     
                     if (state === "pre_shot" || state === "follow_through") {
@@ -1165,10 +1385,77 @@ async function startUserRecording() {
             ctx.restore();
         });
         
+        // Monitor stream health
+        const checkStreamHealth = () => {
+            if (userStream) {
+                const videoTrack = userStream.getVideoTracks()[0];
+                if (videoTrack && videoTrack.readyState === 'ended') {
+                    console.warn('Video track ended unexpectedly');
+                    stopUserRecording();
+                    return;
+                }
+            }
+            if (video && video.readyState === 0) {
+                console.warn('Video element not ready');
+            }
+        };
+        userCameraHealthCheck = setInterval(checkStreamHealth, 1000);
+        
         // Use Camera utility to process frames
+        // Use requestAnimationFrame to throttle and prevent blocking
+        let isProcessing = false;
+        let frameQueue = [];
+        
+        const processNextFrame = () => {
+            if (isProcessing || frameQueue.length === 0) {
+                return;
+            }
+            
+            isProcessing = true;
+            const frameData = frameQueue.shift();
+            
+            if (!frameData || !frameData.video || frameData.video.readyState < 2) {
+                isProcessing = false;
+                if (frameQueue.length > 0) {
+                    requestAnimationFrame(processNextFrame);
+                }
+                return;
+            }
+            
+            // Send frame without awaiting to prevent blocking
+            userPose.send({image: frameData.video}).then(() => {
+                isProcessing = false;
+                if (frameQueue.length > 0) {
+                    requestAnimationFrame(processNextFrame);
+                }
+            }).catch(error => {
+                console.error('Error processing frame:', error);
+                isProcessing = false;
+                if (frameQueue.length > 0) {
+                    requestAnimationFrame(processNextFrame);
+                }
+            });
+        };
+        
         userCamera = new Camera(video, {
-            onFrame: async () => {
-                await userPose.send({image: video});
+            onFrame: () => {
+                // Check if video is ready before processing
+                if (!video || !video.readyState || video.readyState < 2) {
+                    return;
+                }
+                
+                // Limit queue size to prevent memory issues
+                if (frameQueue.length >= 3) {
+                    frameQueue.shift(); // Remove oldest frame
+                }
+                
+                // Add frame to queue
+                frameQueue.push({ video: video, timestamp: Date.now() });
+                
+                // Trigger processing if not already processing
+                if (!isProcessing) {
+                    requestAnimationFrame(processNextFrame);
+                }
             },
             width: 640,
             height: 480
@@ -1187,6 +1474,11 @@ async function startUserRecording() {
 }
 
 async function stopUserRecording() {
+    if (userCameraHealthCheck) {
+        clearInterval(userCameraHealthCheck);
+        userCameraHealthCheck = null;
+    }
+    
     if (userCamera) {
         userCamera.stop();
         userCamera = null;
@@ -1203,11 +1495,86 @@ async function stopUserRecording() {
     if (userPoseData.length > 0) {
         document.getElementById('retakeUser').style.display = 'inline-block';
 
-        // Store pose data for analysis and show analysis type selection
+        // Store pose data for analysis
         window.recordedUserPoseData = userPoseData;
         console.log(`✅ Shot recorded: ${userPoseData.length} frames captured`);
 
-        // Show analysis options instead of auto-analyzing
+        // Convert userPoseData to loop3DPoses/loop3DStages/loop3DAngles format (same as video upload)
+        // This allows the 3D overlay to work with webcam recordings
+        // Set data on window - shotsync/index.html will sync with these variables
+        try {
+            // Convert userPoseData to the format expected by the 3D viewer
+            const convertedPoses = [];
+            const convertedStages = [];
+            const convertedAngles = [];
+            
+            userPoseData.forEach(frame => {
+                // Store landmarks (already in MediaPipe format from recording)
+                convertedPoses.push(frame.landmarks || []);
+                // Store stage
+                convertedStages.push(frame.state || 'neutral');
+                // Store angles (from metrics)
+                convertedAngles.push(frame.metrics || {});
+            });
+            
+            // Set data on window (shotsync/index.html will sync these to its variables)
+            window.loop3DPoses = convertedPoses;
+            window.loop3DStages = convertedStages;
+            window.loop3DAngles = convertedAngles;
+            window.currentLoopFrameIndex = 0;
+            window.isLoopPlaying = false;
+            window.anglesExtracted = true;
+            
+            console.log(`✅ Converted ${userPoseData.length} frames to 3D overlay format`);
+            
+            // Initialize 3D viewer if available (from shotsync/index.html)
+            if (typeof initLoop3DViewer === 'function') {
+                initLoop3DViewer();
+            } else if (window.initLoop3DViewer) {
+                window.initLoop3DViewer();
+            }
+            
+            // Wait a bit for canvas to be ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Display first frame of skeleton
+            if (convertedPoses.length > 0) {
+                if (typeof updateLoop3DSkeleton === 'function') {
+                    updateLoop3DSkeleton(convertedPoses[0], convertedStages[0]);
+                } else if (window.updateLoop3DSkeleton) {
+                    window.updateLoop3DSkeleton(convertedPoses[0], convertedStages[0]);
+                }
+            }
+            
+            // Update frame slider if it exists
+            const slider = document.getElementById('frameSlider');
+            if (slider) {
+                slider.max = convertedPoses.length - 1;
+                slider.value = 0;
+                slider.min = 0;
+            }
+            
+            // Update frame counter if it exists
+            const counter = document.getElementById('frameCounter');
+            if (counter) {
+                counter.textContent = `Frame: 1/${convertedPoses.length}`;
+            }
+            
+            // Ensure play button is visible and reset
+            const playBtn = document.getElementById('playPauseLoop');
+            const pauseBtn = document.getElementById('pauseLoopBtn');
+            if (playBtn) {
+                playBtn.style.display = 'inline-block';
+            }
+            if (pauseBtn) {
+                pauseBtn.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error setting up 3D overlay:', error);
+            // Fallback: just show analysis options
+        }
+
+        // Show analysis options (this will show the 3D overlay)
         if (typeof window.showAnalysisOptions === 'function') {
             window.showAnalysisOptions();
         }
@@ -6296,9 +6663,16 @@ async function startGlobalBenchmarkRecording() {
                 const rightIndex = get3DPoint(results.poseLandmarks, 20, canvas.width, canvas.height);
                 const leftShoulder = get3DPoint(results.poseLandmarks, 11, canvas.width, canvas.height);
                 
-                const elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-                const wristAngle = calculateAngle(rightElbow, rightWrist, rightIndex);
-                const armAngle = calculateAngle(leftShoulder, rightShoulder, rightElbow);
+                // Only calculate angles if all required points are available (prevent null errors)
+                const elbowAngle = (rightShoulder && rightElbow && rightWrist) 
+                    ? calculateAngle(rightShoulder, rightElbow, rightWrist) 
+                    : null;
+                const wristAngle = (rightElbow && rightWrist && rightIndex) 
+                    ? calculateAngle(rightElbow, rightWrist, rightIndex) 
+                    : null;
+                const armAngle = (leftShoulder && rightShoulder && rightElbow) 
+                    ? calculateAngle(leftShoulder, rightShoulder, rightElbow) 
+                    : null;
                 
                 const landmarks3D = [];
                 for (let i = 0; i < 33; i++) {
