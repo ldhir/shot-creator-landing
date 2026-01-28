@@ -15,6 +15,8 @@ import boto3
 from botocore.exceptions import ClientError
 import requests
 
+from metrics import calculate_angle
+
 try:
     import mediapipe as mp
     MEDIAPIPE_AVAILABLE = True
@@ -144,19 +146,6 @@ def get_3d_point(landmarks, index, width, height):
         landmarks[index].z
     ])
 
-def calculate_3d_angle(a, b, c):
-    """Compute angle at b formed by points a->b->c in 3D."""
-    if a is None or b is None or c is None:
-        return None
-    a, b, c = np.array(a), np.array(b), np.array(c)
-    ba = a - b
-    bc = c - b
-    denom = (np.linalg.norm(ba) * np.linalg.norm(bc))
-    if denom < 1e-5:
-        return None
-    cosine_angle = np.dot(ba, bc) / denom
-    return np.degrees(np.arccos(np.clip(cosine_angle, -1.0, 1.0)))
-
 def get_arm_state(landmarks, width, height):
     """
     'pre_shot' => wrists close together below shoulders
@@ -233,10 +222,10 @@ def process_video_frames(frames_data):
             right_elbow    = get_3d_point(landmarks, 14, w, h)
             right_wrist    = get_3d_point(landmarks, 16, w, h)
             
-            elbow_angle = calculate_3d_angle(right_shoulder, right_elbow, right_wrist)
-            wrist_angle = calculate_3d_angle(right_elbow, right_wrist,
+            elbow_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
+            wrist_angle = calculate_angle(right_elbow, right_wrist,
                                              get_3d_point(landmarks, 20, w, h))
-            arm_angle   = calculate_3d_angle(get_3d_point(landmarks, 11, w, h),
+            arm_angle   = calculate_angle(get_3d_point(landmarks, 11, w, h),
                                              right_shoulder, right_elbow)
             
             # Store full body landmarks
