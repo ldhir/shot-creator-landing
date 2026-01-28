@@ -15,7 +15,7 @@ import boto3
 from botocore.exceptions import ClientError
 import requests
 
-from metrics import calculate_angle
+from metrics import calculate_angle, calculate_all_single_frame_metrics
 
 try:
     import mediapipe as mp
@@ -217,23 +217,18 @@ def process_video_frames(frames_data):
             landmarks = results.pose_landmarks.landmark
             state = get_arm_state(landmarks, w, h)
             
-            # Compute angles
-            right_shoulder = get_3d_point(landmarks, 12, w, h)
-            right_elbow    = get_3d_point(landmarks, 14, w, h)
-            right_wrist    = get_3d_point(landmarks, 16, w, h)
-            
-            elbow_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
-            wrist_angle = calculate_angle(right_elbow, right_wrist,
-                                             get_3d_point(landmarks, 20, w, h))
-            arm_angle   = calculate_angle(get_3d_point(landmarks, 11, w, h),
-                                             right_shoulder, right_elbow)
-            
             # Store full body landmarks
             frame_landmarks_3d = np.full((33,3), np.nan, dtype=np.float32)
             for i in range(33):
                 p = get_3d_point(landmarks, i, w, h)
                 if p is not None:
                     frame_landmarks_3d[i] = p
+
+            # Compute all metrics from the landmark array
+            frame_metrics = calculate_all_single_frame_metrics(frame_landmarks_3d)
+            elbow_angle = frame_metrics['elbow_angle']
+            wrist_angle = frame_metrics['wrist_angle']
+            arm_angle   = frame_metrics['arm_angle']
             
             # Stage transitions
             if state != previous_stage:
@@ -277,7 +272,14 @@ def process_video_frames(frames_data):
                             'time': float(elapsed),
                             'elbow_angle': float(elbow_angle) if elbow_angle else None,
                             'wrist_angle': float(wrist_angle) if wrist_angle else None,
-                            'arm_angle': float(arm_angle) if arm_angle else None
+                            'arm_angle': float(arm_angle) if arm_angle else None,
+                            'elbow_flare': frame_metrics['elbow_flare'],
+                            'trunk_lean': frame_metrics['trunk_lean'],
+                            'knee_bend': frame_metrics['knee_bend'],
+                            'elbow_extension': frame_metrics['elbow_extension'],
+                            'release_height': frame_metrics['release_height'],
+                            'foot_alignment': frame_metrics['foot_alignment'],
+                            'foot_stance': frame_metrics['foot_stance'],
                         })
                         last_print_time = current_time
     
