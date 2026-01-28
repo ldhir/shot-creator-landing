@@ -3,44 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShotLab - Coming Soon</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Work Sans', -apple-system, sans-serif;
-            background: #0a0a0a;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 32px;
-        }
-        h1 {
-            font-size: 48px;
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, #FF6B7A 0%, #FF8A94 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        p { color: #a0a0a0; margin-bottom: 32px; }
-        a {
-            color: #FF6B7A;
-            text-decoration: none;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 14px;
-        }
-        a:hover { text-decoration: underline; }
-    </style>
+    <title>ShotLab | Session Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shotlab/style.css">
 </head>
 <body>
-    <div>
-        <h1>ShotLab</h1>
-        <p>Product page coming soon</p>
-        <a href="/">← Back to Home</a>
-    </div>
+    <main class="page">
+        <header class="hero">
+            <div class="hero-top">
+                <a class="back-link" href="/">← Back to Home</a>
+                <span class="pill">Local ShotLab</span>
+            </div>
+            <h1>ShotLab Session Analyzer</h1>
+            <p>Upload a shooting session to detect jump shots, makes, and on-court zones. Each zone returns a ShotSync score against a placeholder benchmark and completion percentage.</p>
+        </header>
+
+        <section class="upload-card">
+            <div class="upload-info">
+                <h2>Upload Session Video</h2>
+                <p>MP4, MOV, AVI, MKV, or WEBM. 30 seconds+ recommended.</p>
+            </div>
+            <div class="upload-actions">
+                <label class="file-picker">
+                    <input id="videoInput" type="file" accept="video/*" />
+                    <span>Select video</span>
+                </label>
+                <div id="fileName" class="file-name">No file selected</div>
+                <button id="analyzeBtn" class="cta" disabled>Analyze Session</button>
+            </div>
+            <div id="status" class="status hidden"></div>
+            <div id="courtScrollHint" class="status hint hidden">Court not detected — scroll down to map it.</div>
+        </section>
+
+        <section id="results" class="results hidden">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">Total Jump Shots</div>
+                    <div id="totalShots" class="summary-value">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Total Makes</div>
+                    <div id="totalMakes" class="summary-value">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Session FG%</div>
+                    <div id="totalPct" class="summary-value">0%</div>
+                </div>
+            </div>
+
+            <div class="heatmap-card">
+                <div class="table-header">
+                    <h3>Zone Heatmap</h3>
+                    <span class="table-sub">Green = high %, Red = low %</span>
+                </div>
+                <div class="heatmap">
+                    <svg viewBox="0 0 50 47" aria-label="Basketball court heatmap">
+                        <rect class="court" x="0" y="0" width="50" height="47" />
+
+                        <rect data-zone="left_corner_3" x="0" y="37" width="8" height="10" />
+                        <rect data-zone="right_corner_3" x="42" y="37" width="8" height="10" />
+
+                        <rect data-zone="left_baseline_2" x="8" y="35" width="7" height="12" />
+                        <rect data-zone="right_baseline_2" x="35" y="35" width="7" height="12" />
+
+                        <rect data-zone="paint" x="17" y="34" width="16" height="13" />
+                        <circle data-zone="restricted_area" cx="25" cy="45" r="4" />
+
+                        <rect data-zone="left_wing_2" x="8" y="22" width="12" height="13" />
+                        <rect data-zone="right_wing_2" x="30" y="22" width="12" height="13" />
+
+                        <rect data-zone="mid_range" x="20" y="12" width="10" height="23" />
+
+                        <rect data-zone="left_wing_3" x="8" y="10" width="12" height="12" />
+                        <rect data-zone="right_wing_3" x="30" y="10" width="12" height="12" />
+
+                        <rect data-zone="top_of_key_3" x="20" y="0" width="10" height="12" />
+                    </svg>
+                </div>
+                <div class="legend">
+                    <span>0%</span>
+                    <div class="legend-bar"></div>
+                    <span>100%</span>
+                </div>
+            </div>
+
+            <div class="tables">
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3>Zone Breakdown</h3>
+                        <span class="table-sub">Completion % + ShotSync score vs benchmark</span>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Zone</th>
+                                    <th>Attempts</th>
+                                    <th>Makes</th>
+                                    <th>Completion %</th>
+                                    <th>ShotSync Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="zoneTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3>Shot-by-Shot</h3>
+                        <span class="table-sub">Zone + result + ShotSync score</span>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Zone</th>
+                                    <th>Result</th>
+                                    <th>ShotSync Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shotTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="warnings" class="warnings hidden"></div>
+
+            <div id="clipViewer" class="clip-viewer hidden">
+                <div class="clip-card">
+                    <div class="clip-title">Shot Replay</div>
+                    <div id="clipMeta" class="clip-meta">Select a shot to view the clip.</div>
+                    <video id="clipVideo" class="clip-video" controls preload="metadata"></video>
+                </div>
+            </div>
+
+            <div id="courtCalibration" class="calibration hidden">
+                <div class="calibration-card">
+                    <div class="calibration-title">Help Map the Court</div>
+                    <p class="calibration-copy">We could not map the court. Click 4 points in this exact order. Use clear painted line intersections. If you're on a half-court view, use the baseline edge and the 3-point shoulders (where the arc meets the straight line).</p>
+                    <ol class="calibration-steps">
+                        <li><strong>1:</strong> bottom-left baseline edge (closest left court corner)</li>
+                        <li><strong>2:</strong> bottom-right baseline edge (closest right court corner)</li>
+                        <li><strong>3:</strong> left 3-point shoulder (where the arc meets the straight sideline)</li>
+                        <li><strong>4:</strong> right 3-point shoulder (where the arc meets the straight sideline)</li>
+                    </ol>
+                    <div class="calibration-stage">
+                        <img id="courtCalibImage" alt="Court calibration frame" />
+                        <canvas id="courtCalibCanvas"></canvas>
+                    </div>
+                    <div class="calibration-actions">
+                        <button id="courtConfirm" class="cta" disabled>Re-run with Court</button>
+                        <button id="courtReset" class="ghost">Reset Points</button>
+                        <button id="courtDismiss" class="ghost">Dismiss</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="rimCalibration" class="calibration hidden">
+                <div class="calibration-card">
+                    <div class="calibration-title">Help Locate the Rim</div>
+                    <p class="calibration-copy">Click the exact center of the rim (orange ring). Avoid the backboard and net. This improves make/miss accuracy.</p>
+                    <div class="calibration-stage">
+                        <img id="rimCalibImage" alt="Rim calibration frame" />
+                        <canvas id="rimCalibCanvas"></canvas>
+                    </div>
+                    <div class="calibration-actions">
+                        <button id="rimConfirm" class="cta" disabled>Re-run with Rim</button>
+                        <button id="rimDismiss" class="ghost">Dismiss</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/shotlab/app.js"></script>
 </body>
 </html>

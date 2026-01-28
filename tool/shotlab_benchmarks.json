@@ -1,0 +1,18 @@
+{
+  "default": {"mean": 82, "std": 6},
+  "zones": {
+    "restricted_area": {"mean": 90, "std": 4},
+    "paint": {"mean": 88, "std": 5},
+    "mid_range": {"mean": 80, "std": 7},
+    "left_corner_3": {"mean": 78, "std": 8},
+    "right_corner_3": {"mean": 78, "std": 8},
+    "left_wing_3": {"mean": 79, "std": 8},
+    "right_wing_3": {"mean": 79, "std": 8},
+    "top_of_key_3": {"mean": 80, "std": 7},
+    "left_baseline_2": {"mean": 83, "std": 6},
+    "right_baseline_2": {"mean": 83, "std": 6},
+    "left_wing_2": {"mean": 84, "std": 6},
+    "right_wing_2": {"mean": 84, "std": 6},
+    "unknown": {"mean": 80, "std": 8}
+  }
+}
