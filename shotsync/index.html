@@ -987,10 +987,17 @@
             color: #E0E0E0;
             border-bottom: 1px solid #1A1A1E;
         }
-        .if-angles-table td:last-child {
+        .if-angles-table td:nth-child(2) {
             text-align: right;
             font-family: 'SF Mono', monospace;
             color: #64C8FF;
+        }
+        .if-angles-table td:nth-child(3) {
+            text-align: right;
+            font-family: 'SF Mono', monospace;
+            color: #3DD68C;
+            opacity: 0.7;
+            font-size: 10px;
         }
         .if-angles-table tr:hover td {
             background: rgba(100, 200, 255, 0.05);
@@ -2878,17 +2885,18 @@
                                     <tr>
                                         <th>Metric</th>
                                         <th>Value</th>
+                                        <th>Ideal</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td>Elbow Flare</td><td id="angleElbowFlare">--°</td></tr>
-                                    <tr><td>Trunk Lean</td><td id="angleTrunkLean">--°</td></tr>
-                                    <tr><td>Knee Bend (max)</td><td id="angleKneeBend">--°</td></tr>
-                                    <tr><td>Elbow Extension</td><td id="angleElbowExt">--°</td></tr>
-                                    <tr><td>Wrist Snap</td><td id="angleWristSnap">--°</td></tr>
-                                    <tr><td>Release Height</td><td id="angleReleaseHeight">--%</td></tr>
-                                    <tr><td>Foot Alignment</td><td id="angleFootAlign">--°</td></tr>
-                                    <tr><td>Stance Width</td><td id="angleStanceWidth">--x</td></tr>
+                                    <tr><td>Elbow Flare</td><td id="angleElbowFlare">--°</td><td>35–55° (45°)</td></tr>
+                                    <tr><td>Trunk Lean</td><td id="angleTrunkLean">--°</td><td>-5–10° (0°)</td></tr>
+                                    <tr><td>Knee Bend (max)</td><td id="angleKneeBend">--°</td><td>110–150° (130°)</td></tr>
+                                    <tr><td>Elbow Extension</td><td id="angleElbowExt">--°</td><td>160–180° (175°)</td></tr>
+                                    <tr><td>Wrist Snap</td><td id="angleWristSnap">--°</td><td>30–70° (50°)</td></tr>
+                                    <tr><td>Release Height</td><td id="angleReleaseHeight">--%</td><td>70–90%</td></tr>
+                                    <tr><td>Foot Alignment</td><td id="angleFootAlign">--°</td><td>±5°</td></tr>
+                                    <tr><td>Stance Width</td><td id="angleStanceWidth">--x</td><td>0.8–1.2x</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -10193,22 +10201,83 @@
                     return 'neutral';
                 }
 
-                // Calculate angles from landmarks
-                function extractAnglesFromLandmarks(landmarks) {
-                    if (!landmarks || landmarks.length < 29) return { elbow: 0, wrist: 0, arm: 0 };
+                // Calculate all metrics from landmarks (mirrors backend metrics.py)
+                function extractMetricsFromLandmarks(landmarks) {
+                    const empty = { elbow: 0, wrist: 0, arm: 0,
+                                    elbow_flare: null, trunk_lean: null, knee_bend: null,
+                                    elbow_extension: null, release_height: null,
+                                    foot_alignment: null, foot_stance: null };
+                    if (!landmarks || landmarks.length < 29) return empty;
 
-                    const elbowAngle = calculateAngle(landmarks[12], landmarks[14], landmarks[16]) || 0;
-                    const wristAngle = calculateAngle(landmarks[14], landmarks[16], landmarks[20]) || 0;
-                    const armAngle = calculateAngle(landmarks[24], landmarks[12], landmarks[16]) || 0;
+                    const lm = landmarks;
 
-                    return { elbow: elbowAngle, wrist: wristAngle, arm: armAngle };
+                    // Original 3 angles
+                    const elbowAngle = calculateAngle(lm[12], lm[14], lm[16]) || 0;
+                    const wristAngle = calculateAngle(lm[14], lm[16], lm[20]) || 0;
+                    const armAngle = calculateAngle(lm[24], lm[12], lm[16]) || 0;
+
+                    // Elbow flare: angle at shoulder between elbow and hip
+                    const elbowFlare = calculateAngle(lm[14], lm[12], lm[24]);
+
+                    // Trunk lean: torso angle from vertical via atan2
+                    let trunkLean = null;
+                    if (lm[12] && lm[24]) {
+                        const sY = lm[12].y ?? lm[12][1];
+                        const hY = lm[24].y ?? lm[24][1];
+                        const sX = lm[12].x ?? lm[12][0];
+                        const hX = lm[24].x ?? lm[24][0];
+                        trunkLean = Math.atan2(sX - hX, hY - sY) * (180 / Math.PI);
+                    }
+
+                    // Knee bend: hip-knee-ankle angle
+                    const kneeBend = calculateAngle(lm[24], lm[26], lm[28]);
+
+                    // Elbow extension: shoulder-elbow-wrist angle
+                    const elbowExtension = calculateAngle(lm[12], lm[14], lm[16]);
+
+                    // Release height: inverted wrist Y (higher = better)
+                    let releaseHeight = null;
+                    if (lm[16]) {
+                        const wristY = lm[16].y ?? lm[16][1];
+                        releaseHeight = 1 - wristY;
+                    }
+
+                    // Foot alignment: ankle line angle minus shoulder line angle
+                    let footAlignment = null;
+                    if (lm[27] && lm[28] && lm[11] && lm[12]) {
+                        const ankleAngle = Math.atan2(
+                            (lm[28].y ?? lm[28][1]) - (lm[27].y ?? lm[27][1]),
+                            (lm[28].x ?? lm[28][0]) - (lm[27].x ?? lm[27][0])
+                        ) * (180 / Math.PI);
+                        const shoulderAngle = Math.atan2(
+                            (lm[12].y ?? lm[12][1]) - (lm[11].y ?? lm[11][1]),
+                            (lm[12].x ?? lm[12][0]) - (lm[11].x ?? lm[11][0])
+                        ) * (180 / Math.PI);
+                        footAlignment = ankleAngle - shoulderAngle;
+                    }
+
+                    // Foot stance: ankle distance / shoulder distance
+                    let footStance = null;
+                    const ankleDist = calculateDistance3D(lm[27], lm[28]);
+                    const shoulderDist = calculateDistance3D(lm[11], lm[12]);
+                    if (ankleDist && shoulderDist && shoulderDist > 0) {
+                        footStance = ankleDist / shoulderDist;
+                    }
+
+                    return {
+                        elbow: elbowAngle, wrist: wristAngle, arm: armAngle,
+                        elbow_flare: elbowFlare, trunk_lean: trunkLean,
+                        knee_bend: kneeBend, elbow_extension: elbowExtension,
+                        release_height: releaseHeight, foot_alignment: footAlignment,
+                        foot_stance: footStance
+                    };
                 }
 
                 pose.onResults((results) => {
                     if (results.poseLandmarks) {
                         const landmarks = results.poseLandmarks;
                         const state = getArmStateFromLandmarks(landmarks);
-                        const angles = extractAnglesFromLandmarks(landmarks);
+                        const frameMetrics = extractMetricsFromLandmarks(landmarks);
                         const currentTime = videoElement.currentTime;
 
                         // Shot detection logic
@@ -10227,9 +10296,16 @@
                             poseData.push({
                                 state: state,
                                 time: elapsed,
-                                elbow_angle: angles.elbow,
-                                wrist_angle: angles.wrist,
-                                arm_angle: angles.arm,
+                                elbow_angle: frameMetrics.elbow,
+                                wrist_angle: frameMetrics.wrist,
+                                arm_angle: frameMetrics.arm,
+                                elbow_flare: frameMetrics.elbow_flare,
+                                trunk_lean: frameMetrics.trunk_lean,
+                                knee_bend: frameMetrics.knee_bend,
+                                elbow_extension: frameMetrics.elbow_extension,
+                                release_height: frameMetrics.release_height,
+                                foot_alignment: frameMetrics.foot_alignment,
+                                foot_stance: frameMetrics.foot_stance,
                                 landmarks: landmarks
                             });
                         }
@@ -10390,7 +10466,9 @@
             return Math.sqrt(dx * dx + dy * dy + dz * dz);
         }
 
-        // Extract comprehensive shot metrics from pose data
+        // Extract comprehensive shot metrics from pose data.
+        // Reads pre-computed per-frame metrics (from extractMetricsFromLandmarks)
+        // and aggregates them across the shot.
         function extractShotMetrics(poseData) {
             if (!poseData || poseData.length === 0) {
                 console.log('No pose data available for metric extraction');
@@ -10399,170 +10477,110 @@
 
             console.log(`Extracting metrics from ${poseData.length} frames`);
 
-            const metrics = {
-                // Basic angles (already stored in frames)
-                avgElbowAngle: 0,
-                avgWristAngle: 0,
-                avgArmAngle: 0,
+            // Collect per-frame values from pre-computed frame data
+            const collect = (key) => poseData.map(f => f[key]).filter(v => v !== null && v !== undefined && !isNaN(v));
 
-                // Calculated metrics
-                elbowFlare: [],      // Angle between elbow-shoulder-hip
-                trunkLean: [],       // Forward lean of torso
-                kneeBend: [],        // Right knee angle
-                elbowExtension: [],  // Max elbow extension at release
-                wristSnap: [],       // Wrist angle change during follow-through
-                releaseHeight: [],   // Wrist Y position at release
-                footAlignment: [],   // Angle of feet relative to shoulders
-                footStance: [],      // Distance between ankles
-
-                // Rhythm analysis
-                kneeTimings: [],
-                elbowTimings: [],
-                rhythmOffset: 0,
-
-                // Stage-specific data
-                preShotMetrics: null,
-                followThroughMetrics: null,
-                releaseFrameIndex: -1
-            };
+            const elbowAngles     = collect('elbow_angle');
+            const wristAngles     = collect('wrist_angle');
+            const armAngles       = collect('arm_angle');
+            const elbowFlareVals  = collect('elbow_flare');
+            const trunkLeanVals   = collect('trunk_lean');
+            const kneeBendVals    = collect('knee_bend');
+            const elbowExtVals    = collect('elbow_extension');
+            const releaseHtVals   = collect('release_height');
+            const footAlignVals   = collect('foot_alignment');
+            const footStanceVals  = collect('foot_stance');
 
             // Find pre-shot and follow-through frames
             let preShotFrames = [];
             let followThroughFrames = [];
-            let releaseFrame = null;
+            let releaseFrameIndex = -1;
+
+            // Track rhythm timings (knee bend min, elbow extension max)
+            let kneeTimings = [];
+            let elbowTimings = [];
+            let minKnee = Infinity;
+            let maxElbow = -Infinity;
 
             poseData.forEach((frame, idx) => {
                 if (frame.state === 'pre_shot') {
                     preShotFrames.push({ frame, idx });
                 } else if (frame.state === 'follow_through') {
                     followThroughFrames.push({ frame, idx });
-                    if (!releaseFrame) {
-                        releaseFrame = { frame, idx };
-                        metrics.releaseFrameIndex = idx;
-                    }
+                    if (releaseFrameIndex === -1) releaseFrameIndex = idx;
+                }
+
+                // Track timing of deepest knee bend
+                if (frame.knee_bend !== null && frame.knee_bend !== undefined && frame.knee_bend < minKnee) {
+                    minKnee = frame.knee_bend;
+                    kneeTimings.push({ idx, time: frame.time, angle: frame.knee_bend });
+                }
+
+                // Track timing of max elbow extension
+                if (frame.elbow_extension !== null && frame.elbow_extension !== undefined && frame.elbow_extension > maxElbow) {
+                    maxElbow = frame.elbow_extension;
+                    elbowTimings.push({ idx, time: frame.time, angle: frame.elbow_extension });
                 }
             });
 
             console.log(`Found ${preShotFrames.length} pre-shot frames, ${followThroughFrames.length} follow-through frames`);
 
-            // Calculate average basic angles
-            let elbowAngles = poseData.map(f => f.elbow_angle).filter(a => a && !isNaN(a));
-            let wristAngles = poseData.map(f => f.wrist_angle).filter(a => a && !isNaN(a));
-            let armAngles = poseData.map(f => f.arm_angle).filter(a => a && !isNaN(a));
-
-            metrics.avgElbowAngle = elbowAngles.length > 0 ? elbowAngles.reduce((a, b) => a + b, 0) / elbowAngles.length : 0;
-            metrics.avgWristAngle = wristAngles.length > 0 ? wristAngles.reduce((a, b) => a + b, 0) / wristAngles.length : 0;
-            metrics.avgArmAngle = armAngles.length > 0 ? armAngles.reduce((a, b) => a + b, 0) / armAngles.length : 0;
-
-            // Process each frame for detailed metrics
-            poseData.forEach((frame, idx) => {
-                const lm = frame.landmarks;
-                if (!lm || lm.length < 29) return;
-
-                // MediaPipe landmark indices:
-                // 11: left shoulder, 12: right shoulder
-                // 13: left elbow, 14: right elbow
-                // 15: left wrist, 16: right wrist
-                // 23: left hip, 24: right hip
-                // 25: left knee, 26: right knee
-                // 27: left ankle, 28: right ankle
-
-                // Right elbow flare (elbow-shoulder-hip angle)
-                const elbowFlare = calculateAngle(lm[14], lm[12], lm[24]);
-                if (elbowFlare !== null) metrics.elbowFlare.push(elbowFlare);
-
-                // Trunk lean (shoulder-hip vertical angle)
-                if (lm[12] && lm[24]) {
-                    const shoulderY = lm[12].y ?? lm[12][1];
-                    const hipY = lm[24].y ?? lm[24][1];
-                    const shoulderX = lm[12].x ?? lm[12][0];
-                    const hipX = lm[24].x ?? lm[24][0];
-                    const trunkAngle = Math.atan2(shoulderX - hipX, hipY - shoulderY) * (180 / Math.PI);
-                    metrics.trunkLean.push(trunkAngle);
-                }
-
-                // Right knee bend (hip-knee-ankle angle)
-                const kneeBend = calculateAngle(lm[24], lm[26], lm[28]);
-                if (kneeBend !== null) {
-                    metrics.kneeBend.push(kneeBend);
-                    // Track timing of max knee bend
-                    if (kneeBend === Math.min(...metrics.kneeBend)) {
-                        metrics.kneeTimings.push({ idx, time: frame.time, angle: kneeBend });
-                    }
-                }
-
-                // Right elbow extension (shoulder-elbow-wrist angle)
-                const elbowExt = calculateAngle(lm[12], lm[14], lm[16]);
-                if (elbowExt !== null) {
-                    metrics.elbowExtension.push(elbowExt);
-                    // Track timing of max elbow extension
-                    if (elbowExt === Math.max(...metrics.elbowExtension)) {
-                        metrics.elbowTimings.push({ idx, time: frame.time, angle: elbowExt });
-                    }
-                }
-
-                // Release height (wrist Y position, lower Y = higher position)
-                if (lm[16]) {
-                    const wristY = lm[16].y ?? lm[16][1];
-                    metrics.releaseHeight.push(1 - wristY); // Invert so higher = better
-                }
-
-                // Foot alignment (angle of line between ankles vs shoulders)
-                if (lm[27] && lm[28] && lm[11] && lm[12]) {
-                    const ankleAngle = Math.atan2(
-                        (lm[28].y ?? lm[28][1]) - (lm[27].y ?? lm[27][1]),
-                        (lm[28].x ?? lm[28][0]) - (lm[27].x ?? lm[27][0])
-                    ) * (180 / Math.PI);
-                    const shoulderAngle = Math.atan2(
-                        (lm[12].y ?? lm[12][1]) - (lm[11].y ?? lm[11][1]),
-                        (lm[12].x ?? lm[12][0]) - (lm[11].x ?? lm[11][0])
-                    ) * (180 / Math.PI);
-                    metrics.footAlignment.push(ankleAngle - shoulderAngle);
-                }
-
-                // Foot stance width (ankle distance relative to shoulder width)
-                const ankleDistance = calculateDistance3D(lm[27], lm[28]);
-                const shoulderDistance = calculateDistance3D(lm[11], lm[12]);
-                if (ankleDistance && shoulderDistance && shoulderDistance > 0) {
-                    metrics.footStance.push(ankleDistance / shoulderDistance);
-                }
-            });
-
-            // Calculate rhythm offset (time between max knee bend and max elbow extension)
-            if (metrics.kneeTimings.length > 0 && metrics.elbowTimings.length > 0) {
-                const lastKneeTime = metrics.kneeTimings[metrics.kneeTimings.length - 1].time;
-                const lastElbowTime = metrics.elbowTimings[metrics.elbowTimings.length - 1].time;
-                metrics.rhythmOffset = lastElbowTime - lastKneeTime;
+            // Rhythm offset (time between deepest knee bend and max elbow extension)
+            let rhythmOffset = 0;
+            if (kneeTimings.length > 0 && elbowTimings.length > 0) {
+                const lastKneeTime = kneeTimings[kneeTimings.length - 1].time;
+                const lastElbowTime = elbowTimings[elbowTimings.length - 1].time;
+                rhythmOffset = lastElbowTime - lastKneeTime;
             }
 
-            // Calculate wrist snap (angle change from pre-shot to follow-through)
+            // Wrist snap: angle change from last pre-shot to first follow-through
+            // This metric requires two specific frames, so it stays as cross-frame logic
+            let wristSnapVals = [];
             if (preShotFrames.length > 0 && followThroughFrames.length > 0) {
                 const preShotWrist = preShotFrames[preShotFrames.length - 1].frame.wrist_angle || 0;
                 const followThroughWrist = followThroughFrames[0].frame.wrist_angle || 0;
-                metrics.wristSnap.push(Math.abs(followThroughWrist - preShotWrist));
+                wristSnapVals.push(Math.abs(followThroughWrist - preShotWrist));
             }
 
-            // Aggregate metrics
+            // Aggregation helpers
             const aggregate = (arr) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-            const max = (arr) => arr.length > 0 ? Math.max(...arr) : 0;
-            const min = (arr) => arr.length > 0 ? Math.min(...arr) : 0;
+            const arrMax = (arr) => arr.length > 0 ? Math.max(...arr) : 0;
+            const arrMin = (arr) => arr.length > 0 ? Math.min(...arr) : 0;
+
+            const raw = {
+                avgElbowAngle: aggregate(elbowAngles),
+                avgWristAngle: aggregate(wristAngles),
+                avgArmAngle: aggregate(armAngles),
+                elbowFlare: elbowFlareVals,
+                trunkLean: trunkLeanVals,
+                kneeBend: kneeBendVals,
+                elbowExtension: elbowExtVals,
+                wristSnap: wristSnapVals,
+                releaseHeight: releaseHtVals,
+                footAlignment: footAlignVals,
+                footStance: footStanceVals,
+                kneeTimings,
+                elbowTimings,
+                rhythmOffset,
+                releaseFrameIndex
+            };
 
             return {
-                raw: metrics,
+                raw,
                 summary: {
-                    avgElbowAngle: Math.round(metrics.avgElbowAngle),
-                    avgWristAngle: Math.round(metrics.avgWristAngle),
-                    avgArmAngle: Math.round(metrics.avgArmAngle),
-                    elbowFlare: Math.round(aggregate(metrics.elbowFlare)),
-                    trunkLean: Math.round(aggregate(metrics.trunkLean)),
-                    kneeBend: Math.round(min(metrics.kneeBend)), // Min = most bent
-                    maxKneeBend: Math.round(180 - min(metrics.kneeBend)),
-                    elbowExtension: Math.round(max(metrics.elbowExtension)),
-                    wristSnap: Math.round(aggregate(metrics.wristSnap)),
-                    releaseHeight: aggregate(metrics.releaseHeight).toFixed(2),
-                    footAlignment: Math.round(aggregate(metrics.footAlignment)),
-                    footStance: aggregate(metrics.footStance).toFixed(2),
-                    rhythmOffset: metrics.rhythmOffset.toFixed(3),
+                    avgElbowAngle: Math.round(raw.avgElbowAngle),
+                    avgWristAngle: Math.round(raw.avgWristAngle),
+                    avgArmAngle: Math.round(raw.avgArmAngle),
+                    elbowFlare: Math.round(aggregate(elbowFlareVals)),
+                    trunkLean: Math.round(aggregate(trunkLeanVals)),
+                    kneeBend: Math.round(arrMin(kneeBendVals)),         // Min = most bent
+                    maxKneeBend: Math.round(180 - arrMin(kneeBendVals)),
+                    elbowExtension: Math.round(arrMax(elbowExtVals)),
+                    wristSnap: Math.round(aggregate(wristSnapVals)),
+                    releaseHeight: aggregate(releaseHtVals).toFixed(2),
+                    footAlignment: Math.round(aggregate(footAlignVals)),
+                    footStance: aggregate(footStanceVals).toFixed(2),
+                    rhythmOffset: rhythmOffset.toFixed(3),
                     frameCount: poseData.length
                 }
             };
