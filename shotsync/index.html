@@ -149,6 +149,10 @@
             font-size: 14px;
         }
 
+        #processingSaying {
+            transition: opacity 0.2s ease;
+        }
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -749,7 +753,7 @@
         }
 
         /* ========== Ideal Form Results UI ========== */
-        .ideal-form-results { display: none; }
+        .ideal-form-results { display: none; padding-top: 32px; }
         .ideal-form-results.active { display: block; }
 
         .if-header {
@@ -2286,8 +2290,9 @@
                     <button id="nutritionTab" class="nav-tab" onclick="showNutrition()" style="display: none;">Nutrition</button>
                     <button id="workoutsTab" class="nav-tab" onclick="showWorkouts()" style="display: none;">Workouts</button>
                 </div>
-                <div>
+                <div style="display: flex; align-items: center; gap: 12px;">
                     <button id="backToHomeTab" class="nav-tab">Home</button>
+                    <button id="playerDetailsNavBtn" class="nav-tab">Player Details</button>
                 </div>
             </div>
         </div>
@@ -2306,11 +2311,70 @@
                     <div id="menuUserName" style="font-weight: bold; color: #333; margin-bottom: 4px;"></div>
                     <div id="menuUserEmail" style="font-size: 12px; color: #666;"></div>
                 </div>
+                <button id="playerDetailsBtn" style="width: 100%; padding: 12px 16px; text-align: left; background: none; border: none; cursor: pointer; color: #333; font-size: 14px; transition: background 0.2s; border-bottom: 1px solid #e0e0e0;">
+                    Player Details
+                </button>
                 <button id="logoutButton" style="width: 100%; padding: 12px 16px; text-align: left; background: none; border: none; cursor: pointer; color: #333; font-size: 14px; border-radius: 0 0 8px 8px; transition: background 0.2s;">
                     Sign Out
                 </button>
             </div>
         </div>
+
+        <!-- Player Details Panel -->
+        <div id="playerDetailsPanel" style="display: none; position: fixed; top: 70px; right: 0; width: 340px; height: calc(100% - 70px); background: #1A1A1F; z-index: 200; box-shadow: -4px 0 20px rgba(0,0,0,0.4); overflow-y: auto; border-radius: 0 0 0 12px;">
+            <div style="padding: 20px 24px; border-bottom: 1px solid #2A2A30; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #1A1A1F; z-index: 1;">
+                <div>
+                    <h3 style="margin: 0; color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 1px;">PLAYER DETAILS</h3>
+                    <p style="margin: 4px 0 0; color: #5A5A64; font-size: 12px;">Your info for analysis reports</p>
+                </div>
+                <button id="closePlayerDetails" style="background: none; border: none; color: #5A5A64; font-size: 26px; cursor: pointer; padding: 4px 8px; line-height: 1;">&times;</button>
+            </div>
+            <div style="padding: 28px 24px;">
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div>
+                        <label style="display: block; color: #8B8B96; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; font-weight: 600;">Name</label>
+                        <input id="pdName" type="text" placeholder="Enter your name" style="width: 100%; padding: 12px 14px; background: #2A2A30; border: 1px solid #3A3A42; border-radius: 8px; color: #fff; font-size: 15px; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary-color)'" onblur="this.style.borderColor='#3A3A42'">
+                    </div>
+                    <div>
+                        <label style="display: block; color: #8B8B96; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; font-weight: 600;">Height</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="pdFeet" style="flex: 1; padding: 12px 14px; background: #2A2A30; border: 1px solid #3A3A42; border-radius: 8px; color: #fff; font-size: 15px; outline: none; appearance: auto;">
+                                <option value="">ft</option>
+                                <option value="4">4'</option>
+                                <option value="5">5'</option>
+                                <option value="6">6'</option>
+                                <option value="7">7'</option>
+                            </select>
+                            <select id="pdInches" style="flex: 1; padding: 12px 14px; background: #2A2A30; border: 1px solid #3A3A42; border-radius: 8px; color: #fff; font-size: 15px; outline: none; appearance: auto;">
+                                <option value="">in</option>
+                                <option value="0">0"</option>
+                                <option value="1">1"</option>
+                                <option value="2">2"</option>
+                                <option value="3">3"</option>
+                                <option value="4">4"</option>
+                                <option value="5">5"</option>
+                                <option value="6">6"</option>
+                                <option value="7">7"</option>
+                                <option value="8">8"</option>
+                                <option value="9">9"</option>
+                                <option value="10">10"</option>
+                                <option value="11">11"</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display: block; color: #8B8B96; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; font-weight: 600;">Shooting Hand</label>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="pd-hand-btn" data-hand="Right" style="flex: 1; padding: 12px; background: #2A2A30; border: 2px solid #3A3A42; border-radius: 8px; color: #8B8B96; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Right</button>
+                            <button class="pd-hand-btn" data-hand="Left" style="flex: 1; padding: 12px; background: #2A2A30; border: 2px solid #3A3A42; border-radius: 8px; color: #8B8B96; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Left</button>
+                        </div>
+                    </div>
+                    <button id="pdSave" style="margin-top: 12px; padding: 14px; background: linear-gradient(135deg, var(--primary-color) 0%, #ff8a9b 100%); border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; letter-spacing: 0.5px;">Save</button>
+                    <p id="pdSavedMsg" style="display: none; color: #3DD68C; font-size: 13px; text-align: center; margin: 0;">Saved!</p>
+                </div>
+            </div>
+        </div>
+        <div id="playerDetailsBg" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 199;"></div>
 
         <div class="main-content">
             <!-- Step 0: User Information -->
@@ -2412,6 +2476,13 @@
                             <div id="skeletonProcessing" class="skeleton-processing" style="display: none;">
                                 <div class="spinner"></div>
                                 <p id="processingStatus">Extracting skeleton...</p>
+                                <p id="processingSaying" style="color: #8B8B96; font-size: 13px; margin-top: 8px; font-style: italic; min-height: 20px;"></p>
+                            </div>
+                            <!-- Video Ready state (replaces skeleton viewer) -->
+                            <div id="videoReadyState" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.88); flex-direction: column; align-items: center; justify-content: center; z-index: 16; border-radius: 12px;">
+                                <div style="font-size: 48px; margin-bottom: 12px; color: #3DD68C;">&#10003;</div>
+                                <p style="color: #3DD68C; font-size: 18px; font-weight: 600; margin: 0;">Video Ready</p>
+                                <p style="color: #8B8B96; font-size: 13px; margin-top: 6px;">Choose an analysis type below</p>
                             </div>
                         </div>
                     </div>
@@ -10309,6 +10380,47 @@
             }
         }
 
+        // Basketball sayings to shuffle during extraction
+        const BASKETBALL_SAYINGS = [
+            "Watching the ball...",
+            "Reading the follow-through...",
+            "Checking the elbow tuck...",
+            "Analyzing the release point...",
+            "Studying the footwork...",
+            "Tracking the wrist snap...",
+            "Measuring knee bend...",
+            "Ball don't lie...",
+            "Shooters shoot...",
+            "Nothing but net...",
+            "Checking your arc...",
+            "Eyes on the rim...",
+            "Feeling the rhythm...",
+            "Swish incoming...",
+            "Locking in the form..."
+        ];
+        let sayingInterval = null;
+
+        function startSayingsShuffle() {
+            const el = document.getElementById('processingSaying');
+            if (!el) return;
+            let idx = Math.floor(Math.random() * BASKETBALL_SAYINGS.length);
+            el.textContent = BASKETBALL_SAYINGS[idx];
+            sayingInterval = setInterval(() => {
+                idx = (idx + 1 + Math.floor(Math.random() * (BASKETBALL_SAYINGS.length - 1))) % BASKETBALL_SAYINGS.length;
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    el.textContent = BASKETBALL_SAYINGS[idx];
+                    el.style.opacity = '1';
+                }, 200);
+            }, 2200);
+        }
+
+        function stopSayingsShuffle() {
+            if (sayingInterval) { clearInterval(sayingInterval); sayingInterval = null; }
+            const el = document.getElementById('processingSaying');
+            if (el) el.textContent = '';
+        }
+
         // Process uploaded video through MediaPipe to extract skeleton
         async function processVideoForSkeleton() {
             const video = document.getElementById('userVideo');
@@ -10324,6 +10436,7 @@
             const statusEl = document.getElementById('processingStatus');
             console.log('Processing overlay:', processingOverlay);
             if (processingOverlay) processingOverlay.style.display = 'flex';
+            startSayingsShuffle();
 
             try {
                 // Wait for video to be ready
@@ -10428,7 +10541,8 @@
                     window.userPoseData = extractedFrames;
                     console.log(`Extracted ${extractedFrames.length} skeleton frames`);
 
-                    // Hide processing overlay
+                    // Hide processing overlay, stop sayings
+                    stopSayingsShuffle();
                     if (processingOverlay) processingOverlay.style.display = 'none';
 
                     // Reset video to start
@@ -10436,6 +10550,7 @@
 
                     return true;
                 } else {
+                    stopSayingsShuffle();
                     if (statusEl) statusEl.textContent = 'No pose detected in video';
                     setTimeout(() => {
                         if (processingOverlay) processingOverlay.style.display = 'none';
@@ -10445,6 +10560,7 @@
 
             } catch (error) {
                 console.error('Error processing video:', error);
+                stopSayingsShuffle();
                 if (statusEl) statusEl.textContent = 'Error processing video';
                 setTimeout(() => {
                     if (processingOverlay) processingOverlay.style.display = 'none';
@@ -10611,35 +10727,44 @@
             const processingOverlay = document.getElementById('skeletonProcessing');
             if (processingOverlay) processingOverlay.style.display = 'flex';
 
-            // Process video and extract skeleton, then start viewer
+            // Helper to show the "Video Ready" state instead of skeleton viewer
+            function showVideoReadyState() {
+                // Hide skeleton canvas and controls, show ready state
+                const canvas = document.getElementById('skeletonCanvas3d');
+                const controls = document.querySelector('.skeleton-controls');
+                const readyState = document.getElementById('videoReadyState');
+                if (canvas) canvas.style.display = 'none';
+                if (controls) controls.style.display = 'none';
+                if (readyState) readyState.style.display = 'flex';
+            }
+
+            // Process video and extract skeleton data (but don't show skeleton viewer)
             setTimeout(async () => {
                 try {
-                    // If we already have pose data (from webcam recording), just start viewer
                     if (window.userPoseData && window.userPoseData.length > 0) {
                         console.log('Using existing pose data');
+                        stopSayingsShuffle();
                         if (processingOverlay) processingOverlay.style.display = 'none';
-                        startSkeletonViewer();
+                        showVideoReadyState();
                     } else {
-                        // Process uploaded video to extract skeleton
                         console.log('Processing video for skeleton...');
                         const success = await processVideoForSkeleton();
                         if (processingOverlay) processingOverlay.style.display = 'none';
                         if (success) {
-                            console.log('Processing succeeded, starting viewer');
-                            startSkeletonViewer();
+                            console.log('Processing succeeded, video ready');
+                            showVideoReadyState();
                         } else {
-                            // Use demo data as fallback
                             console.log('Processing failed, using demo data');
                             window.userPoseData = generateDemoSkeletonData();
-                            startSkeletonViewer();
+                            showVideoReadyState();
                         }
                     }
                 } catch (error) {
                     console.error('Error in skeleton processing:', error);
+                    stopSayingsShuffle();
                     if (processingOverlay) processingOverlay.style.display = 'none';
-                    // Use demo data as fallback
                     window.userPoseData = generateDemoSkeletonData();
-                    startSkeletonViewer();
+                    showVideoReadyState();
                 }
             }, 200);
         }
@@ -10716,8 +10841,14 @@
             if (typeof userPoseData !== 'undefined') {
                 userPoseData = [];
             }
-            // Stop skeleton viewer
+            // Stop skeleton viewer and reset ready state
             stopSkeletonViewer();
+            const readyState = document.getElementById('videoReadyState');
+            if (readyState) readyState.style.display = 'none';
+            const canvas = document.getElementById('skeletonCanvas3d');
+            const skeletonControls = document.querySelector('.skeleton-controls');
+            if (canvas) canvas.style.display = '';
+            if (skeletonControls) skeletonControls.style.display = '';
         }
 
         // Override the userVideoUpload change handler to show analysis options
@@ -10907,8 +11038,8 @@
 
         // ========== Ideal Form UI Handlers ==========
 
-        // Consistency toggle
-        const ifConsistencyData = { session: 78, week: 75, month: 74, career: 72 };
+        // Consistency toggle (will be overwritten by real data when analysis runs)
+        let ifConsistencyData = { session: 78, week: 75, month: 74, career: 72 };
         document.querySelectorAll('.if-toggle-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.if-toggle-btn').forEach(b => b.classList.remove('active'));
@@ -10937,6 +11068,744 @@
                 goBackToRecord();
             });
         }
+        // ============================================================
+        // SHOT ANALYSIS RULE ENGINE + DRILL LIBRARY
+        // ============================================================
+
+        // --- MediaPipe Pose landmark indices ---
+        const MP = {
+            LEFT_SHOULDER: 11, RIGHT_SHOULDER: 12,
+            LEFT_ELBOW: 13, RIGHT_ELBOW: 14,
+            LEFT_WRIST: 15, RIGHT_WRIST: 16,
+            LEFT_HIP: 23, RIGHT_HIP: 24,
+            LEFT_KNEE: 25, RIGHT_KNEE: 26,
+            LEFT_ANKLE: 27, RIGHT_ANKLE: 28,
+            LEFT_HEEL: 29, RIGHT_HEEL: 30,
+            LEFT_FOOT_INDEX: 31, RIGHT_FOOT_INDEX: 32,
+            NOSE: 0
+        };
+
+        // --- Angle helper (same as tool/app.js) ---
+        function calcAngle3D(a, b, c) {
+            if (!a || !b || !c) return null;
+            const ba = [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+            const bc = [c[0]-b[0], c[1]-b[1], c[2]-b[2]];
+            const dot = ba[0]*bc[0] + ba[1]*bc[1] + ba[2]*bc[2];
+            const magBA = Math.sqrt(ba[0]**2 + ba[1]**2 + ba[2]**2);
+            const magBC = Math.sqrt(bc[0]**2 + bc[1]**2 + bc[2]**2);
+            if (magBA < 1e-5 || magBC < 1e-5) return null;
+            const cosine = Math.max(-1, Math.min(1, dot / (magBA * magBC)));
+            return Math.acos(cosine) * (180 / Math.PI);
+        }
+
+        // --- Thresholds & feedback rules ---
+        const THRESHOLDS = {
+            elbowFlare:     { ideal: [5, 15],  warning: [15, 25], unit: '°' },
+            trunkLean:      { ideal: [0, 8],   warning: [8, 15],  unit: '°' },
+            kneeBend:       { ideal: [130, 160], warning: [115, 130], unit: '°' },
+            elbowExtension: { ideal: [160, 180], warning: [140, 160], unit: '°' },
+            wristSnap:      { ideal: [50, 80],  warning: [35, 50], unit: '°' },
+            footAlignment:  { ideal: [-5, 5],   warning: [-15, -5], unit: '°' },
+            footStance:     { ideal: [14, 20],  warning: [10, 14], unit: 'in' },
+            releaseHeight:  { ideal: [92, 100], warning: [85, 92], unit: 'in' }
+        };
+
+        const FEEDBACK = {
+            elbowFlare: {
+                good: 'Elbow alignment is tight — minimal flare detected.',
+                warning: 'Slight elbow flare detected. Try tucking your shooting elbow closer to your body.',
+                bad: 'Significant elbow flare. Focus on keeping your elbow directly under the ball at set point.'
+            },
+            trunkLean: {
+                good: 'Great upright posture throughout your shot.',
+                warning: 'Mild forward lean at release. Focus on staying tall through the shot.',
+                bad: 'Too much trunk lean is reducing consistency. Practice wall alignment drills.'
+            },
+            kneeBend: {
+                good: 'Solid knee bend generating good power from legs.',
+                warning: 'Shallow knee bend — you may be arm-shooting. Sink a bit lower.',
+                bad: 'Very little knee bend detected. More leg drive will add range and consistency.'
+            },
+            elbowExtension: {
+                good: 'Full elbow extension at release — excellent follow-through.',
+                warning: 'Elbow not fully extending. Reach higher on your follow-through.',
+                bad: 'Short-arming the shot. Focus on pushing through to full extension.'
+            },
+            wristSnap: {
+                good: 'Clean wrist snap with good backspin potential.',
+                warning: 'Incomplete wrist snap. Hold your gooseneck follow-through longer.',
+                bad: 'Minimal wrist snap — work on snapping through the ball for better rotation.'
+            },
+            footAlignment: {
+                good: 'Feet are well-aligned to the basket.',
+                warning: 'Feet slightly angled off target. Square up before each shot.',
+                bad: 'Feet are significantly misaligned. Use a tape line to practice squaring up.'
+            },
+            footStance: {
+                good: 'Stance width is in the optimal range.',
+                warning: 'Stance is slightly narrow or wide. Aim for shoulder-width apart.',
+                bad: 'Stance width is off — adjust to shoulder-width for better balance.'
+            },
+            releaseHeight: {
+                good: 'Release height is in the ideal window.',
+                warning: 'Release is slightly low. Try to release at or above forehead height.',
+                bad: 'Release is too low — higher release makes the shot harder to contest.'
+            }
+        };
+
+        // --- Classification helpers ---
+        function classifyMetric(value, thresholdKey) {
+            const t = THRESHOLDS[thresholdKey];
+            if (!t) return 'good';
+            const [lo, hi] = t.ideal;
+            if (value >= lo && value <= hi) return 'good';
+            const [wLo, wHi] = t.warning;
+            // Check if value is in warning zone (either side)
+            if (value >= wLo && value < lo) return 'warning';
+            if (value > hi && value <= (wHi > hi ? wHi : hi + (wHi - wLo))) return 'warning';
+            return 'bad';
+        }
+
+        function metricToScore(value, thresholdKey) {
+            const t = THRESHOLDS[thresholdKey];
+            if (!t) return 75;
+            const [lo, hi] = t.ideal;
+            const mid = (lo + hi) / 2;
+            const range = (hi - lo) / 2;
+            const dist = Math.abs(value - mid);
+            // Score: 100 at ideal midpoint, drops proportionally
+            const score = Math.max(0, Math.min(100, Math.round(100 - (dist / (range * 3)) * 100)));
+            return score;
+        }
+
+        function classifyIdealForm(metrics) {
+            const keys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
+            const strengths = [];
+            const workOn = [];
+            const quickTips = [];
+            const scores = {};
+
+            keys.forEach(k => {
+                const level = classifyMetric(metrics[k], k);
+                scores[k] = metricToScore(metrics[k], k);
+                const fb = FEEDBACK[k];
+                if (level === 'good') {
+                    strengths.push({ metric: k, feedback: fb.good });
+                } else {
+                    workOn.push({ metric: k, level, feedback: level === 'warning' ? fb.warning : fb.bad });
+                    quickTips.push(level === 'warning' ? fb.warning : fb.bad);
+                }
+            });
+
+            // Also classify secondary metrics
+            ['footAlignment','footStance','releaseHeight'].forEach(k => {
+                const level = classifyMetric(metrics[k], k);
+                scores[k] = metricToScore(metrics[k], k);
+                const fb = FEEDBACK[k];
+                if (level !== 'good') {
+                    quickTips.push(level === 'warning' ? fb.warning : fb.bad);
+                    workOn.push({ metric: k, level, feedback: level === 'warning' ? fb.warning : fb.bad });
+                }
+            });
+
+            // If everything is good, add encouragement tips
+            if (quickTips.length === 0) {
+                quickTips.push('Your mechanics look solid — focus on repetition for consistency.');
+                quickTips.push('Try increasing your shooting distance to test your form under pressure.');
+            }
+
+            const avgScore = Math.round(Object.values(scores).reduce((a,b) => a+b, 0) / Object.values(scores).length);
+
+            return { strengths, workOn, quickTips, scores, consistencyScore: avgScore };
+        }
+
+        // --- Drill Library ---
+        const DRILLS = [
+            {
+                id: 'wall-alignment', metric: 'trunkLean', priority: 1,
+                title: 'Wall Alignment Shots', icon: '🧍',
+                desc: 'Stand 1ft from wall, shoot without touching. Builds upright muscle memory.',
+                fullDesc: 'Stand with your back against a wall and practice your shooting motion. Keep your shoulders touching the wall throughout to build muscle memory for upright posture.',
+                time: '10 mins', reps: '25 reps'
+            },
+            {
+                id: 'elbow-tuck', metric: 'elbowFlare', priority: 1,
+                title: 'Elbow Tuck Drill', icon: '💪',
+                desc: 'Hold a tennis ball between your elbow and torso. Shoot without dropping it.',
+                fullDesc: 'Place a tennis ball between your shooting elbow and ribs. Practice your shooting motion keeping the ball in place. This trains your arm to stay aligned and reduces elbow flare.',
+                time: '10 mins', reps: '20 reps'
+            },
+            {
+                id: 'squat-shoot', metric: 'kneeBend', priority: 1,
+                title: 'Squat & Shoot', icon: '🦵',
+                desc: 'Start in low squat, explode up through your legs into your shot.',
+                fullDesc: 'Start in a low squat position before each shot. Explode up through your legs and transfer that energy into your shot. Focus on consistent knee bend depth.',
+                time: '15 mins', reps: '20 reps'
+            },
+            {
+                id: 'gooseneck', metric: 'wristSnap', priority: 1,
+                title: 'Gooseneck Hold Drill', icon: '🤚',
+                desc: 'Hold your follow-through with wrist fully snapped until ball hits rim.',
+                fullDesc: 'After each shot, hold your follow-through with wrist fully snapped (gooseneck position) until the ball hits the rim. This builds muscle memory for complete wrist rotation.',
+                time: '10 mins', reps: '30 reps'
+            },
+            {
+                id: 'reach-high', metric: 'elbowExtension', priority: 1,
+                title: 'Reach & Release', icon: '🤾',
+                desc: 'Focus on pushing to full arm extension on every shot. Reach for the sky.',
+                fullDesc: 'On each shot, exaggerate your follow-through by reaching as high as possible. Your fingertips should point at the rim at full extension. This corrects short-arming.',
+                time: '10 mins', reps: '25 reps'
+            },
+            {
+                id: 'tape-line', metric: 'footAlignment', priority: 1,
+                title: 'Tape Line Drill', icon: '👟',
+                desc: 'Place tape on floor pointing at rim. Align feet parallel before each shot.',
+                fullDesc: 'Put a strip of tape on the floor pointing directly at the basket. Before every shot, look down and align both feet parallel to the tape. Builds awareness of foot positioning.',
+                time: '10 mins', reps: '20 reps'
+            },
+            {
+                id: 'stance-check', metric: 'footStance', priority: 2,
+                title: 'Stance Width Check', icon: '🦶',
+                desc: 'Use a measuring stick to set shoulder-width stance before each rep.',
+                fullDesc: 'Place a stick or tape markers at shoulder-width on the floor. Step to those marks before every shot. Over time you will internalize the correct width.',
+                time: '10 mins', reps: '15 reps'
+            },
+            {
+                id: 'high-release', metric: 'releaseHeight', priority: 2,
+                title: 'High Release Practice', icon: '⬆️',
+                desc: 'Partner holds hand at forehead height — release above it every rep.',
+                fullDesc: 'Have a partner or use a marker at your forehead height. Practice releasing the ball above that marker on every shot to raise your release point.',
+                time: '10 mins', reps: '20 reps'
+            },
+            {
+                id: 'rhythm-count', metric: 'rhythm', priority: 1,
+                title: 'Rhythm Counting', icon: '🎵',
+                desc: 'Count "1-2-shoot" aloud. Knee bends on 1, elbow rises on 2, release on shoot.',
+                fullDesc: 'Say "1-2-shoot" out loud with each shot. Bend knees on "1", bring the ball up on "2", and release on "shoot". This synchronizes your lower and upper body timing.',
+                time: '10 mins', reps: '20 reps'
+            }
+        ];
+
+        function getDrillsForMetric(metricKey) {
+            return DRILLS.filter(d => d.metric === metricKey).sort((a,b) => a.priority - b.priority);
+        }
+
+        function getWorkOnItems(workOnList) {
+            return workOnList.map(item => {
+                const drills = getDrillsForMetric(item.metric);
+                return { ...item, drills };
+            });
+        }
+
+        // --- Metric names for display ---
+        const METRIC_DISPLAY = {
+            elbowFlare: 'Elbow Flare',
+            trunkLean: 'Trunk Stability',
+            kneeBend: 'Knee Bend',
+            elbowExtension: 'Elbow Extension',
+            wristSnap: 'Wrist Snap',
+            footAlignment: 'Foot Alignment',
+            footStance: 'Foot Stance',
+            releaseHeight: 'Release Height',
+            rhythm: 'Rhythm'
+        };
+
+        // --- Compute metrics from pose data ---
+        function computeMetricsFromPoseData(poseData) {
+            if (!poseData || poseData.length === 0) return null;
+
+            const frameMetrics = [];
+
+            for (const frame of poseData) {
+                const lm = frame.landmarks;
+                if (!lm || lm.length < 33) continue;
+
+                const m = {};
+
+                // Elbow flare: angle between shoulder-elbow line and vertical
+                // Measure how far the elbow deviates from directly below shoulder in the frontal plane
+                const rShoulder = lm[MP.RIGHT_SHOULDER];
+                const rElbow = lm[MP.RIGHT_ELBOW];
+                const rWrist = lm[MP.RIGHT_WRIST];
+                const rHip = lm[MP.RIGHT_HIP];
+                const lShoulder = lm[MP.LEFT_SHOULDER];
+                const lHip = lm[MP.LEFT_HIP];
+                const rKnee = lm[MP.RIGHT_KNEE];
+                const lKnee = lm[MP.LEFT_KNEE];
+                const rAnkle = lm[MP.RIGHT_ANKLE];
+                const lAnkle = lm[MP.LEFT_ANKLE];
+                const rHeel = lm[MP.RIGHT_HEEL];
+                const lHeel = lm[MP.LEFT_HEEL];
+                const rFoot = lm[MP.RIGHT_FOOT_INDEX];
+                const lFoot = lm[MP.LEFT_FOOT_INDEX];
+                const nose = lm[MP.NOSE];
+
+                // Elbow flare: angle at shoulder between hip and elbow (deviation from body line)
+                // Ideal: elbow stays close to body (~5-15° from torso line)
+                const elbowFlareAngle = calcAngle3D(rHip, rShoulder, rElbow);
+                m.elbowFlare = elbowFlareAngle != null ? Math.abs(elbowFlareAngle - 90) : 10; // deviation from 90°
+
+                // Trunk lean: angle of torso from vertical
+                // Use midpoint of shoulders vs midpoint of hips
+                const midShoulder = [(rShoulder[0]+lShoulder[0])/2, (rShoulder[1]+lShoulder[1])/2, (rShoulder[2]+lShoulder[2])/2];
+                const midHip = [(rHip[0]+lHip[0])/2, (rHip[1]+lHip[1])/2, (rHip[2]+lHip[2])/2];
+                // Vertical reference point above hip
+                const aboveHip = [midHip[0], midHip[1] - 0.5, midHip[2]];
+                const trunkAngle = calcAngle3D(midShoulder, midHip, aboveHip);
+                m.trunkLean = trunkAngle != null ? trunkAngle : 5;
+
+                // Knee bend: angle at knee (hip-knee-ankle)
+                const kneeAngle = calcAngle3D(rHip, rKnee, rAnkle);
+                m.kneeBend = kneeAngle != null ? kneeAngle : 150;
+
+                // Elbow extension: angle at elbow (shoulder-elbow-wrist)
+                const elbowExt = calcAngle3D(rShoulder, rElbow, rWrist);
+                m.elbowExtension = elbowExt != null ? elbowExt : 160;
+
+                // Wrist snap: use the pre-computed wrist_angle if available, otherwise estimate
+                if (frame.wrist_angle != null && !isNaN(frame.wrist_angle)) {
+                    m.wristSnap = Math.abs(180 - frame.wrist_angle);
+                } else {
+                    // Estimate from elbow-wrist-fingertip direction (approximate)
+                    m.wristSnap = 60; // fallback
+                }
+
+                // Foot alignment: angle of foot line relative to forward direction
+                // Forward = from ankle midpoint toward basket (assume basket is directly ahead in Z)
+                const footMidX = (rAnkle[0] + lAnkle[0]) / 2;
+                const footDirX = rFoot[0] - rAnkle[0];
+                const footDirZ = rFoot[2] - rAnkle[2];
+                const footAngle = Math.atan2(footDirX, Math.abs(footDirZ) + 0.001) * (180 / Math.PI);
+                m.footAlignment = footAngle;
+
+                // Foot stance: distance between ankles (normalized to approximate inches)
+                // Landmarks are normalized 0-1, typical shoulder width ~0.15 in normalized coords ≈ 18 inches
+                const ankleDist = Math.sqrt(
+                    (rAnkle[0]-lAnkle[0])**2 + (rAnkle[1]-lAnkle[1])**2 + (rAnkle[2]-lAnkle[2])**2
+                );
+                // Scale: shoulder width (~0.15 normalized) ≈ 18 inches
+                const shoulderWidth = Math.sqrt(
+                    (rShoulder[0]-lShoulder[0])**2 + (rShoulder[1]-lShoulder[1])**2 + (rShoulder[2]-lShoulder[2])**2
+                );
+                const inchesPerUnit = shoulderWidth > 0.01 ? 18 / shoulderWidth : 120;
+                m.footStance = ankleDist * inchesPerUnit;
+
+                // Release height: wrist Y relative to full body height, scaled to inches
+                // Estimate player height from nose to ankle in normalized coords
+                const bodyHeight = Math.abs(nose[1] - ((rAnkle[1]+lAnkle[1])/2));
+                const wristFromGround = Math.abs(((rAnkle[1]+lAnkle[1])/2) - rWrist[1]);
+                // Assume 74 inches player height (6'2") as default
+                const heightInches = bodyHeight > 0.01 ? 74 / bodyHeight : 74 / 0.5;
+                m.releaseHeight = wristFromGround * (74 / (bodyHeight > 0.01 ? bodyHeight : 0.5));
+
+                // Rhythm offset: difference in timing between knee minimum and elbow max
+                // (approximated per-frame as position-based offset)
+                m.rhythmOffset = 0; // will be computed across frames below
+
+                frameMetrics.push(m);
+            }
+
+            if (frameMetrics.length === 0) return null;
+
+            // Average all metrics across frames
+            const avg = {};
+            const keys = Object.keys(frameMetrics[0]);
+            keys.forEach(k => {
+                const vals = frameMetrics.map(f => f[k]).filter(v => v != null && !isNaN(v));
+                avg[k] = vals.length > 0 ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
+            });
+
+            // Compute rhythm offset from knee bend trajectory
+            // Find frame with minimum knee angle (deepest bend) and frame with max elbow extension
+            let minKneeIdx = 0, maxElbowIdx = 0;
+            let minKnee = 999, maxElbow = 0;
+            frameMetrics.forEach((f, i) => {
+                if (f.kneeBend < minKnee) { minKnee = f.kneeBend; minKneeIdx = i; }
+                if (f.elbowExtension > maxElbow) { maxElbow = f.elbowExtension; maxElbowIdx = i; }
+            });
+            const totalFrames = frameMetrics.length;
+            // Rhythm offset in seconds (assume ~30fps capture)
+            avg.rhythmOffset = Math.abs(maxElbowIdx - minKneeIdx) / 30;
+
+            return avg;
+        }
+
+        // --- Radar chart point calculation ---
+        // 5 axes: elbowFlare, trunkLean, kneeBend, elbowExtension, wristSnap
+        // Chart center (150, 130), radius 100
+        function radarPoint(index, score, cx, cy, r) {
+            // 5 spokes, starting from top (270°), going clockwise
+            const angle = (Math.PI * 2 / 5) * index - Math.PI / 2;
+            const dist = (score / 100) * r;
+            return [cx + dist * Math.cos(angle), cy + dist * Math.sin(angle)];
+        }
+
+        function radarPolygonPoints(scores, cx, cy, r) {
+            const keys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
+            return keys.map((k, i) => {
+                const [x, y] = radarPoint(i, scores[k] || 50, cx, cy, r);
+                return `${Math.round(x)},${Math.round(y)}`;
+            }).join(' ');
+        }
+
+        // --- UI Population: Ideal Form ---
+        function populateIdealFormUI(result, workOnItems, metrics) {
+            // Update consistency score
+            const score = result.consistencyScore;
+            ifConsistencyData = {
+                session: score,
+                week: Math.max(0, score - 3),
+                month: Math.max(0, score - 4),
+                career: Math.max(0, score - 6)
+            };
+            const valEl = document.getElementById('ifConsistencyValue');
+            if (valEl) valEl.textContent = score;
+
+            // Update Quick Tips
+            const tipsList = document.querySelector('.if-tips-list');
+            if (tipsList) {
+                tipsList.innerHTML = result.quickTips.slice(0, 4).map(tip =>
+                    `<li class="if-tip-item"><span class="if-tip-bullet"></span>${tip}</li>`
+                ).join('');
+            }
+
+            // Update Work On grid
+            const workonGrid = document.querySelector('.if-workon-grid');
+            if (workonGrid) {
+                if (workOnItems.length === 0) {
+                    workonGrid.innerHTML = '<div class="if-workon-card"><div class="if-workon-title">Looking Great!</div><div class="if-workon-desc">All your metrics are in the ideal range. Keep up the consistency!</div></div>';
+                } else {
+                    workonGrid.innerHTML = workOnItems.slice(0, 3).map(item => {
+                        const drill = item.drills && item.drills[0];
+                        const drillHTML = drill ? `
+                            <div class="if-workon-drill">
+                                <div class="if-workon-drill-label">Recommended Drill</div>
+                                <div class="if-workon-drill-name">${drill.title}</div>
+                                <div class="if-workon-drill-tip">${drill.desc}</div>
+                            </div>` : '';
+                        return `<div class="if-workon-card">
+                            <div class="if-workon-title">${METRIC_DISPLAY[item.metric] || item.metric}</div>
+                            <div class="if-workon-desc">${item.feedback}</div>
+                            ${drillHTML}
+                        </div>`;
+                    }).join('');
+                }
+            }
+
+            // Update Radar chart
+            const radarSVG = document.querySelector('.if-radar-chart svg');
+            if (radarSVG) {
+                const cx = 150, cy = 130, r = 100;
+                // Update player polygon
+                const playerPoly = radarSVG.querySelectorAll('polygon')[1];
+                if (playerPoly) {
+                    playerPoly.setAttribute('points', radarPolygonPoints(result.scores, cx, cy, r));
+                }
+                // Update score labels (the last 5 <text> elements)
+                const texts = radarSVG.querySelectorAll('text');
+                const scoreKeys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
+                const scoreTexts = Array.from(texts).slice(-5);
+                scoreKeys.forEach((k, i) => {
+                    if (scoreTexts[i]) scoreTexts[i].textContent = result.scores[k] || 0;
+                });
+            }
+
+            // Update individual metric cards
+            updateRhythmCard(metrics);
+            updateFootAlignmentCard(metrics);
+            updateFootStanceCard(metrics);
+            updateReleaseHeightCard(metrics);
+        }
+
+        function updateRhythmCard(metrics) {
+            const offset = metrics.rhythmOffset || 0;
+            // Update knee marker position (normalized 0-100%)
+            const kneeMarker = document.querySelector('.if-rhythm-marker.knee');
+            const elbowMarker = document.querySelector('.if-rhythm-marker.elbow');
+            if (kneeMarker) kneeMarker.style.left = '50%';
+            if (elbowMarker) elbowMarker.style.left = Math.min(95, Math.max(5, 50 + offset * 500)) + '%';
+
+            const statusEl = document.querySelector('.if-rhythm-status');
+            if (statusEl) {
+                const synced = offset < 0.03;
+                statusEl.className = 'if-rhythm-status ' + (synced ? 'synced' : 'offset');
+                statusEl.innerHTML = `<span class="if-rhythm-dot"></span>${synced ? 'In sync' : offset.toFixed(2) + 's offset'}`;
+            }
+        }
+
+        function updateFootAlignmentCard(metrics) {
+            const angle = Math.round(metrics.footAlignment || 0);
+            // Rotate needle: -45° to +45° maps to full sweep
+            const rotation = Math.max(-45, Math.min(45, angle));
+            // rotation in SVG: 0° is top, our angle maps -45 to +45 to -74 to +74 in transform
+            const svgRotation = (rotation / 45) * 74;
+            const needle = document.querySelector('.if-arc-container svg g');
+            if (needle) needle.setAttribute('transform', `rotate(${svgRotation}, 50, 55)`);
+
+            const valueEl = document.querySelector('.if-arc-value');
+            if (valueEl) {
+                const color = Math.abs(angle) <= 5 ? '#3DD68C' : (Math.abs(angle) <= 15 ? '#FFD93D' : '#FF6B7A');
+                valueEl.style.color = color;
+                valueEl.innerHTML = `${angle > 0 ? '+' : ''}${angle}<span class="if-arc-unit">°</span>`;
+            }
+        }
+
+        function updateFootStanceCard(metrics) {
+            const stance = Math.round(metrics.footStance || 17);
+            const inOptimal = stance >= 14 && stance <= 20;
+            const label = document.querySelector('.if-stance-label');
+            if (label) {
+                label.style.color = inOptimal ? 'var(--success-color)' : '#FFD93D';
+                label.textContent = `${stance}" width ${inOptimal ? '(optimal)' : '(adjust)'}`;
+            }
+            // Update foot marker positions proportionally
+            const totalTrack = 100; // percent
+            const normalizedStance = Math.min(80, Math.max(20, (stance / 30) * 100));
+            const leftFoot = document.querySelectorAll('.if-stance-foot');
+            if (leftFoot.length >= 2) {
+                leftFoot[0].style.left = (50 - normalizedStance/2) + '%';
+                leftFoot[1].style.left = (50 + normalizedStance/2) + '%';
+            }
+        }
+
+        function updateReleaseHeightCard(metrics) {
+            const height = Math.round(metrics.releaseHeight || 96);
+            const inRange = height >= 92 && height <= 100;
+            const fillPct = Math.min(100, Math.max(10, (height / 110) * 100));
+            const fill = document.querySelector('.if-release-fill');
+            if (fill) fill.style.height = fillPct + '%';
+
+            const valueEl = document.querySelector('.if-release-value');
+            if (valueEl) valueEl.textContent = height + '"';
+
+            const rangeLabels = document.querySelectorAll('.if-release-target-text');
+            if (rangeLabels.length >= 2) {
+                rangeLabels[1].style.color = inRange ? 'var(--success-color)' : '#FFD93D';
+                rangeLabels[1].textContent = inRange ? 'In range' : (height < 92 ? 'Below target' : 'Above target');
+            }
+        }
+
+        // --- UI Population: Player Match ---
+        function populatePlayerMatchUI(metrics) {
+            if (!metrics) return;
+
+            // Determine top 3 issues for quick fixes
+            const checkOrder = ['trunkLean','kneeBend','wristSnap','elbowFlare','elbowExtension','footAlignment'];
+            const issues = [];
+            checkOrder.forEach(k => {
+                const level = classifyMetric(metrics[k], k);
+                if (level !== 'good') {
+                    const drills = getDrillsForMetric(k);
+                    issues.push({ metric: k, level, drills, feedback: FEEDBACK[k][level] });
+                }
+            });
+
+            // If fewer than 3 issues, pad with maintenance tips
+            while (issues.length < 3) {
+                const remaining = checkOrder.filter(k => !issues.find(i => i.metric === k));
+                if (remaining.length === 0) break;
+                const k = remaining[0];
+                const drills = getDrillsForMetric(k);
+                issues.push({ metric: k, level: 'maintenance', drills, feedback: FEEDBACK[k].good });
+            }
+
+            const fixItems = document.querySelectorAll('.pm-fix-item');
+            const icons = { trunkLean: '🧍', kneeBend: '🦵', wristSnap: '🤚', elbowFlare: '💪', elbowExtension: '🤾', footAlignment: '👟' };
+            const fixTitles = {
+                trunkLean: 'Stay more upright',
+                kneeBend: 'Deepen your knee bend',
+                wristSnap: 'Snap your wrist fully',
+                elbowFlare: 'Tuck your elbow in',
+                elbowExtension: 'Extend your follow-through',
+                footAlignment: 'Square your feet'
+            };
+
+            issues.slice(0, 3).forEach((issue, i) => {
+                if (!fixItems[i]) return;
+                const iconEl = fixItems[i].querySelector('.pm-fix-icon');
+                const titleEl = fixItems[i].querySelector('.pm-fix-title');
+                const tipEl = fixItems[i].querySelector('.pm-fix-tip');
+                const drillName = fixItems[i].querySelector('.pm-drill-name');
+                const drillDesc = fixItems[i].querySelector('.pm-drill-desc');
+                const drillMeta = fixItems[i].querySelector('.pm-drill-meta');
+
+                if (iconEl) iconEl.textContent = icons[issue.metric] || '🎯';
+                if (titleEl) titleEl.textContent = fixTitles[issue.metric] || METRIC_DISPLAY[issue.metric];
+                if (tipEl) tipEl.textContent = issue.feedback;
+
+                if (issue.drills && issue.drills[0]) {
+                    const d = issue.drills[0];
+                    if (drillName) drillName.textContent = d.title;
+                    if (drillDesc) drillDesc.textContent = d.fullDesc;
+                    if (drillMeta) drillMeta.innerHTML = `<span>⏱️ ${d.time}</span><span>🏀 ${d.reps}</span>`;
+                }
+            });
+        }
+
+        // ============================================================
+        // PLAYER DETAILS PANEL
+        // ============================================================
+        (function initPlayerDetails() {
+            const panel = document.getElementById('playerDetailsPanel');
+            const bg = document.getElementById('playerDetailsBg');
+            const openBtn = document.getElementById('playerDetailsBtn');
+            const closeBtn = document.getElementById('closePlayerDetails');
+            const saveBtn = document.getElementById('pdSave');
+            const nameInput = document.getElementById('pdName');
+            const feetSelect = document.getElementById('pdFeet');
+            const inchesSelect = document.getElementById('pdInches');
+            const handBtns = document.querySelectorAll('.pd-hand-btn');
+            const savedMsg = document.getElementById('pdSavedMsg');
+
+            let selectedHand = '';
+
+            function openPanel() {
+                panel.style.display = 'block';
+                bg.style.display = 'block';
+                // Close profile menu
+                const menu = document.getElementById('profileMenu');
+                if (menu) menu.style.display = 'none';
+            }
+
+            function closePanel() {
+                panel.style.display = 'none';
+                bg.style.display = 'none';
+            }
+
+            if (openBtn) openBtn.addEventListener('click', openPanel);
+            const navBtn = document.getElementById('playerDetailsNavBtn');
+            if (navBtn) navBtn.addEventListener('click', openPanel);
+            if (closeBtn) closeBtn.addEventListener('click', closePanel);
+            if (bg) bg.addEventListener('click', closePanel);
+
+            // Hand selection toggle
+            handBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectedHand = this.dataset.hand;
+                    handBtns.forEach(b => {
+                        b.style.borderColor = '#3A3A42';
+                        b.style.color = '#8B8B96';
+                        b.style.background = '#2A2A30';
+                    });
+                    this.style.borderColor = 'var(--primary-color)';
+                    this.style.color = '#fff';
+                    this.style.background = 'rgba(255, 107, 122, 0.15)';
+                });
+            });
+
+            // Load saved details
+            function loadDetails() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem('playerDetails') || '{}');
+                    if (saved.name) nameInput.value = saved.name;
+                    if (saved.feet) feetSelect.value = saved.feet;
+                    if (saved.inches !== undefined && saved.inches !== '') inchesSelect.value = saved.inches;
+                    if (saved.hand) {
+                        selectedHand = saved.hand;
+                        handBtns.forEach(b => {
+                            if (b.dataset.hand === saved.hand) {
+                                b.style.borderColor = 'var(--primary-color)';
+                                b.style.color = '#fff';
+                                b.style.background = 'rgba(255, 107, 122, 0.15)';
+                            }
+                        });
+                    }
+                    applyToUI(saved);
+                } catch(e) {}
+            }
+
+            // Apply player details to the Ideal Form header
+            function applyToUI(details) {
+                const playerInfoEl = document.querySelector('.if-player-info');
+                if (playerInfoEl && (details.name || details.feet || details.hand)) {
+                    const name = details.name || 'Player';
+                    const height = details.feet ? `${details.feet}'${details.inches || 0}"` : '';
+                    const hand = details.hand || '';
+                    playerInfoEl.innerHTML =
+                        `<span><span class="if-label">Player</span>${name}</span>` +
+                        (height ? `<span><span class="if-label">Height</span>${height}</span>` : '') +
+                        (hand ? `<span><span class="if-label">Hand</span>${hand}</span>` : '');
+                }
+            }
+
+            // Save
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function() {
+                    const details = {
+                        name: nameInput.value.trim(),
+                        feet: feetSelect.value,
+                        inches: inchesSelect.value,
+                        hand: selectedHand
+                    };
+                    localStorage.setItem('playerDetails', JSON.stringify(details));
+                    applyToUI(details);
+                    savedMsg.style.display = 'block';
+                    setTimeout(() => { savedMsg.style.display = 'none'; }, 1500);
+                });
+            }
+
+            // Load on init
+            loadDetails();
+
+            // Expose so analysis can re-apply after populating
+            window.applyPlayerDetails = function() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem('playerDetails') || '{}');
+                    applyToUI(saved);
+                } catch(e) {}
+            };
+        })();
+
+        // ============================================================
+        // WIRE ANALYSIS BUTTONS TO USE REAL POSE DATA
+        // ============================================================
+        (function wireAnalysisButtons() {
+            // Override the existing click handlers by re-attaching
+            document.querySelectorAll('.analysis-type-btn').forEach(btn => {
+                const clone = btn.cloneNode(true);
+                btn.parentNode.replaceChild(clone, btn);
+
+                clone.addEventListener('click', function() {
+                    if (this.id === 'backToRecordBtn') return;
+
+                    document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+
+                    const analysisType = this.dataset.type;
+                    window.selectedAnalysisType = analysisType;
+
+                    const readyOverlay = document.getElementById('videoReadyOverlay');
+                    if (readyOverlay) readyOverlay.style.display = 'none';
+                    const runningOverlay = document.getElementById('analysisRunningOverlay');
+                    if (runningOverlay) runningOverlay.style.display = 'flex';
+
+                    // Compute metrics from real pose data
+                    const metrics = computeMetricsFromPoseData(window.userPoseData);
+
+                    setTimeout(() => {
+                        if (runningOverlay) runningOverlay.style.display = 'none';
+                        document.getElementById('step2').style.display = 'none';
+                        document.getElementById('step3').style.display = 'block';
+
+                        if (analysisType === 'similarity') {
+                            document.getElementById('playerMatchResults').classList.add('active');
+                            document.getElementById('idealFormResults').classList.remove('active');
+                            if (metrics) populatePlayerMatchUI(metrics);
+                        } else {
+                            document.getElementById('playerMatchResults').classList.remove('active');
+                            document.getElementById('idealFormResults').classList.add('active');
+                            if (metrics) {
+                                const result = classifyIdealForm(metrics);
+                                const workOnItems = getWorkOnItems(result.workOn);
+                                populateIdealFormUI(result, workOnItems, metrics);
+                                if (window.applyPlayerDetails) window.applyPlayerDetails();
+                            }
+                        }
+                    }, 800);
+                });
+            });
+        })();
+
     </script>
 </body>
 </html>

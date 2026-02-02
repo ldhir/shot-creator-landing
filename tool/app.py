@@ -365,6 +365,13 @@ def index():
     """Serve the landing page from project root"""
     return send_from_directory(str(project_root), 'index.html')
 
+@app.route('/shotsync')
+@app.route('/shotsync/')
+def shotsync_index():
+    """Serve the ShotSync page from shotsync directory"""
+    shotsync_dir = Path(__file__).parent.parent / 'shotsync'
+    return send_from_directory(str(shotsync_dir), 'index.html')
+
 @app.route('/tool')
 @app.route('/tool/')
 def tool_index():
