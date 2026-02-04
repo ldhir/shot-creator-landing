@@ -2535,13 +2535,6 @@
                                 <p id="processingStatus">Extracting skeleton...</p>
                             </div>
                         </div>
-                        
-                        <!-- Translucent shot counter (outside skeleton viewer container, positioned over video) -->
-                        <div id="shotCounterOverlay" style="position: absolute; top: 20px; right: 20px; z-index: 25; background: rgba(0, 0, 0, 0.7); padding: 15px 25px; border-radius: 12px; border: 2px solid rgba(255, 107, 122, 0.5); display: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);">
-                            <p style="margin: 0; font-size: 24px; font-weight: 700; color: var(--primary-color); text-align: center; font-family: 'Work Sans', sans-serif; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);">
-                                Shots Detected: <span id="shotCountValue" style="color: #fff;">0</span> / <span id="shotCountTarget" style="color: #fff;">10</span>
-                            </p>
-                        </div>
                     </div>
                     <!-- Running Analysis Overlay (green - actually processing) -->
                     <div id="analysisRunningOverlay" class="analysis-overlay" style="display: none;">
@@ -2553,14 +2546,9 @@
                     </div>
                 </div>
                 <div class="controls" style="display: flex; flex-direction: column; gap: 15px; align-items: center; width: 100%;">
-                    <!-- Shot Count Selector -->
-                    <div id="shotCountSelector" style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 10px;">
-                        <label style="font-size: 14px; font-weight: 600; color: var(--text-dark);">Number of Shots to Analyze:</label>
-                        <div style="display: flex; gap: 10px;">
-                            <button class="shot-count-btn" data-count="1">1 Shot</button>
-                            <button class="shot-count-btn" data-count="5">5 Shots</button>
-                            <button class="shot-count-btn active" data-count="10">10 Shots</button>
-                        </div>
+                    <!-- Shot Detection Status (shown for upload mode after processing) -->
+                    <div id="shotDetectionStatus" style="display: none; text-align: center; margin-bottom: 10px;">
+                        <div id="shotDetectionMessage" style="padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;"></div>
                     </div>
                     <!-- All buttons in one horizontal line -->
                     <div id="recordingControls" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center;">
@@ -2581,6 +2569,21 @@
                     
                     <!-- File name display for upload -->
                     <div id="uploadedFileName" style="width: 100%; text-align: center; color: #666; font-size: 14px;"></div>
+                </div>
+
+                <!-- Shot Count Modal (shown when START RECORDING is clicked) -->
+                <div id="shotCountModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); z-index: 1000; align-items: center; justify-content: center;">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 30px 40px; text-align: center; max-width: 350px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
+                        <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; color: var(--text-dark); margin-bottom: 20px;">HOW MANY SHOTS?</h3>
+                        <div style="margin-bottom: 25px;">
+                            <input type="number" id="shotCountInput" min="1" max="10" value="5" style="width: 100px; padding: 12px 15px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-elevated); color: var(--text-dark); font-size: 24px; font-weight: 600; text-align: center;">
+                            <p style="color: var(--text-gray); font-size: 13px; margin-top: 8px;">Enter 1-10 shots</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; justify-content: center;">
+                            <button id="cancelRecordingBtn" class="btn btn-secondary" style="padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;">CANCEL</button>
+                            <button id="confirmRecordingBtn" class="btn btn-primary" style="padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;">START</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Analysis Type Selection (shown after video is ready) -->
@@ -11155,39 +11158,92 @@
             if (skeletonControls) skeletonControls.style.display = '';
         }
 
-        // Shot count selector handler - use direct event delegation (IIFE to avoid duplicates)
+        // Shot count modal handler and mode management
+        let skipModalOnce = false; // Flag to bypass modal after confirmation
+
         (function() {
             let handlerAttached = false;
-            
+
             function attachHandler() {
                 if (handlerAttached) return;
                 handlerAttached = true;
-                
-                // Use a single event listener on the document
-                document.addEventListener('click', function(e) {
-                    const btn = e.target.closest('.shot-count-btn');
-                    if (!btn) return;
-                    
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    console.log('Shot count button clicked:', btn.dataset.count);
-                    
-                    // Remove active class from all buttons
-                    document.querySelectorAll('.shot-count-btn').forEach(b => {
-                        b.classList.remove('active');
+
+                const modal = document.getElementById('shotCountModal');
+                const shotCountInput = document.getElementById('shotCountInput');
+                const confirmBtn = document.getElementById('confirmRecordingBtn');
+                const cancelBtn = document.getElementById('cancelRecordingBtn');
+                const startUserBtn = document.getElementById('startUser');
+
+                // Clamp input value on change
+                if (shotCountInput) {
+                    shotCountInput.addEventListener('change', function(e) {
+                        let value = parseInt(e.target.value);
+                        if (isNaN(value) || value < 1) value = 1;
+                        if (value > 10) value = 10;
+                        e.target.value = value;
                     });
-                    
-                    // Add active class to clicked button
-                    btn.classList.add('active');
-                    console.log('Active class added to button', btn.dataset.count);
-                    
-                    // Store selected count
-                    selectedShotCount = parseInt(btn.dataset.count);
-                    console.log('Selected shot count updated to:', selectedShotCount);
-                }, true); // Use capture phase
+                }
+
+                // Intercept START RECORDING click to show modal first
+                if (startUserBtn && modal) {
+                    startUserBtn.addEventListener('click', function(e) {
+                        // Skip modal if coming from confirm button
+                        if (skipModalOnce) {
+                            skipModalOnce = false;
+                            return; // Let the click proceed to original handlers
+                        }
+
+                        // Show modal instead of starting recording
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        modal.style.display = 'flex';
+                        if (shotCountInput) shotCountInput.focus();
+                    }, true); // Capture phase to intercept before other handlers
+                }
+
+                // Handle CONFIRM button - set shot count and trigger recording
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', function() {
+                        isUploadMode = false;
+                        if (shotCountInput) {
+                            let value = parseInt(shotCountInput.value);
+                            if (isNaN(value) || value < 1) value = 1;
+                            if (value > 10) value = 10;
+                            selectedShotCount = value;
+                        }
+                        console.log('Recording mode: selectedShotCount =', selectedShotCount);
+
+                        // Hide modal
+                        if (modal) modal.style.display = 'none';
+                        hideShotDetectionStatus();
+
+                        // Set flag to skip modal on next click, then trigger recording
+                        skipModalOnce = true;
+                        const startBtn = document.getElementById('startUser');
+                        if (startBtn) {
+                            startBtn.click();
+                        }
+                    });
+                }
+
+                // Handle CANCEL button - just close modal
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', function() {
+                        if (modal) modal.style.display = 'none';
+                    });
+                }
+
+                // Close modal on overlay click
+                if (modal) {
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            modal.style.display = 'none';
+                        }
+                    });
+                }
             }
-            
+
             // Attach immediately if DOM is ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', attachHandler);
@@ -11196,6 +11252,38 @@
             }
         })();
 
+        // Function to show shot detection status message
+        function showShotDetectionStatus(count, isError = false) {
+            const statusDiv = document.getElementById('shotDetectionStatus');
+            const messageDiv = document.getElementById('shotDetectionMessage');
+            if (!statusDiv || !messageDiv) return;
+
+            statusDiv.style.display = 'block';
+
+            if (count === 0) {
+                messageDiv.style.background = 'rgba(239, 68, 68, 0.2)';
+                messageDiv.style.border = '1px solid #ef4444';
+                messageDiv.style.color = '#ef4444';
+                messageDiv.textContent = '⚠️ No shots detected. Please upload a video with clear shooting motion.';
+            } else if (count > 10) {
+                messageDiv.style.background = 'rgba(251, 191, 36, 0.2)';
+                messageDiv.style.border = '1px solid #fbbf24';
+                messageDiv.style.color = '#fbbf24';
+                messageDiv.textContent = `⚠️ ${count} shots detected. Only the first 10 will be analyzed.`;
+            } else {
+                messageDiv.style.background = 'rgba(74, 222, 128, 0.2)';
+                messageDiv.style.border = '1px solid #4ade80';
+                messageDiv.style.color = '#4ade80';
+                messageDiv.textContent = `✓ ${count} shot${count !== 1 ? 's' : ''} detected successfully!`;
+            }
+        }
+
+        // Function to hide shot detection status
+        function hideShotDetectionStatus() {
+            const statusDiv = document.getElementById('shotDetectionStatus');
+            if (statusDiv) statusDiv.style.display = 'none';
+        }
+
         // Override the userVideoUpload change handler to show analysis options
         document.addEventListener('DOMContentLoaded', function() {
             const userVideoUpload = document.getElementById('userVideoUpload');
@@ -11203,6 +11291,16 @@
                 userVideoUpload.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
+                        // Set upload mode - auto-detect shots (no limit)
+                        isUploadMode = true;
+                        selectedShotCount = 999; // High number to detect all shots
+                        console.log('Upload mode: auto-detecting shots');
+
+                        // Hide shot count selector and status for uploads
+                        const shotCountSelector = document.getElementById('shotCountSelector');
+                        if (shotCountSelector) shotCountSelector.style.display = 'none';
+                        hideShotDetectionStatus();
+
                         // Set video src to uploaded file
                         const video = document.getElementById('userVideo');
                         if (video) {
@@ -11244,8 +11342,18 @@
                                     console.log('Starting automatic angle extraction...');
                                     await generateLoop(true); // Extract angles silently
                                     console.log('Angles extracted automatically from video');
+
+                                    // Show shot detection status for upload mode
+                                    if (isUploadMode && detectedShots) {
+                                        const shotCount = detectedShots.length;
+                                        showShotDetectionStatus(shotCount);
+                                        console.log(`Upload mode: detected ${shotCount} shots`);
+                                    }
                                 } catch (error) {
                                     console.error('Error extracting angles:', error);
+                                    if (isUploadMode) {
+                                        showShotDetectionStatus(0);
+                                    }
                                 }
                             };
 
@@ -13519,6 +13627,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         let loop3DAngles = []; // Store angles for each frame
         let selectedShotCount = 10; // Default to 10 shots
         let detectedShots = []; // Array to store detected shot sequences
+        let isUploadMode = false; // Track whether user is uploading vs recording
         
         // Sync variables to window for webcam recording access
         // Create a function to sync window variables to let variables
@@ -14115,24 +14224,10 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // Show skeleton viewer and shot counter (hide processing overlay to show skeleton)
             const processingOverlay = document.getElementById('skeletonProcessing');
             const statusEl = document.getElementById('processingStatus');
-            const shotCountValue = document.getElementById('shotCountValue');
-            const shotCountTarget = document.getElementById('shotCountTarget');
-            const shotCounterOverlay = document.getElementById('shotCounterOverlay');
-            
+
             // Hide processing overlay so skeleton is visible
             if (processingOverlay) processingOverlay.style.display = 'none';
-            
-            // Initialize and show translucent shot counter (outside processing overlay)
-            if (shotCountTarget) {
-                shotCountTarget.textContent = selectedShotCount;
-            }
-            if (shotCountValue) {
-                shotCountValue.textContent = '0';
-            }
-            if (shotCounterOverlay) {
-                shotCounterOverlay.style.display = 'block'; // Show translucent shot counter
-            }
-            
+
             // Show skeleton viewer (this will display the 3D skeleton during processing)
             const readyOverlay = document.getElementById('videoReadyOverlay');
             if (readyOverlay) readyOverlay.style.display = 'flex';
@@ -14330,13 +14425,11 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                     frames: shotDetectionState.currentShotFrames.length
                                 });
                                 
-                                        console.log(`✓ Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
-                                
-                                // Update shot counter in real-time
-                                const shotCountValueEl = document.getElementById('shotCountValue');
-                                if (shotCountValueEl) {
-                                    shotCountValueEl.textContent = shotDetectionState.shotsDetected;
-                                }
+                                        if (isUploadMode) {
+                                            console.log(`✓ Shot ${shotDetectionState.shotsDetected} detected: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
+                                        } else {
+                                            console.log(`✓ Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
+                                        }
                                 
                                 // Check if we've reached the target
                                 if (shotDetectionState.shotsDetected >= selectedShotCount) {
