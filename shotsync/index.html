@@ -32,14 +32,7 @@
         }
 
         .skeleton-controls {
-            height: 50px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 0 16px;
-            background: rgba(0,0,0,0.95);
-            border-top: 1px solid #333;
-            flex-shrink: 0;
+            display: none !important;
         }
 
         .frame-slider {
@@ -246,12 +239,7 @@
         }
 
         #uploadedFileName {
-            font-style: normal;
-            padding: 8px 12px;
-            background: var(--bg-card);
-            border-radius: 0;
-            color: var(--text-gray);
-            font-size: 13px;
+            display: none !important;
         }
 
         /* Navbar Tab Styles */
@@ -646,6 +634,51 @@
         /* ========== Player Match Results UI ========== */
         .player-match-results { display: none; }
         .player-match-results.active { display: block; }
+
+        .pm-shot-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .pm-shot-tab {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-gray);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pm-shot-tab:hover { border-color: var(--primary-color); color: var(--text-dark); }
+        .pm-shot-tab.active {
+            background: var(--primary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+        }
+        .pm-tab-delete {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .pm-tab-delete:hover { background: rgba(255,255,255,0.4); }
+        .pm-shot-tab:not(.active) .pm-tab-delete { background: rgba(255,107,122,0.15); color: var(--primary-color); }
+        .pm-shot-tab:not(.active) .pm-tab-delete:hover { background: rgba(255,107,122,0.3); }
 
         .pm-grid {
             display: grid;
@@ -2308,8 +2341,9 @@
                     </a>
                 </div>
                 <div class="nav-tabs" style="display: flex; gap: 20px; align-items: center; justify-content: center; flex: 1;">
+                    <button id="backToHomeTab" class="nav-tab">Home</button>
                     <button id="shotSyncTab" class="nav-tab active" onclick="showShotSync()">Shot Sync</button>
-                    <button id="benchmarkUploadTab" class="nav-tab" onclick="showBenchmarkUpload()" style="display: inline-block;">Benchmark Upload</button>
+                    <button id="benchmarkUploadTab" class="nav-tab" onclick="showBenchmarkUpload()" style="display: none;">Benchmark Upload</button>
                     <a href="/shotlab" class="nav-tab" style="text-decoration: none;">Shot Lab</a>
                     <button id="trainingDbTab" class="nav-tab" onclick="showTrainingDatabase()" style="display: none;">Training Database</button>
                     <button id="progressPicsTab" class="nav-tab" onclick="showProgressPics()" style="display: none;">Progress Pics</button>
@@ -2317,8 +2351,7 @@
                     <button id="nutritionTab" class="nav-tab" onclick="showNutrition()" style="display: none;">Nutrition</button>
                     <button id="workoutsTab" class="nav-tab" onclick="showWorkouts()" style="display: none;">Workouts</button>
                 </div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <button id="backToHomeTab" class="nav-tab">Home</button>
+                <div style="display: flex; align-items: center;">
                     <button id="playerDetailsNavBtn" class="nav-tab">Player Details</button>
                 </div>
             </div>
@@ -2471,7 +2504,7 @@
             <section id="step2" class="step" style="display: none; padding-top: 20px;">
                 <h2 id="step2Title" style="font-family: 'Bebas Neue', sans-serif; text-align: center; letter-spacing: 2px; margin-top: 0;">Record Your Shot</h2>
                 <p style="text-align: center;">And our AI will do the rest, select what type of analysis next!</p>
-                <div class="video-container" style="position: relative;">
+                <div id="userVideoContainer" class="video-container" style="position: relative; display: none;">
                     <video id="userVideo" playsinline muted style="width: 100%; max-width: 640px; height: auto; display: block; border-radius: 12px; z-index: 1;"></video>
                     <canvas id="userCanvas" style="display: none;"></canvas>
                     <canvas id="userOutput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-width: 640px; z-index: 2; pointer-events: none;"></canvas>
@@ -2481,6 +2514,12 @@
                             <h3>Full Body Required</h3>
                             <p>Please step back so your entire body is visible in the frame</p>
                         </div>
+                    </div>
+                    <!-- Idle overlay (shown when not recording/processing) -->
+                    <div id="videoIdleOverlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; border-radius: 12px; pointer-events: none;">
+                        <div style="font-size: 40px; margin-bottom: 12px;">🎥</div>
+                        <p style="color: #fff; font-size: 16px; font-weight: 600; margin: 0; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px;">Upload a Video or Start Recording</p>
+                        <p style="color: #8B8B96; font-size: 13px; margin-top: 6px;">Your shot will appear here</p>
                     </div>
                     <!-- 3D Skeleton Viewer Overlay (shows shot animation loop) -->
                     <div id="videoReadyOverlay" class="video-ready-overlay" style="display: none;">
@@ -2676,11 +2715,15 @@
                             <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 2px; margin-bottom: 10px;">
                                 PLAYER <span style="color: var(--primary-color);">MATCH</span>
                             </h1>
-                            <p style="color: var(--text-gray); margin: 0;">Your top 5 most similar pro players</p>
+                            <p style="color: var(--text-gray); margin: 0;">Your top 5 most similar pro players <span id="pmShotCount" style="display: inline-block; background: var(--primary-color); color: #fff; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 12px; margin-left: 8px; vertical-align: middle;"></span></p>
                         </div>
                         <button id="compareBenchmarksBtn" class="btn btn-secondary" style="padding: 12px 24px; font-size: 14px;">
                             🔄 Compare Benchmarks
                         </button>
+                    </div>
+
+                    <div id="pmShotTabs" class="pm-shot-tabs" style="display: none;">
+                        <button class="pm-shot-tab active" data-shot="overall">Overall</button>
                     </div>
 
                     <div class="pm-grid">
@@ -2977,6 +3020,7 @@
                                 <span><span class="if-label">Player</span>Marcus Chen</span>
                                 <span><span class="if-label">Height</span>6'2"</span>
                                 <span><span class="if-label">Hand</span>Right</span>
+                                <span><span class="if-label">Shots</span><span id="ifShotCount">0</span></span>
                             </div>
                         </div>
                         <div class="if-consistency-box">
@@ -10791,14 +10835,8 @@
                             visibility: lm.visibility || 1
                         }));
 
-                        // Detect shot stage based on arm position
-                        let state = 'neutral';
-                        const rightWrist = landmarks[16];
-                        const rightShoulder = landmarks[12];
-                        if (rightWrist && rightShoulder) {
-                            if (rightWrist.y < rightShoulder.y - 0.1) state = 'follow_through';
-                            else if (rightWrist.y < rightShoulder.y + 0.05) state = 'pre_shot';
-                        }
+                        // Detect shot stage using shared function
+                        const state = detectShotStage(landmarks);
 
                         extractedFrames.push({
                             state: state,
@@ -11126,11 +11164,16 @@
                 fileName.style.display = 'block';
                 fileName.textContent = '';
             }
-            // Hide overlays
+            // Hide overlays and restore idle overlay
             const readyOverlay = document.getElementById('videoReadyOverlay');
             if (readyOverlay) readyOverlay.style.display = 'none';
             const runningOverlay = document.getElementById('analysisRunningOverlay');
             if (runningOverlay) runningOverlay.style.display = 'none';
+            const idleOverlay = document.getElementById('videoIdleOverlay');
+            if (idleOverlay) idleOverlay.style.display = 'flex';
+            const userVidContainer = document.getElementById('userVideoContainer');
+            if (userVidContainer) userVidContainer.style.display = 'none';
+            document.querySelectorAll('.skeleton-controls').forEach(el => el.style.display = 'none');
             // Reset video
             const video = document.getElementById('userVideo');
             if (video) {
@@ -11214,9 +11257,13 @@
                         }
                         console.log('Recording mode: selectedShotCount =', selectedShotCount);
 
-                        // Hide modal
+                        // Hide modal and idle overlay
                         if (modal) modal.style.display = 'none';
                         hideShotDetectionStatus();
+                        const idleOverlay = document.getElementById('videoIdleOverlay');
+                        if (idleOverlay) idleOverlay.style.display = 'none';
+                        const userVidContainer = document.getElementById('userVideoContainer');
+                        if (userVidContainer) userVidContainer.style.display = 'block';
 
                         // Set flag to skip modal on next click, then trigger recording
                         skipModalOnce = true;
@@ -11291,12 +11338,16 @@
                 userVideoUpload.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
-                        // Set upload mode - auto-detect shots (no limit)
+                        // Set upload mode - auto-detect shots (capped at 10)
                         isUploadMode = true;
-                        selectedShotCount = 999; // High number to detect all shots
-                        console.log('Upload mode: auto-detecting shots');
+                        selectedShotCount = 10; // Cap at 10 shots
+                        console.log('Upload mode: auto-detecting shots (max 10)');
 
-                        // Hide shot count selector and status for uploads
+                        // Show video container, hide idle overlay and shot count selector for uploads
+                        const userVidContainer = document.getElementById('userVideoContainer');
+                        if (userVidContainer) userVidContainer.style.display = 'block';
+                        const idleOverlay = document.getElementById('videoIdleOverlay');
+                        if (idleOverlay) idleOverlay.style.display = 'none';
                         const shotCountSelector = document.getElementById('shotCountSelector');
                         if (shotCountSelector) shotCountSelector.style.display = 'none';
                         hideShotDetectionStatus();
@@ -11521,79 +11572,67 @@
                         const angles = (loop3DAngles && loop3DAngles.length > 0) ? loop3DAngles : (window.loop3DAngles || []);
                         const stages = (loop3DStages && loop3DStages.length > 0) ? loop3DStages : (window.loop3DStages || []);
                         
-                        // Convert loop3DPoses and loop3DAngles to format expected by compareDetailedMetrics
-                        const convertToUserData = () => {
+                        // Convert poses/angles/stages to format expected by compareDetailedMetrics
+                        window.convertToUserData = function(inputPoses, inputStages, inputAngles) {
                             console.log('convertToUserData called:', {
-                                hasLoop3DPoses: !!poses,
-                                posesLength: poses?.length || 0,
-                                hasLoop3DAngles: !!angles,
-                                anglesLength: angles?.length || 0,
-                                hasLoop3DStages: !!stages,
-                                stagesLength: stages?.length || 0
+                                posesLength: inputPoses?.length || 0,
+                                anglesLength: inputAngles?.length || 0,
+                                stagesLength: inputStages?.length || 0
                             });
-                            
-                            if (!poses || poses.length === 0) {
-                                console.error('No loop3DPoses data available');
-                                alert('No video data found. Please record a shot or upload a video first.');
+
+                            if (!inputPoses || inputPoses.length === 0) {
+                                console.error('No poses data available');
                                 return null;
                             }
-                            
-                            if (!angles || angles.length === 0) {
-                                console.error('⚠️ No loop3DAngles data available! Angles were not extracted from the video.');
-                                console.error('This means the video was not processed through generateLoop() or angles were not calculated.');
-                                alert('No angle data found. Please record a shot or upload a video first.');
+
+                            if (!inputAngles || inputAngles.length === 0) {
+                                console.error('⚠️ No angles data available!');
                                 return null;
                             }
-                            
+
                             const userData = [];
-                            for (let i = 0; i < poses.length; i++) {
+                            for (let i = 0; i < inputPoses.length; i++) {
                                 const frameData = {
-                                    state: stages[i] || 'neutral',
-                                    time: i * (1/30), // Assuming 30 fps
+                                    state: inputStages[i] || 'neutral',
+                                    time: i * (1/30),
                                     elbow_angle: null,
                                     wrist_angle: null,
                                     arm_angle: null,
-                                    landmarks: poses[i] || [],
+                                    landmarks: inputPoses[i] || [],
                                     metrics: {}
                                 };
-                                
-                                // Extract angles from loop3DAngles if available
-                                if (angles && angles[i]) {
-                                    const angleData = angles[i];
-                                    
-                                    // Log first frame to verify calculations
+
+                                if (inputAngles && inputAngles[i]) {
+                                    const angleData = inputAngles[i];
+
                                     if (i === 0) {
-                                        console.log('✅ Angles extracted from video! Sample angles from first frame:', angleData);
-                                        console.log('Available angle keys:', Object.keys(angleData));
+                                        console.log('✅ Angles extracted! Sample from first frame:', angleData);
                                     }
-                                    
-                                    // Map angles to frame data
+
                                     if (angleData.right_elbow !== null && angleData.right_elbow !== undefined) {
                                         frameData.elbow_angle = angleData.right_elbow;
                                     }
                                     if (angleData.wrist_snap !== null && angleData.wrist_snap !== undefined) {
                                         frameData.wrist_angle = angleData.wrist_snap;
                                     }
-                                    // Add other angles if available
                                     if (angleData.left_elbow !== null && angleData.left_elbow !== undefined) {
                                         frameData.arm_angle = angleData.left_elbow;
                                     }
-                                    
-                                    // Store ALL angles in metrics (including elbow_flare, wrist_snap, etc.)
+
                                     frameData.metrics = { ...angleData };
                                 }
-                                
+
                                 userData.push(frameData);
                             }
-                            
+
                             return userData;
-                        };
-                        
-                        const userData = convertToUserData();
-                        
+                        }
+
+                        const userData = window.convertToUserData(poses, stages, angles);
+
                         if (!userData || userData.length === 0) {
                             console.error('❌ Failed to convert user data. Check if video was processed and angles were extracted.');
-                            alert('Error: No user data available. Please ensure the video has been processed by clicking "Generate Animation" first.');
+                            alert('No video data found. Please record a shot or upload a video first.');
                             console.error('No user data available for comparison');
                             if (runningOverlay) runningOverlay.style.display = 'none';
                             document.getElementById('step2').style.display = 'none';
@@ -11635,52 +11674,71 @@
                                 setTimeout(() => reject(new Error('Comparison timeout after 60 seconds')), 60000);
                             });
                             
-                            Promise.race([
-                                window.compareWithAllBenchmarks(userData),
-                                timeoutPromise
-                            ]).then(matches => {
-                                console.log('=== Player Match Results ===');
-                                console.log('Number of matches:', matches?.length || 0);
-                                console.log('Matches:', matches);
-                                
-                                if (!matches || matches.length === 0) {
-                                    console.warn('⚠️ No matches found. This could mean:');
-                                    console.warn('  1. All benchmark comparisons returned 0% similarity');
-                                    console.warn('  2. All benchmarks have missing/null metrics');
-                                    console.warn('  3. User data has missing/null metrics');
-                                    console.warn('  4. No benchmark files were found');
-                                    console.warn('Check the console logs above for detailed comparison results.');
+                            (async () => {
+                                try {
+                                    const matches = await Promise.race([
+                                        window.compareWithAllBenchmarks(userData),
+                                        timeoutPromise
+                                    ]);
+
+                                    console.log('=== Player Match Results ===');
+                                    console.log('Number of matches:', matches?.length || 0);
+
+                                    if (!matches || matches.length === 0) {
+                                        console.warn('⚠️ No matches found.');
+                                    }
+
+                                    // Run per-shot comparisons
+                                    const perShotRawData = window.perShotRawData || [];
+                                    const perShotResults = [];
+                                    if (perShotRawData.length > 1) {
+                                        console.log(`Running per-shot comparisons for ${perShotRawData.length} shots...`);
+                                        for (let s = 0; s < perShotRawData.length; s++) {
+                                            const shotData = perShotRawData[s];
+                                            const shotUserData = window.convertToUserData(shotData.poses, shotData.stages, shotData.angles);
+                                            if (shotUserData && shotUserData.length > 0) {
+                                                const shotMatches = await window.compareWithAllBenchmarks(shotUserData);
+                                                perShotResults.push({ matches: shotMatches || [], deleted: false });
+                                                console.log(`Shot ${s + 1}: top match ${shotMatches?.[0]?.playerName} at ${shotMatches?.[0]?.score?.toFixed(1)}%`);
+                                            } else {
+                                                perShotResults.push({ matches: [], deleted: false });
+                                            }
+                                        }
+                                    }
+
+                                    // Store per-shot analysis globally
+                                    window.perShotAnalysis = {
+                                        shots: perShotResults,
+                                        overallMatches: matches || []
+                                    };
+
+                                    // Store matches globally for Ideal Form comparison
+                                    window.topPlayerMatches = matches || [];
+                                    window.topPlayerMatch = matches && matches.length > 0 ? matches[0] : null;
+
+                                    // Update UI with results
+                                    if (window.updatePlayerMatchUI) {
+                                        window.updatePlayerMatchUI(matches || []);
+                                    } else {
+                                        console.error('updatePlayerMatchUI function not available!');
+                                    }
+
+                                    // Always hide overlay
+                                    if (runningOverlay) runningOverlay.style.display = 'none';
+                                    document.getElementById('step2').style.display = 'none';
+                                    document.getElementById('step3').style.display = 'block';
+                                    document.getElementById('playerMatchResults').classList.add('active');
+                                    document.getElementById('idealFormResults').classList.remove('active');
+                                } catch (error) {
+                                    console.error('Error comparing with benchmarks:', error);
+                                    if (runningOverlay) runningOverlay.style.display = 'none';
+                                    document.getElementById('step2').style.display = 'none';
+                                    document.getElementById('step3').style.display = 'block';
+                                    document.getElementById('playerMatchResults').classList.add('active');
+                                    document.getElementById('idealFormResults').classList.remove('active');
+                                    alert('Error comparing with benchmarks: ' + error.message);
                                 }
-                                
-                                // Store matches globally for Ideal Form comparison
-                                window.topPlayerMatches = matches || [];
-                                window.topPlayerMatch = matches && matches.length > 0 ? matches[0] : null;
-                                
-                                // Update UI with results (even if empty, to clear hardcoded content)
-                                if (window.updatePlayerMatchUI) {
-                                    window.updatePlayerMatchUI(matches || []);
-                                } else {
-                                    console.error('updatePlayerMatchUI function not available!');
-                                }
-                                
-                                // Always hide overlay
-                                if (runningOverlay) runningOverlay.style.display = 'none';
-                                document.getElementById('step2').style.display = 'none';
-                                document.getElementById('step3').style.display = 'block';
-                                document.getElementById('playerMatchResults').classList.add('active');
-                                document.getElementById('idealFormResults').classList.remove('active');
-                            }).catch(error => {
-                                console.error('Error comparing with benchmarks:', error);
-                                // Always hide overlay even on error
-                                if (runningOverlay) runningOverlay.style.display = 'none';
-                                document.getElementById('step2').style.display = 'none';
-                                document.getElementById('step3').style.display = 'block';
-                                document.getElementById('playerMatchResults').classList.add('active');
-                                document.getElementById('idealFormResults').classList.remove('active');
-                                
-                                // Show error message
-                                alert('Error comparing with benchmarks: ' + error.message);
-                            });
+                            })();
                         } else {
                             console.error('compareWithAllBenchmarks function not available');
                             // Always hide overlay
@@ -12510,6 +12568,10 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
         // --- UI Population: Ideal Form ---
         function populateIdealFormUI(result, workOnItems, metrics) {
+            // Update shot count
+            const ifShotCountEl = document.getElementById('ifShotCount');
+            if (ifShotCountEl) ifShotCountEl.textContent = detectedShots ? detectedShots.length : 0;
+
             // Update consistency score
             const score = result.consistencyScore;
             ifConsistencyData = {
@@ -12648,6 +12710,13 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         // --- UI Population: Player Match ---
         function populatePlayerMatchUI(metrics) {
             if (!metrics) return;
+
+            // Update shot count
+            const pmShotCountEl = document.getElementById('pmShotCount');
+            if (pmShotCountEl) {
+                const count = detectedShots ? detectedShots.length : 0;
+                pmShotCountEl.textContent = count + ' shot' + (count !== 1 ? 's' : '') + ' analyzed';
+            }
 
             // Determine top 3 issues for quick fixes
             const checkOrder = ['trunkLean','kneeBend','wristSnap','elbowFlare','elbowExtension','footAlignment'];
@@ -12870,43 +12939,32 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
          * Update Player Match UI with comparison results
          * @param {Array} matches - Array of top 5 matches with playerId, playerName, score
          */
-        function updatePlayerMatchUI(matches) {
+        function renderMatchList(matches) {
             const pmList = document.getElementById('playerMatchList');
-            if (!pmList) {
-                console.error('Cannot update player match UI: playerMatchList element not found');
-                return;
-            }
-            
-            // Always clear existing rows (including hardcoded content)
+            if (!pmList) return;
+
             pmList.innerHTML = '';
-            
+
             if (!matches || matches.length === 0) {
-                console.warn('No matches found. Showing empty state.');
                 pmList.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: var(--text-gray);">
                         <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
                         <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">No matches found</div>
                         <div style="font-size: 14px;">Please ensure your video has been processed and contains valid shot data.</div>
-                        <div style="font-size: 12px; margin-top: 20px; color: var(--text-gray); opacity: 0.7;">
-                            Check the browser console for detailed comparison logs.
-                        </div>
                     </div>
                 `;
                 return;
             }
-            
-            console.log('Updating Player Match UI with', matches.length, 'matches:', matches.map(m => `${m.playerName}: ${m.score.toFixed(1)}%`));
-            
-            // Create rows for top 5 matches
+
             matches.forEach((match, index) => {
                 const rank = index + 1;
                 const score = Math.round(match.score);
                 const isFirst = rank === 1;
-                
+
                 const row = document.createElement('div');
                 row.className = `pm-row ${isFirst ? 'pm-row-selected' : ''}`;
                 row.setAttribute('data-player', match.playerId);
-                
+
                 row.innerHTML = `
                     <div class="pm-rank ${isFirst ? 'pm-rank-1' : ''}">${rank}</div>
                     <div class="pm-info">
@@ -12924,8 +12982,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     </div>
                     <button class="pm-expand-btn" style="background: none; border: none; color: var(--text-gray); cursor: pointer; padding: 8px; font-size: 18px;">▼</button>
                 `;
-                
-                // Add expandable details section
+
                 const detailsSection = document.createElement('div');
                 detailsSection.className = 'pm-details-expanded';
                 detailsSection.style.display = 'none';
@@ -12933,20 +12990,18 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 detailsSection.style.background = 'var(--bg-card)';
                 detailsSection.style.borderTop = '1px solid var(--border-color)';
                 detailsSection.style.marginTop = '10px';
-                
-                // Populate with comparison data
+
                 if (match.comparison) {
                     const comp = match.comparison;
                     let detailsHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">';
-                    
+
                     Object.keys(comp.metricScores || {}).forEach(metricName => {
                         const metricScore = comp.metricScores[metricName];
                         const metricDiff = comp.metricDiffs[metricName];
                         const userValue = comp.userMetrics[metricName];
                         const benchValue = comp.benchmarkMetrics[metricName];
-                        
+
                         if (metricScore !== null) {
-                            const isAveraged = true; // Could check if it's frame-specific
                             detailsHTML += `
                                 <div style="padding: 12px; background: var(--bg-primary); border-radius: 6px; border: 1px solid var(--border-color);">
                                     <div style="font-weight: 600; margin-bottom: 8px; color: var(--text-dark);">${formatMetricName(metricName)}</div>
@@ -12960,52 +13015,245 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                         ${match.playerName}: <strong>${benchValue !== null ? benchValue.toFixed(1) + '°' : 'N/A'}</strong>
                                     </div>
                                     <div style="font-size: 11px; color: var(--text-gray); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-color);">
-                                        ${isAveraged ? '📊 Averaged across all frames' : '🎯 Single frame comparison'}
-                                        ${metricDiff !== null ? ` | Difference: ${metricDiff.toFixed(1)}°` : ''}
+                                        ${metricDiff !== null ? `Difference: ${metricDiff.toFixed(1)}°` : ''}
                                     </div>
                                 </div>
                             `;
                         }
                     });
-                    
+
                     detailsHTML += '</div>';
                     detailsSection.innerHTML = detailsHTML;
                 }
-                
+
                 row.appendChild(detailsSection);
-                
-                // Add click handler for row selection
+
                 row.addEventListener('click', function(e) {
-                    // Don't toggle if clicking the expand button
                     if (e.target.classList.contains('pm-expand-btn')) {
                         e.stopPropagation();
                         const isExpanded = detailsSection.style.display !== 'none';
                         detailsSection.style.display = isExpanded ? 'none' : 'block';
-                        const btn = e.target;
-                        btn.textContent = isExpanded ? '▼' : '▲';
+                        e.target.textContent = isExpanded ? '▼' : '▲';
                         return;
                     }
-                    
-                    // Remove selected class from all rows
                     document.querySelectorAll('.pm-row').forEach(r => r.classList.remove('pm-row-selected'));
-                    // Add selected class to clicked row
                     this.classList.add('pm-row-selected');
-                    
-                    // Update right column with this player's comparison data
-                    if (match.comparison) {
-                        updatePlayerMatchRightColumn(match);
-                    }
+                    if (match.comparison) updatePlayerMatchRightColumn(match);
                 });
-                
+
                 pmList.appendChild(row);
             });
-            
-            console.log('Player Match UI updated with', matches.length, 'matches');
-            
-            // Update right column with top match data
+
             if (matches.length > 0 && matches[0].comparison) {
                 updatePlayerMatchRightColumn(matches[0]);
             }
+        }
+
+        function buildShotTabs() {
+            const tabBar = document.getElementById('pmShotTabs');
+            if (!tabBar) return;
+
+            const analysis = window.perShotAnalysis;
+            const activeShots = analysis ? analysis.shots.filter(s => !s.deleted) : [];
+            if (!analysis || !analysis.shots || activeShots.length < 1) {
+                tabBar.style.display = 'none';
+                return;
+            }
+
+            // Only show tabs if there were originally multiple shots
+            if (analysis.shots.length <= 1) {
+                tabBar.style.display = 'none';
+                return;
+            }
+
+            tabBar.innerHTML = '';
+            tabBar.style.display = 'flex';
+
+            // Overall tab
+            const overallBtn = document.createElement('button');
+            overallBtn.className = 'pm-shot-tab active';
+            overallBtn.dataset.shot = 'overall';
+            overallBtn.textContent = 'Overall';
+            overallBtn.addEventListener('click', () => switchShotTab('overall'));
+            tabBar.appendChild(overallBtn);
+
+            // Per-shot tabs
+            analysis.shots.forEach((shot, i) => {
+                if (shot.deleted) return;
+                const btn = document.createElement('button');
+                btn.className = 'pm-shot-tab';
+                btn.dataset.shot = String(i);
+
+                // Only show delete button if more than 1 active shot remains
+                if (activeShots.length > 1) {
+                    btn.innerHTML = `Shot ${i + 1} <span class="pm-tab-delete" data-shot-index="${i}">&times;</span>`;
+                    btn.querySelector('.pm-tab-delete').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteShot(i);
+                    });
+                } else {
+                    btn.textContent = `Shot ${i + 1}`;
+                }
+
+                btn.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('pm-tab-delete')) return;
+                    switchShotTab(String(i));
+                });
+                tabBar.appendChild(btn);
+            });
+        }
+
+        function switchShotTab(shotId) {
+            const tabBar = document.getElementById('pmShotTabs');
+            if (!tabBar) return;
+
+            // Update active tab
+            tabBar.querySelectorAll('.pm-shot-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.shot === shotId);
+            });
+
+            const analysis = window.perShotAnalysis;
+            if (!analysis) return;
+
+            if (shotId === 'overall') {
+                renderMatchList(analysis.overallMatches);
+            } else {
+                const idx = parseInt(shotId);
+                if (analysis.shots[idx] && !analysis.shots[idx].deleted) {
+                    renderMatchList(analysis.shots[idx].matches);
+                }
+            }
+        }
+
+        async function deleteShot(shotIndex) {
+            const analysis = window.perShotAnalysis;
+            if (!analysis || !analysis.shots[shotIndex] || analysis.shots[shotIndex].deleted) return;
+
+            analysis.shots[shotIndex].deleted = true;
+            console.log(`Deleted shot ${shotIndex + 1}`);
+
+            // Get remaining (non-deleted) shots
+            const remainingShots = analysis.shots.filter(s => !s.deleted);
+
+            if (remainingShots.length === 0) {
+                analysis.overallMatches = [];
+            } else {
+                // Try full recalculation with raw data first
+                let recalculated = false;
+                const perShotRawData = window.perShotRawData || [];
+                if (perShotRawData.length > 0 && window.convertToUserData && window.compareWithAllBenchmarks) {
+                    const remainingRawData = perShotRawData.filter((_, i) => !analysis.shots[i]?.deleted);
+                    if (remainingRawData.length > 0 && remainingRawData[0].poses.length > 0) {
+                        const combinedPoses = remainingRawData.flatMap(s => s.poses);
+                        const combinedStages = remainingRawData.flatMap(s => s.stages);
+                        const combinedAngles = remainingRawData.flatMap(s => s.angles);
+                        const combinedUserData = window.convertToUserData(combinedPoses, combinedStages, combinedAngles);
+                        if (combinedUserData && combinedUserData.length > 0) {
+                            try {
+                                analysis.overallMatches = await window.compareWithAllBenchmarks(combinedUserData);
+                                recalculated = true;
+                            } catch (err) {
+                                console.warn('Full recalculation failed, falling back to averaging:', err);
+                            }
+                        }
+                    }
+                }
+
+                // Fallback: average the remaining shots' match scores
+                if (!recalculated) {
+                    analysis.overallMatches = averageShotMatches(remainingShots);
+                }
+            }
+
+            // Update stored globals
+            window.topPlayerMatches = analysis.overallMatches || [];
+            window.topPlayerMatch = analysis.overallMatches?.[0] || null;
+
+            // Rebuild tabs and switch to overall
+            buildShotTabs();
+            switchShotTab('overall');
+
+            // Update shot count badge
+            const activeShots = remainingShots.length;
+            const pmShotCount = document.getElementById('pmShotCount');
+            if (pmShotCount) pmShotCount.textContent = `${activeShots} shot${activeShots !== 1 ? 's' : ''}`;
+        }
+
+        // Average match scores across multiple shots as fallback
+        function averageShotMatches(remainingShots) {
+            if (!remainingShots || remainingShots.length === 0) return [];
+
+            // If only 1 shot left, just return its matches directly
+            if (remainingShots.length === 1) return [...remainingShots[0].matches];
+
+            // Collect all player IDs across shots
+            const playerMap = {};
+            remainingShots.forEach(shot => {
+                (shot.matches || []).forEach(m => {
+                    if (!playerMap[m.playerId]) {
+                        playerMap[m.playerId] = { ...m, scores: [], comparisons: [] };
+                    }
+                    playerMap[m.playerId].scores.push(m.score);
+                    if (m.comparison) playerMap[m.playerId].comparisons.push(m.comparison);
+                });
+            });
+
+            // Average scores and rebuild matches
+            const averaged = Object.values(playerMap).map(p => {
+                const avgScore = p.scores.reduce((a, b) => a + b, 0) / p.scores.length;
+
+                // Average metric scores if comparisons exist
+                let avgComparison = p.comparisons.length > 0 ? { ...p.comparisons[0] } : p.comparison;
+                if (p.comparisons.length > 1) {
+                    const metricKeys = Object.keys(p.comparisons[0].metricScores || {});
+                    const avgMetricScores = {};
+                    const avgMetricDiffs = {};
+                    const avgUserMetrics = {};
+                    const avgBenchmarkMetrics = {};
+                    metricKeys.forEach(key => {
+                        const vals = p.comparisons.map(c => c.metricScores?.[key]).filter(v => v != null);
+                        avgMetricScores[key] = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+                        const diffs = p.comparisons.map(c => c.metricDiffs?.[key]).filter(v => v != null);
+                        avgMetricDiffs[key] = diffs.length > 0 ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+                        const uvals = p.comparisons.map(c => c.userMetrics?.[key]).filter(v => v != null);
+                        avgUserMetrics[key] = uvals.length > 0 ? uvals.reduce((a, b) => a + b, 0) / uvals.length : null;
+                        const bvals = p.comparisons.map(c => c.benchmarkMetrics?.[key]).filter(v => v != null);
+                        avgBenchmarkMetrics[key] = bvals.length > 0 ? bvals.reduce((a, b) => a + b, 0) / bvals.length : null;
+                    });
+                    // Rebuild shared traits and differences from averaged scores
+                    const sharedTraits = [], differences = [];
+                    metricKeys.forEach(key => {
+                        const entry = { name: key, userValue: avgUserMetrics[key], benchmarkValue: avgBenchmarkMetrics[key], similarity: avgMetricScores[key] };
+                        if (avgMetricScores[key] >= 85) sharedTraits.push(entry);
+                        else if (avgMetricScores[key] < 70) differences.push(entry);
+                    });
+                    avgComparison = {
+                        overallScore: avgScore,
+                        metricScores: avgMetricScores,
+                        metricDiffs: avgMetricDiffs,
+                        userMetrics: avgUserMetrics,
+                        benchmarkMetrics: avgBenchmarkMetrics,
+                        sharedTraits,
+                        differences
+                    };
+                }
+
+                return {
+                    playerId: p.playerId,
+                    playerName: p.playerName,
+                    score: avgScore,
+                    comparison: avgComparison
+                };
+            });
+
+            // Sort by score descending, take top 5
+            averaged.sort((a, b) => b.score - a.score);
+            return averaged.slice(0, 5);
+        }
+
+        function updatePlayerMatchUI(matches) {
+            renderMatchList(matches);
+            buildShotTabs();
         }
         
         /**
@@ -13152,6 +13400,8 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         
         // Make function available globally
         window.updatePlayerMatchUI = updatePlayerMatchUI;
+
+
 
         /**
          * Format metric name from snake_case to Title Case
@@ -14149,6 +14399,69 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             return angles;
         }
 
+        // Shared shot stage detection function
+        // Returns 'neutral', 'pre_shot', or 'follow_through'
+        function detectShotStage(landmarks, dominantHand) {
+            const hand = dominantHand || 'right';
+
+            // Select landmarks based on dominant hand
+            const shootWrist = hand === 'right' ? landmarks[16] : landmarks[15];
+            const guideWrist = hand === 'right' ? landmarks[15] : landmarks[16];
+            const shootShoulder = hand === 'right' ? landmarks[12] : landmarks[11];
+            const guideShoulder = hand === 'right' ? landmarks[11] : landmarks[12];
+            const shootHip = hand === 'right' ? landmarks[24] : landmarks[23];
+
+            if (!shootWrist || !shootShoulder || !shootHip) return 'neutral';
+
+            // Follow-through: wrist is above shoulder (arm raised high)
+            // In normalized coordinates, smaller y = higher on screen
+            if (shootWrist.y < shootShoulder.y) {
+                return 'follow_through';
+            }
+
+            // Pre-shot: wrist is below shoulder AND above hip
+            // AND wrists are within shoulder width distance (hands together)
+            if (shootWrist.y > shootShoulder.y && shootWrist.y < shootHip.y) {
+                if (guideWrist && guideShoulder) {
+                    // Calculate shoulder width distance (3D distance)
+                    const shoulderWidth = Math.sqrt(
+                        Math.pow(shootShoulder.x - guideShoulder.x, 2) +
+                        Math.pow((shootShoulder.z || 0) - (guideShoulder.z || 0), 2)
+                    );
+
+                    // Calculate distance between wrists (3D distance)
+                    const wristDistance = Math.sqrt(
+                        Math.pow(shootWrist.x - guideWrist.x, 2) +
+                        Math.pow((shootWrist.z || 0) - (guideWrist.z || 0), 2)
+                    );
+
+                    if (wristDistance <= shoulderWidth * 1.5) {
+                        return 'pre_shot';
+                    }
+                }
+            }
+
+            return 'neutral';
+        }
+
+        // Majority vote smoothing for stage buffer
+        function getSmoothedStage(stageBuffer) {
+            if (stageBuffer.length === 0) return 'neutral';
+            const counts = {};
+            for (const s of stageBuffer) {
+                counts[s] = (counts[s] || 0) + 1;
+            }
+            let maxStage = stageBuffer[stageBuffer.length - 1]; // Default to latest
+            let maxCount = 0;
+            for (const [s, c] of Object.entries(counts)) {
+                if (c > maxCount) {
+                    maxCount = c;
+                    maxStage = s;
+                }
+            }
+            return maxStage;
+        }
+
         // Generate loop from video - with real-time 3D visualization
         async function generateLoop(silent = false) {
             const video = document.getElementById('userVideo');
@@ -14280,16 +14593,36 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 // Shot detection state (shared object for closure)
                 const shotDetectionState = {
                     shotsDetected: 0,
-                    currentShotFrames: [], // Store frames for current potential shot
+                    currentShotFrames: [],
                     currentShotStages: [],
                     currentShotAngles: [],
-                    state: "looking_for_pre_shot", // looking_for_pre_shot, in_shot_sequence, shot_complete
+                    state: "looking_for_pre_shot", // looking_for_pre_shot, in_shot_sequence
                     shouldStop: false,
-                    lastDetectedStage: 'neutral', // Track stage for speed control
-                    seenFollowThrough: false, // Track if we've seen follow_through in current sequence
-                    elbowDropped: false // Track if elbow has dropped below shoulder
+                    lastDetectedStage: 'neutral',
+                    seenFollowThrough: false,
+                    elbowDropped: false,
+                    // Debouncing fields
+                    stageBuffer: [],           // Rolling window of raw stages
+                    bufferSize: 5,             // ~167ms at 30fps
+                    neutralStreakCount: 0,     // Consecutive neutral frames in shot sequence
+                    neutralTolerance: 3,       // Allow up to 3 neutral frames before resetting
+                    preShotAccumulator: 0,     // Count of consecutive pre_shot frames
+                    minPreShotFrames: 2,       // Need 2 pre_shot frames to start sequence
+                    followThroughAccumulator: 0,
+                    minFollowThroughFrames: 2, // Need 2 follow_through frames to confirm
+                    // Shot validation
+                    cooldownFrames: 0,
+                    cooldownDuration: 10,      // ~333ms cooldown between shots
+                    minShotFrames: 8,          // ~267ms minimum shot duration
+                    maxShotFrames: 150,        // ~5s maximum shot duration
+                    // Dominant hand detection
+                    dominantHand: null,
+                    handDetectionFrames: 0,
+                    rightHighCount: 0,
+                    leftHighCount: 0,
+                    handDetectionThreshold: 15
                 };
-                
+
                 pose.onResults((results) => {
                     if (results.poseLandmarks) {
                         const landmarks = results.poseLandmarks.map((lm, i) => ({
@@ -14298,158 +14631,185 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                             z: lm.z || 0,
                             visibility: lm.visibility || 1
                         }));
-                        
-                        // Detect shot stage
-                        let state = 'neutral';
-                        const rightWrist = landmarks[16];
-                        const leftWrist = landmarks[15];
-                        const rightShoulder = landmarks[12];
-                        const leftShoulder = landmarks[11];
-                        const rightHip = landmarks[24]; // Right hip (waist)
-                        
-                        if (rightWrist && rightShoulder && rightHip) {
-                            // Follow-through: wrist is above shoulder (arm raised high)
-                            // In normalized coordinates, smaller y = higher on screen
-                            if (rightWrist.y < rightShoulder.y) {
-                                state = 'follow_through';
-                            }
-                            // Pre-shot: right wrist is below shoulder AND above right waist 
-                            // AND within shoulder width distance of left wrist
-                            else if (rightWrist.y > rightShoulder.y && rightWrist.y < rightHip.y) {
-                                // Check if wrists are within shoulder width distance
-                                if (leftWrist && leftShoulder) {
-                                    // Calculate shoulder width distance (3D distance)
-                                    const shoulderWidth = Math.sqrt(
-                                        Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
-                                        Math.pow((rightShoulder.z || 0) - (leftShoulder.z || 0), 2)
-                                    );
-                                    
-                                    // Calculate distance between wrists (3D distance)
-                                    const wristDistance = Math.sqrt(
-                                        Math.pow(rightWrist.x - leftWrist.x, 2) + 
-                                        Math.pow((rightWrist.z || 0) - (leftWrist.z || 0), 2)
-                                    );
-                                    
-                                    // Check if wrists are within shoulder width distance (hands together)
-                                    if (wristDistance <= shoulderWidth * 1.5) {
-                                        state = 'pre_shot';
-                                    }
-                                }
+
+                        // Auto-detect dominant hand during first N frames
+                        if (!shotDetectionState.dominantHand) {
+                            shotDetectionState.handDetectionFrames++;
+                            const rw = landmarks[16], rs = landmarks[12];
+                            const lw = landmarks[15], ls = landmarks[11];
+                            if (rw && rs && rw.y < rs.y) shotDetectionState.rightHighCount++;
+                            if (lw && ls && lw.y < ls.y) shotDetectionState.leftHighCount++;
+                            if (shotDetectionState.handDetectionFrames >= shotDetectionState.handDetectionThreshold) {
+                                shotDetectionState.dominantHand =
+                                    shotDetectionState.leftHighCount > shotDetectionState.rightHighCount ? 'left' : 'right';
+                                console.log(`Detected dominant hand: ${shotDetectionState.dominantHand}`);
                             }
                         }
-                        
+
+                        // Detect raw shot stage using shared function
+                        const hand = shotDetectionState.dominantHand || 'right';
+                        const rawState = detectShotStage(landmarks, hand);
+
+                        // Push to rolling buffer and get smoothed state
+                        shotDetectionState.stageBuffer.push(rawState);
+                        if (shotDetectionState.stageBuffer.length > shotDetectionState.bufferSize) {
+                            shotDetectionState.stageBuffer.shift();
+                        }
+                        const smoothedState = getSmoothedStage(shotDetectionState.stageBuffer);
+
                         // Update last detected stage for speed control
-                        shotDetectionState.lastDetectedStage = state;
-                        
+                        shotDetectionState.lastDetectedStage = smoothedState;
+
                         // Update 3D skeleton in real-time (always show during processing)
                         if (loopScene && loopRenderer) {
-                            updateLoop3DSkeleton(landmarks, state);
+                            updateLoop3DSkeleton(landmarks, smoothedState);
                             loopRenderer.render(loopScene, loopCamera);
                         }
-                        
+
                         // Extract angles for this frame
                         const angles = extractAnglesFromLandmarks(landmarks);
-                        
-                        // Shot detection state machine - only store frames when in a shot sequence
+
+                        // Handle cooldown between shots
+                        if (shotDetectionState.cooldownFrames > 0) {
+                            shotDetectionState.cooldownFrames--;
+                            processedCount++;
+                            return;
+                        }
+
+                        // Shot detection state machine with debouncing
                         if (shotDetectionState.state === "looking_for_pre_shot") {
-                            // Waiting for pre_shot to start a new sequence
-                            if (state === "pre_shot") {
-                                // Start of potential shot sequence
-                                shotDetectionState.currentShotFrames = [landmarks];
-                                shotDetectionState.currentShotStages = [state];
-                                shotDetectionState.currentShotAngles = [angles];
-                                
-                                // Add first frame to main arrays
-                                loop3DPoses.push(landmarks);
-                                loop3DStages.push(state);
-                                loop3DAngles.push(angles);
-                                
-                                // Sync to window for webcam recording
-                                window.loop3DPoses = loop3DPoses;
-                                window.loop3DStages = loop3DStages;
-                                window.loop3DAngles = loop3DAngles;
-                                
-                                shotDetectionState.state = "in_shot_sequence";
-                                shotDetectionState.seenFollowThrough = false;
-                                shotDetectionState.elbowDropped = false;
-                                console.log('Started potential shot sequence');
+                            if (smoothedState === "pre_shot") {
+                                shotDetectionState.preShotAccumulator++;
+                                if (shotDetectionState.preShotAccumulator >= shotDetectionState.minPreShotFrames) {
+                                    // Confirmed pre_shot, start sequence
+                                    shotDetectionState.currentShotFrames = [landmarks];
+                                    shotDetectionState.currentShotStages = [smoothedState];
+                                    shotDetectionState.currentShotAngles = [angles];
+
+                                    loop3DPoses.push(landmarks);
+                                    loop3DStages.push(smoothedState);
+                                    loop3DAngles.push(angles);
+
+                                    window.loop3DPoses = loop3DPoses;
+                                    window.loop3DStages = loop3DStages;
+                                    window.loop3DAngles = loop3DAngles;
+
+                                    shotDetectionState.state = "in_shot_sequence";
+                                    shotDetectionState.seenFollowThrough = false;
+                                    shotDetectionState.elbowDropped = false;
+                                    shotDetectionState.neutralStreakCount = 0;
+                                    shotDetectionState.followThroughAccumulator = 0;
+                                    shotDetectionState.preShotAccumulator = 0;
+                                    console.log('Started potential shot sequence (confirmed)');
+                                }
+                            } else {
+                                shotDetectionState.preShotAccumulator = 0;
                             }
-                            // Otherwise, skip this frame (not in a shot)
                         } else if (shotDetectionState.state === "in_shot_sequence") {
-                            // Check if sequence broke: if we go to neutral before seeing follow_through, reset
-                            if (state === "neutral" && !shotDetectionState.seenFollowThrough) {
-                                // Sequence broke before follow_through, reset and wait for next pre_shot
-                                console.log('Shot sequence broken (went to neutral before follow_through), resetting...');
+                            // Max duration timeout
+                            if (shotDetectionState.currentShotFrames.length > shotDetectionState.maxShotFrames) {
+                                console.log('Shot sequence timeout, resetting...');
                                 shotDetectionState.currentShotFrames = [];
                                 shotDetectionState.currentShotStages = [];
                                 shotDetectionState.currentShotAngles = [];
                                 shotDetectionState.state = "looking_for_pre_shot";
                                 shotDetectionState.seenFollowThrough = false;
-                                shotDetectionState.elbowDropped = false;
-                                return; // Skip this frame, wait for next pre_shot
+                                shotDetectionState.neutralStreakCount = 0;
+                                shotDetectionState.followThroughAccumulator = 0;
+                                processedCount++;
+                                return;
                             }
-                            
-                            // We're in a shot sequence, keep adding frames
+
+                            // Track neutral streaks with tolerance (instead of instant reset)
+                            if (smoothedState === "neutral" && !shotDetectionState.seenFollowThrough) {
+                                shotDetectionState.neutralStreakCount++;
+                                if (shotDetectionState.neutralStreakCount > shotDetectionState.neutralTolerance) {
+                                    console.log('Shot sequence broken (sustained neutral), resetting...');
+                                    shotDetectionState.currentShotFrames = [];
+                                    shotDetectionState.currentShotStages = [];
+                                    shotDetectionState.currentShotAngles = [];
+                                    shotDetectionState.state = "looking_for_pre_shot";
+                                    shotDetectionState.seenFollowThrough = false;
+                                    shotDetectionState.neutralStreakCount = 0;
+                                    shotDetectionState.followThroughAccumulator = 0;
+                                    processedCount++;
+                                    return;
+                                }
+                            } else {
+                                shotDetectionState.neutralStreakCount = 0;
+                            }
+
+                            // Add frame to current sequence
                             shotDetectionState.currentShotFrames.push(landmarks);
-                            shotDetectionState.currentShotStages.push(state);
+                            shotDetectionState.currentShotStages.push(smoothedState);
                             shotDetectionState.currentShotAngles.push(angles);
-                            
-                            // Also add directly to main arrays (no waiting for completion)
+
                             loop3DPoses.push(landmarks);
-                            loop3DStages.push(state);
+                            loop3DStages.push(smoothedState);
                             loop3DAngles.push(angles);
-                            
-                            // Track if we've seen follow_through
-                            if (state === "follow_through") {
-                                shotDetectionState.seenFollowThrough = true;
+
+                            // Track follow_through with confirmation
+                            if (smoothedState === "follow_through") {
+                                shotDetectionState.followThroughAccumulator++;
+                                if (shotDetectionState.followThroughAccumulator >= shotDetectionState.minFollowThroughFrames) {
+                                    shotDetectionState.seenFollowThrough = true;
+                                }
                             }
-                            
-                            // Check if shot is complete: wrist in follow_through comes below right shoulder
+
+                            // Check if shot is complete: after confirmed follow_through, wrist drops below shoulder
                             if (shotDetectionState.seenFollowThrough && landmarks && landmarks.length > 16) {
-                                const rightWrist = landmarks[16]; // Right wrist
-                                const rightShoulder = landmarks[12]; // Right shoulder
-                                
-                                if (rightWrist && rightShoulder && rightWrist.y !== undefined && rightShoulder.y !== undefined) {
-                                    // In normalized coordinates, larger y = lower on screen
-                                    // If wrist.y > shoulder.y, wrist is below shoulder
-                                    // This means the wrist has dropped below the shoulder after follow_through
-                                    if (rightWrist.y > rightShoulder.y) {
-                                        // Shot complete! Mark it and reset for next shot
-                                        const shotStartIndex = loop3DPoses.length - shotDetectionState.currentShotFrames.length;
-                                const shotEndIndex = loop3DPoses.length - 1;
-                                
-                                shotDetectionState.shotsDetected++;
-                                detectedShots.push({
-                                    start: shotStartIndex,
-                                    end: shotEndIndex,
-                                    frames: shotDetectionState.currentShotFrames.length
-                                });
-                                
-                                        if (isUploadMode) {
-                                            console.log(`✓ Shot ${shotDetectionState.shotsDetected} detected: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
-                                        } else {
-                                            console.log(`✓ Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
-                                        }
-                                
-                                // Check if we've reached the target
-                                if (shotDetectionState.shotsDetected >= selectedShotCount) {
-                                    shotDetectionState.shouldStop = true;
-                                    console.log(`Reached target of ${selectedShotCount} shots, will stop processing`);
-                                } else {
-                                            // Reset and wait for next pre_shot
-                                shotDetectionState.currentShotFrames = [];
-                                shotDetectionState.currentShotStages = [];
-                                shotDetectionState.currentShotAngles = [];
-                                shotDetectionState.state = "looking_for_pre_shot";
-                                            shotDetectionState.seenFollowThrough = false;
-                                            shotDetectionState.elbowDropped = false;
-                            }
+                                const shootWrist = hand === 'right' ? landmarks[16] : landmarks[15];
+                                const shootShoulder = hand === 'right' ? landmarks[12] : landmarks[11];
+
+                                if (shootWrist && shootShoulder && shootWrist.y > shootShoulder.y) {
+                                    // Validate minimum shot duration
+                                    if (shotDetectionState.currentShotFrames.length < shotDetectionState.minShotFrames) {
+                                        console.log(`Shot rejected: too short (${shotDetectionState.currentShotFrames.length} frames)`);
+                                        shotDetectionState.currentShotFrames = [];
+                                        shotDetectionState.currentShotStages = [];
+                                        shotDetectionState.currentShotAngles = [];
+                                        shotDetectionState.state = "looking_for_pre_shot";
+                                        shotDetectionState.seenFollowThrough = false;
+                                        shotDetectionState.neutralStreakCount = 0;
+                                        shotDetectionState.followThroughAccumulator = 0;
+                                        processedCount++;
+                                        return;
+                                    }
+
+                                    // Shot complete!
+                                    const shotStartIndex = loop3DPoses.length - shotDetectionState.currentShotFrames.length;
+                                    const shotEndIndex = loop3DPoses.length - 1;
+
+                                    shotDetectionState.shotsDetected++;
+                                    detectedShots.push({
+                                        start: shotStartIndex,
+                                        end: shotEndIndex,
+                                        frames: shotDetectionState.currentShotFrames.length
+                                    });
+
+                                    if (isUploadMode) {
+                                        console.log(`✓ Shot ${shotDetectionState.shotsDetected} detected: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
+                                    } else {
+                                        console.log(`✓ Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
+                                    }
+
+                                    if (shotDetectionState.shotsDetected >= selectedShotCount) {
+                                        shotDetectionState.shouldStop = true;
+                                        console.log(`Reached target of ${selectedShotCount} shots, will stop processing`);
+                                    } else {
+                                        // Reset for next shot with cooldown
+                                        shotDetectionState.currentShotFrames = [];
+                                        shotDetectionState.currentShotStages = [];
+                                        shotDetectionState.currentShotAngles = [];
+                                        shotDetectionState.state = "looking_for_pre_shot";
+                                        shotDetectionState.seenFollowThrough = false;
+                                        shotDetectionState.elbowDropped = false;
+                                        shotDetectionState.neutralStreakCount = 0;
+                                        shotDetectionState.followThroughAccumulator = 0;
+                                        shotDetectionState.cooldownFrames = shotDetectionState.cooldownDuration;
                                     }
                                 }
                             }
-                            
-                            // Continue recording all frames - no early stopping
-                            // Otherwise, continue adding frames to current sequence
                         }
                     }
                     processedCount++;
@@ -14546,18 +14906,17 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 
                 // Handle final shot if we ended in a shot sequence
                 // Note: Frames are already added to main arrays during processing, but we need to track the shot
-                if (shotDetectionState.state === "in_shot_sequence" && shotDetectionState.currentShotFrames.length > 0) {
-                    // Calculate shot boundaries (frames were already added during processing)
+                if (shotDetectionState.state === "in_shot_sequence" && shotDetectionState.currentShotFrames.length >= shotDetectionState.minShotFrames) {
                     const shotStartIndex = loop3DPoses.length - shotDetectionState.currentShotFrames.length;
-                        const shotEndIndex = loop3DPoses.length - 1;
-                        
-                        shotDetectionState.shotsDetected++;
-                        detectedShots.push({
-                            start: shotStartIndex,
-                            end: shotEndIndex,
-                            frames: shotDetectionState.currentShotFrames.length
-                        });
-                    console.log(`Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} detected: ${shotDetectionState.currentShotFrames.length} frames`);
+                    const shotEndIndex = loop3DPoses.length - 1;
+
+                    shotDetectionState.shotsDetected++;
+                    detectedShots.push({
+                        start: shotStartIndex,
+                        end: shotEndIndex,
+                        frames: shotDetectionState.currentShotFrames.length
+                    });
+                    console.log(`Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} detected: ${shotDetectionState.currentShotFrames.length} frames (final shot)`);
                 }
                 
                 if (loop3DPoses.length > 0) {
@@ -14590,7 +14949,15 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         }
                     }
                     console.log(`Shot processing complete: ${Math.min(detectedShots.length, selectedShotCount)} shots, ${loop3DPoses.length} total frames`);
-                    
+
+                    // Save per-shot raw data BEFORE interpolation (for per-shot analysis)
+                    window.perShotRawData = detectedShots.map(shot => ({
+                        poses: loop3DPoses.slice(shot.start, shot.end + 1),
+                        stages: loop3DStages.slice(shot.start, shot.end + 1),
+                        angles: loop3DAngles.slice(shot.start, shot.end + 1)
+                    }));
+                    console.log(`Saved per-shot raw data for ${window.perShotRawData.length} shots`);
+
                     // Interpolate frames to make animation smoother (16x frames)
                     const interpolationFactor = 16;
                     const originalFrameCount = loop3DPoses.length;
@@ -15164,6 +15531,8 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 let seenFollowThrough = false;
                 let startTime = 0;
                 let shotComplete = false; // Flag to stop after first complete shot
+                let benchmarkStageBuffer = [];
+                let benchmarkNeutralStreak = 0;
                 let benchmarkCurrentFrameIndex = 0;
                 let isBenchmarkPlaying = false;
                 let benchmarkAnimationFrameId = null;
@@ -15178,45 +15547,14 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                             visibility: lm.visibility || 1
                         }));
                         
-                        // Detect shot stage
-                        let state = 'neutral';
-                        const rightWrist = landmarks[16];
-                        const leftWrist = landmarks[15];
-                        const rightShoulder = landmarks[12];
-                        const leftShoulder = landmarks[11];
-                        const rightHip = landmarks[24]; // Right hip (waist)
-                        
-                        if (rightWrist && rightShoulder && rightHip) {
-                            // Follow-through: wrist is above shoulder (arm raised high)
-                            // In normalized coordinates, smaller y = higher on screen
-                            if (rightWrist.y < rightShoulder.y) {
-                                state = 'follow_through';
-                            }
-                            // Pre-shot: right wrist is below shoulder AND above right waist 
-                            // AND within shoulder width distance of left wrist
-                            else if (rightWrist.y > rightShoulder.y && rightWrist.y < rightHip.y) {
-                                // Check if wrists are within shoulder width distance
-                                if (leftWrist && leftShoulder) {
-                                    // Calculate shoulder width distance (3D distance)
-                                    const shoulderWidth = Math.sqrt(
-                                        Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
-                                        Math.pow((rightShoulder.z || 0) - (leftShoulder.z || 0), 2)
-                                    );
-                                    
-                                    // Calculate distance between wrists (3D distance)
-                                    const wristDistance = Math.sqrt(
-                                        Math.pow(rightWrist.x - leftWrist.x, 2) + 
-                                        Math.pow((rightWrist.z || 0) - (leftWrist.z || 0), 2)
-                                    );
-                                    
-                                    // Check if wrists are within shoulder width distance (hands together)
-                                    if (wristDistance <= shoulderWidth * 1.5) {
-                                        state = 'pre_shot';
-                                    }
-                                }
-                            }
-                        }
-                        
+                        // Detect shot stage using shared function
+                        const state = detectShotStage(landmarks);
+
+                        // Push to benchmark stage buffer for smoothing
+                        benchmarkStageBuffer.push(state);
+                        if (benchmarkStageBuffer.length > 5) benchmarkStageBuffer.shift();
+                        const smoothedState = getSmoothedStage(benchmarkStageBuffer);
+
                         // Update 3D skeleton in real-time (preserve visibility for complex skeleton rendering)
                         const normalizedFor3D = landmarks.map(lm => ({
                             x: lm.x,
@@ -15224,46 +15562,54 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                             z: lm.z || 0,
                             visibility: lm.visibility !== undefined ? lm.visibility : 1.0
                         }));
-                        
+
                         // Show skeleton during processing (but don't store here - store in recordingActive block)
                         if (!isBenchmarkPlaying && recordingActive) {
-                            updateBenchmarkSkeleton(normalizedFor3D, state);
+                            updateBenchmarkSkeleton(normalizedFor3D, smoothedState);
                         }
-                        
+
                         // Extract angles using the function that expects MediaPipe format
                         const angles = extractAnglesFromLandmarks(results.poseLandmarks);
-                        
+
                         // Store results in closure for use below
                         const currentResults = results;
-                        
-                        // Track shot sequence (same logic as generateLoop)
+
+                        // Track shot sequence with debouncing
                         // For benchmark, we want to capture the first complete shot sequence
-                        if (state === "pre_shot" && !recordingActive) {
+                        if (smoothedState === "pre_shot" && !recordingActive) {
                             // Start of potential shot sequence
                             recordingActive = true;
                             seenFollowThrough = false;
+                            benchmarkNeutralStreak = 0;
                             startTime = video.currentTime;
                             extractedPoses.length = 0;
                             extractedStages.length = 0;
                             extractedAngles.length = 0;
                             benchmark3DPoses.length = 0;
                             benchmark3DStages.length = 0;
-                        } else if (state === "neutral" && recordingActive && !seenFollowThrough) {
-                            // Sequence broke before follow_through, reset
-                            recordingActive = false;
-                            seenFollowThrough = false;
-                            startTime = 0;
-                            extractedPoses.length = 0;
-                            extractedStages.length = 0;
-                            extractedAngles.length = 0;
-                            benchmark3DPoses.length = 0;
-                            benchmark3DStages.length = 0;
-                        } else if (state === "follow_through" && recordingActive) {
+                        } else if (smoothedState === "neutral" && recordingActive && !seenFollowThrough) {
+                            // Allow up to 3 neutral frames before resetting
+                            benchmarkNeutralStreak++;
+                            if (benchmarkNeutralStreak > 3) {
+                                recordingActive = false;
+                                seenFollowThrough = false;
+                                benchmarkNeutralStreak = 0;
+                                startTime = 0;
+                                extractedPoses.length = 0;
+                                extractedStages.length = 0;
+                                extractedAngles.length = 0;
+                                benchmark3DPoses.length = 0;
+                                benchmark3DStages.length = 0;
+                            }
+                        } else if (smoothedState === "follow_through" && recordingActive) {
                             seenFollowThrough = true;
-                        } else if (state === "pre_shot" && recordingActive && seenFollowThrough) {
+                            benchmarkNeutralStreak = 0;
+                        } else if (smoothedState === "pre_shot" && recordingActive && seenFollowThrough) {
                             // Complete shot sequence detected (pre_shot → follow_through → pre_shot)
-                            // Mark as complete - the frame will be added below
                             shotComplete = true;
+                            benchmarkNeutralStreak = 0;
+                        } else {
+                            if (smoothedState !== "neutral") benchmarkNeutralStreak = 0;
                         }
                         
                         // Record while actively recording
@@ -15326,7 +15672,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                             }
                             
                             extractedPoses.push({
-                                state: state,
+                                state: smoothedState,
                                 time: elapsed,
                                 elbow_angle: elbowAngle,
                                 wrist_angle: wristAngle,
@@ -15334,7 +15680,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                 landmarks: normalizedLandmarks,
                                 metrics: detailedMetrics
                             });
-                            extractedStages.push(state);
+                            extractedStages.push(smoothedState);
                             extractedAngles.push(angles);
                             
                             // Store normalized landmarks with visibility for animation loop (same as shot sync tab)
@@ -15345,7 +15691,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                 visibility: lm.visibility !== undefined ? lm.visibility : 1.0
                             }));
                             benchmark3DPoses.push(normalizedForAnimation);
-                            benchmark3DStages.push(state);
+                            benchmark3DStages.push(smoothedState);
                         }
                     }
                 });
