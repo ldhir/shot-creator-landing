@@ -811,7 +811,7 @@
         }
 
         /* ========== Ideal Form Results UI ========== */
-        .ideal-form-results { display: none; padding-top: 32px; }
+        .ideal-form-results { display: none; padding-top: 0; }
         .ideal-form-results.active { display: block; }
 
 
@@ -897,6 +897,55 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
+        }
+        .if-foot-combined-card {
+            grid-column: 1 / -1;
+        }
+        .if-foot-combined {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        .if-foot-combined-viz {
+            flex: 1;
+            min-width: 200px;
+        }
+        .if-foot-topdown {
+            width: 100%;
+            max-width: 240px;
+        }
+        .if-foot-combined-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .if-foot-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .if-foot-stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+        .if-foot-stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            line-height: 1;
+        }
+        .if-foot-stat-detail {
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+        .if-foot-stat-tip {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+            line-height: 1.4;
         }
 
         .if-metric-card {
@@ -1050,6 +1099,17 @@
         .if-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
         .if-legend-dot.player { background: var(--primary-color); }
         .if-legend-dot.ideal { background: var(--success-color); opacity: 0.5; }
+        .if-radar-guide {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+        .if-radar-guide span { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+        .if-guide-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
         /* Bottom Sections */
         .if-bottom {
@@ -1122,6 +1182,9 @@
         }
         .if-workon-card:hover { border-color: var(--primary-color); transform: translateY(-4px); }
         .if-workon-card:hover::before { opacity: 1; }
+        .if-workon-strength { border-color: rgba(61, 214, 140, 0.3); }
+        .if-workon-strength .if-workon-title { color: #3DD68C; }
+        .if-workon-strength:hover { border-color: #3DD68C; }
 
         .if-workon-title {
             font-family: 'Bebas Neue', sans-serif;
@@ -1139,10 +1202,13 @@
         .if-workon-drill-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #00D4FF; margin-bottom: 4px; }
         .if-workon-drill-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
         .if-workon-drill-tip { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+        .if-workon-drill-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .if-workon-drill-meta { display: flex; gap: 12px; font-size: 11px; color: var(--text-gray); }
 
         @media (max-width: 900px) {
             .if-main { grid-template-columns: 1fr; }
             .if-metrics-grid { grid-template-columns: 1fr; }
+            .if-foot-combined { flex-direction: column; }
             .if-bottom { grid-template-columns: 1fr; }
             .if-workon-grid { grid-template-columns: 1fr; }
             .if-header { flex-direction: column; gap: 20px; }
@@ -2717,9 +2783,6 @@
                             </h1>
                             <p style="color: var(--text-gray); margin: 0;">Your top 5 most similar pro players <span id="pmShotCount" style="display: inline-block; background: var(--primary-color); color: #fff; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 12px; margin-left: 8px; vertical-align: middle;"></span></p>
                         </div>
-                        <button id="compareBenchmarksBtn" class="btn btn-secondary" style="padding: 12px 24px; font-size: 14px;">
-                            🔄 Compare Benchmarks
-                        </button>
                     </div>
 
                     <div id="pmShotTabs" class="pm-shot-tabs" style="display: none;">
@@ -2961,9 +3024,6 @@
                         <button id="pmTryOther" class="btn btn-primary" style="padding: 18px 36px; font-size: 17px; background: linear-gradient(135deg, var(--primary-color) 0%, #ff8a9b 100%); box-shadow: 0 4px 15px rgba(255, 107, 122, 0.4);">
                             🎯 Get Personalized Form Tips
                         </button>
-                        <button id="pmDownloadExtraction" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">
-                            📥 Download Extraction
-                        </button>
                         <button id="pmNewComparison" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">New Comparison</button>
                     </div>
                 </div>
@@ -3062,40 +3122,6 @@
                                 </div>
                             </div>
 
-                            <!-- Foot Alignment -->
-                            <div class="if-metric-card">
-                                <div class="if-metric-title">Foot Alignment</div>
-                                <div class="if-arc-container">
-                                    <svg class="if-arc-svg" viewBox="0 0 100 60">
-                                        <path d="M 10 55 A 40 40 0 0 1 90 55" fill="none" stroke="#2A2A30" stroke-width="8" stroke-linecap="round"/>
-                                        <path d="M 45 17.5 A 40 40 0 0 1 55 17.5" fill="none" stroke="rgba(61, 214, 140, 0.3)" stroke-width="10" stroke-linecap="round"/>
-                                        <g transform="rotate(-74, 50, 55)">
-                                            <line x1="50" y1="55" x2="50" y2="20" stroke="#FFD93D" stroke-width="3" stroke-linecap="round"/>
-                                            <circle cx="50" cy="55" r="6" fill="#FFD93D"/>
-                                        </g>
-                                        <text x="8" y="58" fill="#5A5A64" font-size="8">-45°</text>
-                                        <text x="46" y="12" fill="#5A5A64" font-size="8">0°</text>
-                                        <text x="82" y="58" fill="#5A5A64" font-size="8">+45°</text>
-                                    </svg>
-                                    <div class="if-arc-value" style="color: #FFD93D;">
-                                        +8<span class="if-arc-unit">°</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Foot Stance -->
-                            <div class="if-metric-card">
-                                <div class="if-metric-title">Foot Stance</div>
-                                <div class="if-stance-viz">
-                                    <div class="if-stance-track">
-                                        <div class="if-stance-zone" style="left: 23%; width: 54%;"></div>
-                                        <div class="if-stance-foot" style="left: 36%"></div>
-                                        <div class="if-stance-foot" style="left: 64%"></div>
-                                    </div>
-                                    <span class="if-stance-label" style="color: var(--success-color);">17" width (optimal)</span>
-                                </div>
-                            </div>
-
                             <!-- Release Height -->
                             <div class="if-metric-card">
                                 <div class="if-metric-title">Release Height</div>
@@ -3111,13 +3137,68 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Combined Foot Position -->
+                            <div class="if-metric-card if-foot-combined-card">
+                                <div class="if-metric-title">Foot Position</div>
+                                <div class="if-foot-combined">
+                                    <div class="if-foot-combined-viz">
+                                        <!-- Top-down view of feet relative to shoulders -->
+                                        <svg class="if-foot-topdown" viewBox="0 0 240 180">
+                                            <!-- Shoulder line -->
+                                            <line x1="60" y1="30" x2="180" y2="30" stroke="#5A5A64" stroke-width="2" stroke-dasharray="6,4"/>
+                                            <text x="120" y="20" text-anchor="middle" fill="#5A5A64" font-size="10" font-family="'Bebas Neue', sans-serif" letter-spacing="1">SHOULDERS</text>
+                                            <!-- Shoulder dots -->
+                                            <circle cx="60" cy="30" r="4" fill="#5A5A64"/>
+                                            <circle cx="180" cy="30" r="4" fill="#5A5A64"/>
+
+                                            <!-- Ideal foot zone (rectangle) -->
+                                            <rect x="50" y="110" width="140" height="40" rx="6" fill="rgba(61, 214, 140, 0.08)" stroke="#3DD68C" stroke-width="1" stroke-dasharray="4,4"/>
+                                            <text x="120" y="165" text-anchor="middle" fill="#3DD68C" font-size="9" opacity="0.7">IDEAL ZONE</text>
+
+                                            <!-- Connecting lines (body outline hint) -->
+                                            <line x1="60" y1="34" x2="80" y2="120" stroke="#2A2A30" stroke-width="1"/>
+                                            <line x1="180" y1="34" x2="160" y2="120" stroke="#2A2A30" stroke-width="1"/>
+
+                                            <!-- Left foot -->
+                                            <g class="if-foot-left" transform="translate(80, 120)">
+                                                <rect x="-10" y="-4" width="20" height="28" rx="8" fill="rgba(255, 107, 122, 0.3)" stroke="#FF6B7A" stroke-width="1.5"/>
+                                            </g>
+                                            <!-- Right foot -->
+                                            <g class="if-foot-right" transform="translate(160, 120)">
+                                                <rect x="-10" y="-4" width="20" height="28" rx="8" fill="rgba(255, 107, 122, 0.3)" stroke="#FF6B7A" stroke-width="1.5"/>
+                                            </g>
+
+                                            <!-- Width indicator -->
+                                            <line x1="80" y1="152" x2="160" y2="152" stroke="#8B8B96" stroke-width="1"/>
+                                            <line x1="80" y1="148" x2="80" y2="156" stroke="#8B8B96" stroke-width="1"/>
+                                            <line x1="160" y1="148" x2="160" y2="156" stroke="#8B8B96" stroke-width="1"/>
+                                        </svg>
+                                    </div>
+                                    <div class="if-foot-combined-info">
+                                        <div class="if-foot-stat">
+                                            <span class="if-foot-stat-label">Stance Width</span>
+                                            <span class="if-foot-stat-value if-stance-value-text" style="color: var(--success-color);">17"</span>
+                                            <span class="if-foot-stat-detail if-stance-label">Optimal (14-20")</span>
+                                        </div>
+                                        <div class="if-foot-stat">
+                                            <span class="if-foot-stat-label">Foot Angle</span>
+                                            <span class="if-foot-stat-value if-alignment-value-text" style="color: #FFD93D;">+8°</span>
+                                            <span class="if-foot-stat-detail if-alignment-label">Slightly open</span>
+                                        </div>
+                                        <div class="if-foot-stat-tip">
+                                            Feet should be shoulder-width apart and squared with your shoulders
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Right: Radar Chart -->
                         <div class="if-radar-container">
                             <div class="if-radar-title">Mechanics Breakdown</div>
                             <div class="if-radar-chart">
-                                <svg viewBox="0 0 300 280" style="width: 100%; max-width: 320px;">
+                                <svg viewBox="-40 -5 380 300" style="width: 100%; max-width: 380px;">
                                     <!-- Grid circles -->
                                     <circle cx="150" cy="130" r="100" fill="none" stroke="#2A2A30" stroke-width="1"/>
                                     <circle cx="150" cy="130" r="75" fill="none" stroke="#2A2A30" stroke-width="1"/>
@@ -3138,18 +3219,29 @@
                                     <polygon points="150,48 222,82 195,185 102,180 72,78" fill="rgba(255, 107, 122, 0.3)" stroke="#FF6B7A" stroke-width="2"/>
 
                                     <!-- Labels -->
-                                    <text x="150" y="18" text-anchor="middle" fill="#8B8B96" font-size="11">Elbow Flare</text>
-                                    <text x="258" y="78" text-anchor="start" fill="#8B8B96" font-size="11">Trunk Lean</text>
-                                    <text x="228" y="218" text-anchor="start" fill="#8B8B96" font-size="11">Knee Bend</text>
-                                    <text x="72" y="218" text-anchor="end" fill="#8B8B96" font-size="11">Elbow Ext.</text>
-                                    <text x="42" y="78" text-anchor="end" fill="#8B8B96" font-size="11">Wrist Snap</text>
+                                    <text x="150" y="10" text-anchor="middle" fill="#C0C0C8" font-size="12" font-weight="600">Elbow Flare</text>
+                                    <text x="280" y="78" text-anchor="start" fill="#C0C0C8" font-size="12" font-weight="600">Trunk Lean</text>
+                                    <text x="240" y="222" text-anchor="start" fill="#C0C0C8" font-size="12" font-weight="600">Knee Bend</text>
+                                    <text x="60" y="222" text-anchor="end" fill="#C0C0C8" font-size="12" font-weight="600">Elbow Ext.</text>
+                                    <text x="20" y="78" text-anchor="end" fill="#C0C0C8" font-size="12" font-weight="600">Wrist Snap</text>
 
-                                    <!-- Score labels on spokes -->
-                                    <text x="150" y="55" text-anchor="middle" fill="#5A5A64" font-size="9">82</text>
-                                    <text x="218" y="88" text-anchor="start" fill="#5A5A64" font-size="9">68</text>
-                                    <text x="195" y="190" text-anchor="start" fill="#5A5A64" font-size="9">71</text>
-                                    <text x="105" y="186" text-anchor="end" fill="#5A5A64" font-size="9">88</text>
-                                    <text x="78" y="84" text-anchor="end" fill="#5A5A64" font-size="9">79</text>
+                                    <!-- Score badges on polygon points (color-coded by JS) -->
+                                    <g class="if-radar-scores">
+                                        <circle cx="150" cy="48" r="15" fill="#1A1A22" stroke="#FFD93D" stroke-width="2"/>
+                                        <text x="150" y="52" text-anchor="middle" fill="#FFD93D" font-size="10" font-weight="700">82%</text>
+
+                                        <circle cx="222" cy="82" r="15" fill="#1A1A22" stroke="#FFD93D" stroke-width="2"/>
+                                        <text x="222" y="86" text-anchor="middle" fill="#FFD93D" font-size="10" font-weight="700">68%</text>
+
+                                        <circle cx="195" cy="185" r="15" fill="#1A1A22" stroke="#FFD93D" stroke-width="2"/>
+                                        <text x="195" y="189" text-anchor="middle" fill="#FFD93D" font-size="10" font-weight="700">71%</text>
+
+                                        <circle cx="102" cy="180" r="15" fill="#1A1A22" stroke="#3DD68C" stroke-width="2"/>
+                                        <text x="102" y="184" text-anchor="middle" fill="#3DD68C" font-size="10" font-weight="700">88%</text>
+
+                                        <circle cx="72" cy="78" r="15" fill="#1A1A22" stroke="#FFD93D" stroke-width="2"/>
+                                        <text x="72" y="82" text-anchor="middle" fill="#FFD93D" font-size="10" font-weight="700">79%</text>
+                                    </g>
                                 </svg>
                             </div>
                             <div class="if-radar-legend">
@@ -3161,6 +3253,11 @@
                                     <span class="if-legend-dot ideal"></span>
                                     Ideal Range
                                 </div>
+                            </div>
+                            <div class="if-radar-guide">
+                                <span><span class="if-guide-dot" style="background: #3DD68C;"></span> 85%+ In ideal range</span>
+                                <span><span class="if-guide-dot" style="background: #FFD93D;"></span> 60-84% Minor adjustment</span>
+                                <span><span class="if-guide-dot" style="background: #FF6B7A;"></span> &lt;60% Needs work</span>
                             </div>
                         </div>
                     </div>
@@ -3195,8 +3292,14 @@
                                     <div class="if-workon-desc">Your torso shows slight forward lean at release, reducing shot consistency.</div>
                                     <div class="if-workon-drill">
                                         <div class="if-workon-drill-label">Recommended Drill</div>
-                                        <div class="if-workon-drill-name">Wall Alignment Shots</div>
-                                        <div class="if-workon-drill-tip">Stand 1ft from wall, shoot without touching. Builds upright muscle memory.</div>
+                                        <div class="if-workon-drill-name">Back-to-Wall Shooting</div>
+                                        <div class="if-workon-drill-tip">If you feel the wall, you're leaning</div>
+                                        <div class="if-workon-drill-footer">
+                                            <div class="if-workon-drill-meta"><span>⏱️ 10 mins</span><span>🏀 15 reps</span></div>
+                                            <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
+                                                <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="if-workon-card">
@@ -3204,8 +3307,14 @@
                                     <div class="if-workon-desc">Your elbow extends 0.06s after knee peak, creating timing inconsistency.</div>
                                     <div class="if-workon-drill">
                                         <div class="if-workon-drill-label">Recommended Drill</div>
-                                        <div class="if-workon-drill-name">Rhythm Counting</div>
-                                        <div class="if-workon-drill-tip">Count "1-2-shoot" aloud. Knee bends on 1, elbow rises on 2, release on shoot.</div>
+                                        <div class="if-workon-drill-name">Rhythm Shooting</div>
+                                        <div class="if-workon-drill-tip">Say "catch-dip-shoot" out loud to feel the flow</div>
+                                        <div class="if-workon-drill-footer">
+                                            <div class="if-workon-drill-meta"><span>⏱️ 10 mins</span><span>🏀 20 reps</span></div>
+                                            <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
+                                                <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="if-workon-card">
@@ -3213,8 +3322,14 @@
                                     <div class="if-workon-desc">Feet are angled 8° off center, affecting accuracy on longer shots.</div>
                                     <div class="if-workon-drill">
                                         <div class="if-workon-drill-label">Recommended Drill</div>
-                                        <div class="if-workon-drill-name">Tape Line Drill</div>
-                                        <div class="if-workon-drill-tip">Place tape on floor pointing at rim. Align feet parallel before each shot.</div>
+                                        <div class="if-workon-drill-name">Catch-and-Square</div>
+                                        <div class="if-workon-drill-tip">Toes to the rim before the ball touches your hands</div>
+                                        <div class="if-workon-drill-footer">
+                                            <div class="if-workon-drill-meta"><span>⏱️ 15 mins</span><span>🏀 3x10</span></div>
+                                            <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
+                                                <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -12054,15 +12169,14 @@
         const pmTryOther = document.getElementById('pmTryOther');
         if (pmTryOther) {
             pmTryOther.addEventListener('click', function() {
-                document.getElementById('step3').style.display = 'none';
+                // Go directly to Ideal Form analysis using existing data
+                if (window.topPlayerMatch && window.topPlayerMatch.comparison) {
+                    calculateIdealFormMetricsWithComparison(window.topPlayerMatch);
+                } else {
+                    calculateIdealFormMetrics();
+                }
                 document.getElementById('playerMatchResults').classList.remove('active');
-                document.getElementById('step2').style.display = 'block';
-                showAnalysisOptions();
-                // Pre-select ideal form
-                document.querySelectorAll('.analysis-type-btn').forEach(b => {
-                    b.classList.remove('selected');
-                    if (b.dataset.type === 'ideal') b.classList.add('selected');
-                });
+                document.getElementById('idealFormResults').classList.add('active');
             });
         }
 
@@ -12225,51 +12339,87 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             wristSnap:      { ideal: [50, 80],  warning: [35, 50], unit: '°' },
             footAlignment:  { ideal: [-5, 5],   warning: [-15, -5], unit: '°' },
             footStance:     { ideal: [14, 20],  warning: [10, 14], unit: 'in' },
-            releaseHeight:  { ideal: [92, 100], warning: [85, 92], unit: 'in' }
+            releaseHeight:  { ideal: [92, 100], warning: [85, 92], unit: 'in' },
+            rhythm:         { ideal: [0, 0.03], warning: [0.03, 0.05], unit: 's' },
+            jumpHeight:     { ideal: [-5, 5],   warning: [-15, -5], unit: '%' }
         };
 
         const FEEDBACK = {
             elbowFlare: {
                 good: 'Elbow alignment is tight — minimal flare detected.',
                 warning: 'Slight elbow flare detected. Try tucking your shooting elbow closer to your body.',
-                bad: 'Significant elbow flare. Focus on keeping your elbow directly under the ball at set point.'
+                bad: 'Your elbow is flaring out — causes left/right misses.',
+                badAlt: 'Your elbow is too tucked — limits power.',
+                direction: function(v) { const mid = 10; return v > mid ? 'high' : 'low'; }
             },
             trunkLean: {
                 good: 'Great upright posture throughout your shot.',
                 warning: 'Mild forward lean at release. Focus on staying tall through the shot.',
-                bad: 'Too much trunk lean is reducing consistency. Practice wall alignment drills.'
+                bad: 'You\'re leaning forward — stay tall through release.',
+                badAlt: 'You\'re leaning back — losing power forward.',
+                direction: function(v) { return v > 0 ? 'high' : 'low'; }
             },
             kneeBend: {
                 good: 'Solid knee bend generating good power from legs.',
                 warning: 'Shallow knee bend — you may be arm-shooting. Sink a bit lower.',
-                bad: 'Very little knee bend detected. More leg drive will add range and consistency.'
+                bad: 'Your legs aren\'t loaded — losing power.',
+                badAlt: 'Too deep — losing explosiveness.',
+                direction: function(v) { const mid = 145; return v > mid ? 'high' : 'low'; }
             },
             elbowExtension: {
                 good: 'Full elbow extension at release — excellent follow-through.',
                 warning: 'Elbow not fully extending. Reach higher on your follow-through.',
-                bad: 'Short-arming the shot. Focus on pushing through to full extension.'
+                bad: 'Your arm isn\'t extending fully — shorter range, less arc.'
             },
             wristSnap: {
                 good: 'Clean wrist snap with good backspin potential.',
                 warning: 'Incomplete wrist snap. Hold your gooseneck follow-through longer.',
-                bad: 'Minimal wrist snap — work on snapping through the ball for better rotation.'
+                bad: 'Your wrist isn\'t snapping through — affects spin and touch.',
+                badAlt: 'Excessive wrist snap — losing control.',
+                direction: function(v) { const mid = 65; return v > mid ? 'high' : 'low'; }
             },
             footAlignment: {
                 good: 'Feet are well-aligned to the basket.',
                 warning: 'Feet slightly angled off target. Square up before each shot.',
-                bad: 'Feet are significantly misaligned. Use a tape line to practice squaring up.'
+                bad: 'Your feet aren\'t aligned with your shoulders — affects balance and direction.'
             },
             footStance: {
                 good: 'Stance width is in the optimal range.',
                 warning: 'Stance is slightly narrow or wide. Aim for shoulder-width apart.',
-                bad: 'Stance width is off — adjust to shoulder-width for better balance.'
+                bad: 'Your base is too narrow — affects balance.',
+                badAlt: 'Your base is too wide — losing power transfer.',
+                direction: function(v) { const mid = 17; return v > mid ? 'high' : 'low'; }
             },
             releaseHeight: {
                 good: 'Release height is in the ideal window.',
                 warning: 'Release is slightly low. Try to release at or above forehead height.',
-                bad: 'Release is too low — higher release makes the shot harder to contest.'
+                bad: 'You\'re releasing low — easier to block, flatter shot.'
+            },
+            rhythm: {
+                good: 'Great timing — your upper and lower body are in sync.',
+                warning: 'Timing is slightly off. Focus on syncing your knee bend with your release.',
+                bad: 'Your timing is off — elbow is firing before your legs.'
+            },
+            jumpHeight: {
+                good: 'Consistent jump height across your session.',
+                warning: 'Jump height slightly below your average — stay loaded.',
+                bad: 'Your jump height is dropping — could be fatigue.'
             }
         };
+
+        // Get directional feedback — uses alt message when value is on the opposite side
+        function getDirectionalFeedback(metricKey, level, value) {
+            const fb = FEEDBACK[metricKey];
+            if (!fb) return '';
+            if (level === 'good') return fb.good;
+            if (level === 'warning') return fb.warning;
+            // For 'bad' level, check direction for alt feedback
+            if (fb.badAlt && fb.direction && typeof value === 'number') {
+                const dir = fb.direction(value);
+                return dir === 'low' ? fb.badAlt : fb.bad;
+            }
+            return fb.bad;
+        }
 
         // --- Classification helpers ---
         function classifyMetric(value, thresholdKey) {
@@ -12297,32 +12447,55 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         }
 
         function classifyIdealForm(metrics) {
-            const keys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
+            const primaryKeys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
+            const secondaryKeys = ['footAlignment','footStance','releaseHeight'];
+            // Rhythm classified if present, jumpHeight classified if present (not displayed yet)
+            const optionalKeys = ['rhythm', 'jumpHeight'];
             const strengths = [];
             const workOn = [];
             const quickTips = [];
             const scores = {};
 
-            keys.forEach(k => {
+            // Classify primary metrics
+            primaryKeys.forEach(k => {
+                if (metrics[k] === undefined || metrics[k] === null) return;
                 const level = classifyMetric(metrics[k], k);
                 scores[k] = metricToScore(metrics[k], k);
-                const fb = FEEDBACK[k];
+                const feedback = getDirectionalFeedback(k, level, metrics[k]);
                 if (level === 'good') {
-                    strengths.push({ metric: k, feedback: fb.good });
+                    strengths.push({ metric: k, feedback });
                 } else {
-                    workOn.push({ metric: k, level, feedback: level === 'warning' ? fb.warning : fb.bad });
-                    quickTips.push(level === 'warning' ? fb.warning : fb.bad);
+                    workOn.push({ metric: k, level, feedback });
+                    quickTips.push(feedback);
                 }
             });
 
-            // Also classify secondary metrics
-            ['footAlignment','footStance','releaseHeight'].forEach(k => {
+            // Classify secondary metrics
+            secondaryKeys.forEach(k => {
+                if (metrics[k] === undefined || metrics[k] === null) return;
                 const level = classifyMetric(metrics[k], k);
                 scores[k] = metricToScore(metrics[k], k);
-                const fb = FEEDBACK[k];
-                if (level !== 'good') {
-                    quickTips.push(level === 'warning' ? fb.warning : fb.bad);
-                    workOn.push({ metric: k, level, feedback: level === 'warning' ? fb.warning : fb.bad });
+                const feedback = getDirectionalFeedback(k, level, metrics[k]);
+                if (level === 'good') {
+                    strengths.push({ metric: k, feedback });
+                } else {
+                    workOn.push({ metric: k, level, feedback });
+                    quickTips.push(feedback);
+                }
+            });
+
+            // Classify optional metrics (rhythm, jumpHeight) — scored but not surfaced on UI yet
+            optionalKeys.forEach(k => {
+                if (metrics[k] === undefined || metrics[k] === null) return;
+                const val = k === 'rhythm' ? Math.abs(metrics.rhythmOffset || metrics[k] || 0) : metrics[k];
+                const level = classifyMetric(val, k);
+                scores[k] = metricToScore(val, k);
+                const feedback = getDirectionalFeedback(k, level, val);
+                if (level === 'good') {
+                    strengths.push({ metric: k, feedback });
+                } else {
+                    workOn.push({ metric: k, level, feedback });
+                    quickTips.push(feedback);
                 }
             });
 
@@ -12332,80 +12505,317 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 quickTips.push('Try increasing your shooting distance to test your form under pressure.');
             }
 
-            const avgScore = Math.round(Object.values(scores).reduce((a,b) => a+b, 0) / Object.values(scores).length);
+            // Add fatigue tips if jump height data is available
+            if (metrics.jumpHeights && Array.isArray(metrics.jumpHeights)) {
+                const fatigueTips = detectFatigue(metrics.jumpHeights, metrics.careerJumpAvg);
+                fatigueTips.forEach(tip => quickTips.push(tip));
+            }
 
-            return { strengths, workOn, quickTips, scores, consistencyScore: avgScore };
+            const scoreValues = Object.values(scores);
+            const avgScore = scoreValues.length > 0
+                ? Math.round(scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length)
+                : 75;
+
+            // Compute weakness list for drill selection
+            const weaknessMetrics = workOn.map(w => w.metric);
+            const recommendedDrills = getDrillsForWeaknesses(weaknessMetrics);
+
+            return { strengths, workOn, quickTips, scores, consistencyScore: avgScore, recommendedDrills };
+        }
+
+        // --- Fatigue Detection ---
+        function detectFatigue(jumpHeights, careerAverage) {
+            const tips = [];
+            if (!jumpHeights || jumpHeights.length === 0) return tips;
+
+            // Session decline: last 10 reps > 10% lower than first 10
+            if (jumpHeights.length >= 20) {
+                const first10 = jumpHeights.slice(0, 10);
+                const last10 = jumpHeights.slice(-10);
+                const first10Avg = first10.reduce((a, b) => a + b, 0) / first10.length;
+                const last10Avg = last10.reduce((a, b) => a + b, 0) / last10.length;
+                if (first10Avg > 0) {
+                    const decline = (first10Avg - last10Avg) / first10Avg;
+                    if (decline > 0.10) {
+                        tips.push('Your jump height dropped late session — fatigue?');
+                    }
+                }
+            }
+
+            // Below baseline: session avg < 90% of career avg
+            if (careerAverage && careerAverage > 0) {
+                const sessionAvg = jumpHeights.reduce((a, b) => a + b, 0) / jumpHeights.length;
+                if (sessionAvg < careerAverage * 0.90) {
+                    tips.push('Your legs aren\'t as loaded today — recovery day?');
+                }
+            }
+
+            return tips;
         }
 
         // --- Drill Library ---
         const DRILLS = [
+            // --- Elbow Flare drills ---
             {
-                id: 'wall-alignment', metric: 'trunkLean', priority: 1,
-                title: 'Wall Alignment Shots', icon: '🧍',
-                desc: 'Stand 1ft from wall, shoot without touching. Builds upright muscle memory.',
-                fullDesc: 'Stand with your back against a wall and practice your shooting motion. Keep your shoulders touching the wall throughout to build muscle memory for upright posture.',
-                time: '10 mins', reps: '25 reps'
+                id: 'wall-alignment', metric: 'elbowFlare', priority: 1,
+                title: 'Wall Alignment', icon: '🧱',
+                desc: 'Shooting elbow touches wall — practice release without elbow leaving wall.',
+                fullDesc: 'Stand with your shooting elbow touching a wall. Practice your release without letting your elbow leave the wall surface. This trains a straight elbow path.',
+                time: '10 mins', reps: '3x10',
+                cue: 'Keep your elbow brushing the wall on every rep'
             },
             {
-                id: 'elbow-tuck', metric: 'elbowFlare', priority: 1,
-                title: 'Elbow Tuck Drill', icon: '💪',
-                desc: 'Hold a tennis ball between your elbow and torso. Shoot without dropping it.',
-                fullDesc: 'Place a tennis ball between your shooting elbow and ribs. Practice your shooting motion keeping the ball in place. This trains your arm to stay aligned and reduces elbow flare.',
-                time: '10 mins', reps: '20 reps'
+                id: 'elbow-in-holds', metric: 'elbowFlare', priority: 1,
+                title: 'Elbow-In Holds', icon: '💪',
+                desc: 'Hold ball at set point, partner checks elbow alignment, hold 3 sec.',
+                fullDesc: 'Hold the ball at your set point while a partner checks your elbow alignment. Hold for 3 seconds. Freeze at the top — elbow should point at the rim.',
+                time: '5 mins', reps: '10 reps',
+                cue: 'Freeze at the top — elbow should point at the rim'
             },
             {
-                id: 'squat-shoot', metric: 'kneeBend', priority: 1,
-                title: 'Squat & Shoot', icon: '🦵',
-                desc: 'Start in low squat, explode up through your legs into your shot.',
-                fullDesc: 'Start in a low squat position before each shot. Explode up through your legs and transfer that energy into your shot. Focus on consistent knee bend depth.',
-                time: '15 mins', reps: '20 reps'
+                id: 'one-hand-form', metric: 'elbowFlare', priority: 2,
+                title: 'One-Hand Form Shooting', icon: '☝️',
+                desc: 'Close range, shooting hand only, focus on straight elbow path.',
+                fullDesc: 'Shoot close range with only your shooting hand. Focus on keeping a straight line from elbow through wrist to fingertips aimed at the basket.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Your elbow, wrist, and finger should make one straight line to the basket'
+            },
+            // --- Trunk Lean drills ---
+            {
+                id: 'pause-and-shoot', metric: 'trunkLean', priority: 1,
+                title: 'Pause-and-Shoot', icon: '⏸️',
+                desc: 'Catch, pause 2 sec at set point with upright posture, then release.',
+                fullDesc: 'Catch the ball and pause for 2 seconds at your set point, maintaining perfectly upright posture. Then release. The pause forces awareness of your trunk position.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Feel your weight centered over your hips at the pause'
             },
             {
-                id: 'gooseneck', metric: 'wristSnap', priority: 1,
-                title: 'Gooseneck Hold Drill', icon: '🤚',
-                desc: 'Hold your follow-through with wrist fully snapped until ball hits rim.',
-                fullDesc: 'After each shot, hold your follow-through with wrist fully snapped (gooseneck position) until the ball hits the rim. This builds muscle memory for complete wrist rotation.',
-                time: '10 mins', reps: '30 reps'
+                id: 'back-to-wall', metric: 'trunkLean', priority: 1,
+                title: 'Back-to-Wall Shooting', icon: '🧍',
+                desc: 'Heels 6 inches from wall, shoot without touching wall with back.',
+                fullDesc: 'Stand with your heels 6 inches from a wall. Shoot without letting your back touch the wall. If you feel the wall, you are leaning.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'If you feel the wall, you\'re leaning'
             },
             {
-                id: 'reach-high', metric: 'elbowExtension', priority: 1,
-                title: 'Reach & Release', icon: '🤾',
-                desc: 'Focus on pushing to full arm extension on every shot. Reach for the sky.',
-                fullDesc: 'On each shot, exaggerate your follow-through by reaching as high as possible. Your fingertips should point at the rim at full extension. This corrects short-arming.',
-                time: '10 mins', reps: '25 reps'
+                id: 'chair-drill', metric: ['trunkLean', 'kneeBend'], priority: 2,
+                title: 'Chair Drill', icon: '🪑',
+                desc: 'Start seated, stand and shoot in one motion. Forces vertical rise.',
+                fullDesc: 'Start sitting in a chair. Stand and shoot in one continuous motion. The chair forces you to drive straight up rather than leaning forward.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'Drive straight up — the chair keeps you honest'
+            },
+            // --- Knee Bend drills ---
+            {
+                id: 'squat-and-shoot', metric: 'kneeBend', priority: 1,
+                title: 'Squat-and-Shoot', icon: '🦵',
+                desc: 'Exaggerated knee bend, pause at bottom, explode into shot.',
+                fullDesc: 'Start with an exaggerated deep knee bend, pause at the bottom to feel the load in your legs, then explode upward into your shot.',
+                time: '15 mins', reps: '3x10',
+                cue: 'Sink until your thighs burn, then explode'
             },
             {
-                id: 'tape-line', metric: 'footAlignment', priority: 1,
-                title: 'Tape Line Drill', icon: '👟',
-                desc: 'Place tape on floor pointing at rim. Align feet parallel before each shot.',
-                fullDesc: 'Put a strip of tape on the floor pointing directly at the basket. Before every shot, look down and align both feet parallel to the tape. Builds awareness of foot positioning.',
-                time: '10 mins', reps: '20 reps'
+                id: 'legs-only', metric: ['kneeBend', 'jumpHeight'], priority: 1,
+                title: 'Legs-Only Shooting', icon: '🏋️',
+                desc: 'Close range, minimal arm motion — power comes entirely from legs.',
+                fullDesc: 'Shoot from close range using minimal arm motion. All power should come from your legs. This teaches you to rely on leg drive for range and arc.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'Your legs do 80% of the work here'
             },
             {
-                id: 'stance-check', metric: 'footStance', priority: 2,
-                title: 'Stance Width Check', icon: '🦶',
-                desc: 'Use a measuring stick to set shoulder-width stance before each rep.',
-                fullDesc: 'Place a stick or tape markers at shoulder-width on the floor. Step to those marks before every shot. Over time you will internalize the correct width.',
-                time: '10 mins', reps: '15 reps'
+                id: 'jump-stop', metric: ['kneeBend', 'rhythm'], priority: 2,
+                title: 'Jump Stop Shooting', icon: '🛑',
+                desc: 'Catch with jump stop, feel the load in your legs, then shoot.',
+                fullDesc: 'Receive the ball with a jump stop. Feel the load in your legs from the stop, then immediately go into your shot. No wasted motion between landing and shooting.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Land loaded, then go — no wasted motion'
+            },
+            // --- Elbow Extension drills ---
+            {
+                id: 'form-shooting', metric: 'elbowExtension', priority: 1,
+                title: 'Form Shooting (no jump)', icon: '🎯',
+                desc: 'Close range, full arm extension, no jump — focus on arm path.',
+                fullDesc: 'Shoot from close range with no jump. Focus entirely on extending your arm fully through the release. Reach for the rim like putting something on a high shelf.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Reach for the rim like putting something on a high shelf'
             },
             {
-                id: 'high-release', metric: 'releaseHeight', priority: 2,
-                title: 'High Release Practice', icon: '⬆️',
-                desc: 'Partner holds hand at forehead height — release above it every rep.',
-                fullDesc: 'Have a partner or use a marker at your forehead height. Practice releasing the ball above that marker on every shot to raise your release point.',
-                time: '10 mins', reps: '20 reps'
+                id: 'reach-and-hold', metric: 'elbowExtension', priority: 1,
+                title: 'Reach-and-Hold', icon: '🤾',
+                desc: 'Shoot normally, freeze follow-through for 3 sec with arm fully extended.',
+                fullDesc: 'After each shot, freeze your follow-through for a full 3 seconds with your arm completely extended. Lock out your elbow and hold until the ball hits the ground.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'Lock out your elbow — hold until the ball hits the ground'
             },
             {
-                id: 'rhythm-count', metric: 'rhythm', priority: 1,
-                title: 'Rhythm Counting', icon: '🎵',
-                desc: 'Count "1-2-shoot" aloud. Knee bends on 1, elbow rises on 2, release on shoot.',
-                fullDesc: 'Say "1-2-shoot" out loud with each shot. Bend knees on "1", bring the ball up on "2", and release on "shoot". This synchronizes your lower and upper body timing.',
-                time: '10 mins', reps: '20 reps'
-            }
+                id: 'guide-hand-release', metric: ['elbowExtension', 'wristSnap'], priority: 2,
+                title: 'Guide Hand Release', icon: '✋',
+                desc: 'Guide hand falls away early — forces full shooting arm extension.',
+                fullDesc: 'Shoot with your guide hand falling away from the ball early in the release. This forces your shooting arm to do all the work and extend fully.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'Guide hand off early, shooting arm does all the work'
+            },
+            // --- Wrist Snap drills ---
+            {
+                id: 'wrist-snap-drill', metric: 'wristSnap', priority: 1,
+                title: 'Wrist Snap Drill', icon: '🤚',
+                desc: 'Ball on palm, snap wrist to self-pass with backspin, catch, repeat.',
+                fullDesc: 'Hold the ball on your shooting palm. Snap your wrist to toss the ball to yourself with backspin. Catch and repeat. Fingers should point down at the finish.',
+                time: '10 mins', reps: '3x20',
+                cue: 'Fingers point down at the finish, ball spins back to you'
+            },
+            {
+                id: 'reach-for-rim', metric: 'wristSnap', priority: 1,
+                title: 'Reach-for-Rim Finish', icon: '🏀',
+                desc: 'Shoot and hold follow-through — fingers pointing at rim.',
+                fullDesc: 'On every shot, hold your follow-through with your fingers pointing directly at the rim. Visualize putting your hand in a cookie jar on a high shelf.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Finish with your hand in the cookie jar'
+            },
+            {
+                id: 'one-hand-flick', metric: 'wristSnap', priority: 2,
+                title: 'One-Hand Flick', icon: '👆',
+                desc: 'Close range, one hand, wrist snap only — ball should have high arc.',
+                fullDesc: 'From close range, use only one hand and pure wrist snap to shoot. No arm push — all wrist. The ball should have high arc and heavy backspin.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'All wrist, no arm — feel the snap'
+            },
+            // --- Rhythm drills ---
+            {
+                id: 'rhythm-shooting', metric: 'rhythm', priority: 1,
+                title: 'Rhythm Shooting', icon: '🎵',
+                desc: 'Catch, one-two step, shoot in continuous motion — no pause.',
+                fullDesc: 'Catch the ball and immediately flow into your shot with a one-two step. No pausing at any point. Say "catch-dip-shoot" out loud to feel the rhythm.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Say "catch-dip-shoot" out loud to feel the flow'
+            },
+            {
+                id: '1-2-step', metric: ['rhythm', 'footAlignment'], priority: 1,
+                title: '1-2 Step Footwork', icon: '👣',
+                desc: 'Focus on footwork timing — inside foot first, then outside, then shoot.',
+                fullDesc: 'Practice catching with your inside foot landing first, then outside foot, then immediately into your shot. Same footwork pattern every single time.',
+                time: '15 mins', reps: '3x10',
+                cue: 'Inside foot, outside foot, up — same every time'
+            },
+            {
+                id: 'dip-and-drive', metric: 'rhythm', priority: 2,
+                title: 'Dip-and-Drive', icon: '⬇️',
+                desc: 'Exaggerate the dip, feel the gather, then explode into shot.',
+                fullDesc: 'Exaggerate your dip when catching the ball. Feel the gather in your legs and core, then explode upward into your shot. Low to high, smooth and fast.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'Low to high, smooth and fast'
+            },
+            // --- Foot Alignment drills ---
+            {
+                id: 'catch-and-square', metric: 'footAlignment', priority: 1,
+                title: 'Catch-and-Square', icon: '🎯',
+                desc: 'Partner passes from different angles — catch and square feet before shooting.',
+                fullDesc: 'Have a partner pass from various angles around the court. On every catch, square your feet to the basket before shooting. Toes to the rim before the ball touches your hands.',
+                time: '15 mins', reps: '3x10',
+                cue: 'Toes to the rim before the ball touches your hands'
+            },
+            {
+                id: 'cone-target-stance', metric: ['footAlignment', 'footStance'], priority: 2,
+                title: 'Cone Target Stance', icon: '🔺',
+                desc: 'Place cones where feet should land — catch and hit the marks every rep.',
+                fullDesc: 'Place cones or tape on the floor where your feet should land. On every catch, land with your feet on the marks. Same base, same spot, every time.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Hit your spots — same base every time'
+            },
+            {
+                id: 'feet-alignment', metric: 'footAlignment', priority: 1,
+                title: 'Feet Alignment Drill', icon: '👟',
+                desc: 'Tape line on floor pointing at rim — align feet to tape before every shot.',
+                fullDesc: 'Put a strip of tape on the floor pointing directly at the basket. Before every shot, look down and align both feet parallel to the tape. The tape doesn\'t lie.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'The tape doesn\'t lie'
+            },
+            {
+                id: 'mirror-stance', metric: ['footAlignment', 'footStance'], priority: 2,
+                title: 'Mirror Stance Check', icon: '🪞',
+                desc: 'Practice in front of mirror — check foot width and alignment at set point.',
+                fullDesc: 'Practice your shooting stance in front of a mirror. Check that your foot width matches your shoulders and your feet are aligned to the target.',
+                time: '5 mins', reps: '10 reps',
+                cue: 'Look down, feet should match shoulders'
+            },
+            // --- Foot Stance drills ---
+            {
+                id: 'shoulder-width-holds', metric: 'footStance', priority: 1,
+                title: 'Shoulder-Width Holds', icon: '🦶',
+                desc: 'Set feet at shoulder width, partner checks, hold and shoot.',
+                fullDesc: 'Set your feet exactly at shoulder width. Have a partner verify the width. Hold that position and shoot. Find your base, own your base.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'Find your base, own your base'
+            },
+            {
+                id: 'narrow-to-wide', metric: 'footStance', priority: 1,
+                title: 'Narrow-to-Wide Adjustment', icon: '↔️',
+                desc: 'Start too narrow, adjust to proper width, then shoot.',
+                fullDesc: 'Start with your feet too narrow together. Consciously widen to proper shoulder-width, then shoot. Feel the difference in stability between narrow and correct width.',
+                time: '15 mins', reps: '3x10',
+                cue: 'Feel the difference — stable base, stable shot'
+            },
+            // --- Release Height drills ---
+            {
+                id: 'high-point-target', metric: 'releaseHeight', priority: 1,
+                title: 'High-Point Target', icon: '⬆️',
+                desc: 'Hang a target above set point — touch it before every release.',
+                fullDesc: 'Hang a target or have a partner hold their hand above your normal set point. You must touch or reach past it before releasing each shot.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'If you don\'t touch it, the rep doesn\'t count'
+            },
+            {
+                id: 'rainbow-shooting', metric: 'releaseHeight', priority: 1,
+                title: 'Rainbow Shooting', icon: '🌈',
+                desc: 'Aim for high arc — ball should drop straight down through net.',
+                fullDesc: 'Focus on shooting with the highest possible arc. The ball should drop nearly straight down through the net. Shoot it over an imaginary defender\'s outstretched hand.',
+                time: '10 mins', reps: '20 reps',
+                cue: 'Shoot it over an imaginary defender\'s hand'
+            },
+            {
+                id: 'set-point-freeze', metric: 'releaseHeight', priority: 2,
+                title: 'Set-Point Freeze', icon: '🧊',
+                desc: 'Catch, bring ball to set point, freeze 2 sec, then release.',
+                fullDesc: 'Catch the ball and bring it to your set point. Freeze for 2 seconds at that height, then release. This builds awareness of your release point height.',
+                time: '10 mins', reps: '15 reps',
+                cue: 'Find your spot, hold it, then go'
+            },
+            // --- Jump Height drills (shared with other metrics) ---
+            // Jump Height uses Legs-Only Shooting and Squat-and-Shoot as primary,
+            // Jump Stop Shooting as secondary — all defined above with multi-target metrics
         ];
 
-        function getDrillsForMetric(metricKey) {
-            return DRILLS.filter(d => d.metric === metricKey).sort((a,b) => a.priority - b.priority);
+        function getDrillsForMetric(metricKey, count) {
+            const matching = DRILLS.filter(d => {
+                if (Array.isArray(d.metric)) return d.metric.includes(metricKey);
+                return d.metric === metricKey;
+            }).sort((a, b) => a.priority - b.priority);
+            if (count) return matching.slice(0, count);
+            return matching;
+        }
+
+        // Returns deduplicated drills for multiple weaknesses, multi-target drills first
+        function getDrillsForWeaknesses(weaknesses, maxPerMetric) {
+            maxPerMetric = maxPerMetric || 2;
+            const seen = new Set();
+            const results = [];
+            weaknesses.forEach(metricKey => {
+                const drills = getDrillsForMetric(metricKey);
+                let count = 0;
+                drills.forEach(d => {
+                    if (count >= maxPerMetric) return;
+                    if (!seen.has(d.id)) {
+                        seen.add(d.id);
+                        const targets = Array.isArray(d.metric) ? d.metric : [d.metric];
+                        const addressed = targets.filter(t => weaknesses.includes(t)).length;
+                        results.push({ ...d, weaknessesAddressed: addressed });
+                        count++;
+                    }
+                });
+            });
+            // Sort: multi-target drills first, then by priority
+            results.sort((a, b) => b.weaknessesAddressed - a.weaknessesAddressed || a.priority - b.priority);
+            return results;
         }
 
         function getWorkOnItems(workOnList) {
@@ -12425,7 +12835,8 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             footAlignment: 'Foot Alignment',
             footStance: 'Foot Stance',
             releaseHeight: 'Release Height',
-            rhythm: 'Rhythm'
+            rhythm: 'Rhythm',
+            jumpHeight: 'Jump Height'
         };
 
         // --- Compute metrics from pose data ---
@@ -12591,45 +13002,100 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 ).join('');
             }
 
-            // Update Work On grid
+            // Helper: resolve metric key to display name (handles both camelCase and snake_case)
+            function resolveMetricName(key) {
+                if (METRIC_DISPLAY[key]) return METRIC_DISPLAY[key];
+                // Try converting snake_case to camelCase
+                const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+                if (METRIC_DISPLAY[camel]) return METRIC_DISPLAY[camel];
+                // Fallback: convert snake_case to Title Case
+                return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            }
+
+            // Update Work On grid (always show 3 cards)
             const workonGrid = document.querySelector('.if-workon-grid');
             if (workonGrid) {
-                if (workOnItems.length === 0) {
-                    workonGrid.innerHTML = '<div class="if-workon-card"><div class="if-workon-title">Looking Great!</div><div class="if-workon-desc">All your metrics are in the ideal range. Keep up the consistency!</div></div>';
-                } else {
-                    workonGrid.innerHTML = workOnItems.slice(0, 3).map(item => {
-                        const drill = item.drills && item.drills[0];
-                        const drillHTML = drill ? `
-                            <div class="if-workon-drill">
-                                <div class="if-workon-drill-label">Recommended Drill</div>
-                                <div class="if-workon-drill-name">${drill.title}</div>
-                                <div class="if-workon-drill-tip">${drill.desc}</div>
-                            </div>` : '';
-                        return `<div class="if-workon-card">
-                            <div class="if-workon-title">${METRIC_DISPLAY[item.metric] || item.metric}</div>
-                            <div class="if-workon-desc">${item.feedback}</div>
-                            ${drillHTML}
-                        </div>`;
-                    }).join('');
+                const cards = workOnItems.slice(0, 3);
+
+                // Pad with strength "keep it up" cards if fewer than 3
+                if (cards.length < 3 && result.strengths && result.strengths.length > 0) {
+                    const remaining = 3 - cards.length;
+                    for (let s = 0; s < Math.min(remaining, result.strengths.length); s++) {
+                        cards.push({
+                            metric: result.strengths[s].metric,
+                            feedback: result.strengths[s].feedback + ' Keep it up!',
+                            isStrength: true,
+                            drills: []
+                        });
+                    }
                 }
+                // If still under 3, pad with generic encouragement
+                while (cards.length < 3) {
+                    cards.push({
+                        metric: 'consistency',
+                        feedback: 'Focus on repetition to lock in your form.',
+                        isStrength: true,
+                        drills: []
+                    });
+                }
+
+                workonGrid.innerHTML = cards.map(item => {
+                    const drill = item.drills && item.drills[0];
+                    const drillHTML = drill ? `
+                        <div class="if-workon-drill">
+                            <div class="if-workon-drill-label">Recommended Drill</div>
+                            <div class="if-workon-drill-name">${drill.title}</div>
+                            <div class="if-workon-drill-tip">${drill.cue || drill.desc}</div>
+                            <div class="if-workon-drill-footer">
+                                <div class="if-workon-drill-meta"><span>⏱️ ${drill.time || ''}</span><span>🏀 ${drill.reps || ''}</span></div>
+                                <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
+                                    <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                </a>
+                            </div>
+                        </div>` : '';
+                    const titlePrefix = item.isStrength ? '&#10003; ' : '';
+                    return `<div class="if-workon-card${item.isStrength ? ' if-workon-strength' : ''}">
+                        <div class="if-workon-title">${titlePrefix}${resolveMetricName(item.metric)}</div>
+                        <div class="if-workon-desc">${item.feedback}</div>
+                        ${drillHTML}
+                    </div>`;
+                }).join('');
             }
 
             // Update Radar chart
             const radarSVG = document.querySelector('.if-radar-chart svg');
             if (radarSVG) {
                 const cx = 150, cy = 130, r = 100;
+                const scoreKeys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
+
                 // Update player polygon
                 const playerPoly = radarSVG.querySelectorAll('polygon')[1];
                 if (playerPoly) {
                     playerPoly.setAttribute('points', radarPolygonPoints(result.scores, cx, cy, r));
                 }
-                // Update score labels (the last 5 <text> elements)
-                const texts = radarSVG.querySelectorAll('text');
-                const scoreKeys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
-                const scoreTexts = Array.from(texts).slice(-5);
-                scoreKeys.forEach((k, i) => {
-                    if (scoreTexts[i]) scoreTexts[i].textContent = result.scores[k] || 0;
-                });
+
+                // Update score badges (circles + text) on polygon vertices with color coding
+                const badgeGroup = radarSVG.querySelector('.if-radar-scores');
+                if (badgeGroup) {
+                    const circles = badgeGroup.querySelectorAll('circle');
+                    const texts = badgeGroup.querySelectorAll('text');
+                    scoreKeys.forEach((k, i) => {
+                        const score = result.scores[k] || 0;
+                        const [px, py] = radarPoint(i, score, cx, cy, r);
+                        const color = score >= 85 ? '#3DD68C' : (score >= 60 ? '#FFD93D' : '#FF6B7A');
+                        if (circles[i]) {
+                            circles[i].setAttribute('cx', px);
+                            circles[i].setAttribute('cy', py);
+                            circles[i].setAttribute('stroke', color);
+                        }
+                        if (texts[i]) {
+                            texts[i].setAttribute('x', px);
+                            texts[i].setAttribute('y', py + 4);
+                            texts[i].textContent = score + '%';
+                            texts[i].setAttribute('fill', color);
+                        }
+                    });
+                }
             }
 
             // Update individual metric cards
@@ -12657,36 +13123,65 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
         function updateFootAlignmentCard(metrics) {
             const angle = Math.round(metrics.footAlignment || 0);
-            // Rotate needle: -45° to +45° maps to full sweep
-            const rotation = Math.max(-45, Math.min(45, angle));
-            // rotation in SVG: 0° is top, our angle maps -45 to +45 to -74 to +74 in transform
-            const svgRotation = (rotation / 45) * 74;
-            const needle = document.querySelector('.if-arc-container svg g');
-            if (needle) needle.setAttribute('transform', `rotate(${svgRotation}, 50, 55)`);
+            const color = Math.abs(angle) <= 5 ? '#3DD68C' : (Math.abs(angle) <= 15 ? '#FFD93D' : '#FF6B7A');
 
-            const valueEl = document.querySelector('.if-arc-value');
+            // Update the combined card value
+            const valueEl = document.querySelector('.if-alignment-value-text');
             if (valueEl) {
-                const color = Math.abs(angle) <= 5 ? '#3DD68C' : (Math.abs(angle) <= 15 ? '#FFD93D' : '#FF6B7A');
                 valueEl.style.color = color;
-                valueEl.innerHTML = `${angle > 0 ? '+' : ''}${angle}<span class="if-arc-unit">°</span>`;
+                valueEl.textContent = `${angle > 0 ? '+' : ''}${angle}°`;
             }
+            const labelEl = document.querySelector('.if-alignment-label');
+            if (labelEl) {
+                labelEl.textContent = Math.abs(angle) <= 5 ? 'Squared (ideal)' : (Math.abs(angle) <= 15 ? 'Slightly open' : 'Too open');
+            }
+
+            // Rotate feet in the SVG to show the angle
+            const rotDeg = Math.max(-30, Math.min(30, angle));
+            const leftFoot = document.querySelector('.if-foot-left');
+            const rightFoot = document.querySelector('.if-foot-right');
+            if (leftFoot) leftFoot.setAttribute('transform', `translate(80, 120) rotate(${rotDeg})`);
+            if (rightFoot) rightFoot.setAttribute('transform', `translate(160, 120) rotate(${rotDeg})`);
         }
 
         function updateFootStanceCard(metrics) {
             const stance = Math.round(metrics.footStance || 17);
             const inOptimal = stance >= 14 && stance <= 20;
-            const label = document.querySelector('.if-stance-label');
-            if (label) {
-                label.style.color = inOptimal ? 'var(--success-color)' : '#FFD93D';
-                label.textContent = `${stance}" width ${inOptimal ? '(optimal)' : '(adjust)'}`;
+            const color = inOptimal ? 'var(--success-color)' : '#FFD93D';
+
+            // Update the combined card values
+            const valueEl = document.querySelector('.if-stance-value-text');
+            if (valueEl) {
+                valueEl.style.color = color;
+                valueEl.textContent = `${stance}"`;
             }
-            // Update foot marker positions proportionally
-            const totalTrack = 100; // percent
-            const normalizedStance = Math.min(80, Math.max(20, (stance / 30) * 100));
-            const leftFoot = document.querySelectorAll('.if-stance-foot');
-            if (leftFoot.length >= 2) {
-                leftFoot[0].style.left = (50 - normalizedStance/2) + '%';
-                leftFoot[1].style.left = (50 + normalizedStance/2) + '%';
+            const labelEl = document.querySelector('.if-foot-combined-info .if-stance-label');
+            if (labelEl) {
+                labelEl.textContent = inOptimal ? `Optimal (14-20")` : `Adjust needed (14-20")`;
+            }
+
+            // Update foot positions in SVG proportionally
+            const normalizedWidth = Math.min(80, Math.max(20, (stance / 30) * 100));
+            const leftX = 120 - normalizedWidth * 0.8;
+            const rightX = 120 + normalizedWidth * 0.8;
+            const leftFoot = document.querySelector('.if-foot-left');
+            const rightFoot = document.querySelector('.if-foot-right');
+            const angle = Math.round(metrics.footAlignment || 0);
+            const rotDeg = Math.max(-30, Math.min(30, angle));
+            if (leftFoot) leftFoot.setAttribute('transform', `translate(${leftX}, 120) rotate(${rotDeg})`);
+            if (rightFoot) rightFoot.setAttribute('transform', `translate(${rightX}, 120) rotate(${rotDeg})`);
+
+            // Update width indicator line
+            const svg = document.querySelector('.if-foot-topdown');
+            if (svg) {
+                const lines = svg.querySelectorAll('line');
+                // Width indicator lines are the last 3 lines in the SVG
+                const widthLine = lines[lines.length - 3];
+                const leftTick = lines[lines.length - 2];
+                const rightTick = lines[lines.length - 1];
+                if (widthLine) { widthLine.setAttribute('x1', leftX); widthLine.setAttribute('x2', rightX); }
+                if (leftTick) { leftTick.setAttribute('x1', leftX); leftTick.setAttribute('x2', leftX); }
+                if (rightTick) { rightTick.setAttribute('x1', rightX); rightTick.setAttribute('x2', rightX); }
             }
         }
 
@@ -13402,6 +13897,8 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         window.updatePlayerMatchUI = updatePlayerMatchUI;
 
 
+
+        // TEST: click the dev button to preview the Ideal Form dashboard
 
         /**
          * Format metric name from snake_case to Title Case
