@@ -730,7 +730,7 @@ function extractStageMarkers(poseData) {
                             wristY: wristY,
                             shoulderY: shoulderY
                         };
-                        console.log('✅ Set Point detected at time:', frame.time, 'wristY:', wristY, 'shoulderY:', shoulderY, 'diff:', diff, 'tolerance:', tolerance);
+                        console.log('‚úÖ Set Point detected at time:', frame.time, 'wristY:', wristY, 'shoulderY:', shoulderY, 'diff:', diff, 'tolerance:', tolerance);
                     }
                 }
             }
@@ -769,7 +769,7 @@ function extractStageMarkers(poseData) {
                             elbowY: elbowY,
                             shoulderY: shoulderY
                         };
-                        console.log('✅ Follow Through detected at time:', frame.time, 'elbowY:', elbowY, 'shoulderY:', shoulderY, 'diff:', diff, 'tolerance:', tolerance, 'state:', currentState);
+                        console.log('‚úÖ Follow Through detected at time:', frame.time, 'elbowY:', elbowY, 'shoulderY:', shoulderY, 'diff:', diff, 'tolerance:', tolerance, 'state:', currentState);
                     }
                 }
             }
@@ -812,7 +812,7 @@ function extractStageMarkers(poseData) {
             wristY: closestSetPoint.frame.wristY,
             shoulderY: closestSetPoint.frame.shoulderY
         };
-        console.log('⚠️ Set Point found using closest match (diff:', closestSetPoint.diff.toFixed(2), ', tolerance:', (tolerance * 3).toFixed(2), ')');
+        console.log('‚ö†Ô∏è Set Point found using closest match (diff:', closestSetPoint.diff.toFixed(2), ', tolerance:', (tolerance * 3).toFixed(2), ')');
     }
     
     // Only try to find Follow Through if Set Point was found, and only after Set Point chronologically
@@ -829,7 +829,7 @@ function extractStageMarkers(poseData) {
                 elbowY: closestFollowThrough.frame.elbowY,
                 shoulderY: closestFollowThrough.frame.shoulderY
             };
-            console.log('⚠️ Follow Through found using closest match (diff:', closestFollowThrough.diff.toFixed(2), ', tolerance:', (tolerance * 3).toFixed(2), ')');
+            console.log('‚ö†Ô∏è Follow Through found using closest match (diff:', closestFollowThrough.diff.toFixed(2), ', tolerance:', (tolerance * 3).toFixed(2), ')');
         } else {
             console.log('Follow Through closest match is before Set Point, skipping');
         }
@@ -1078,27 +1078,27 @@ async function stopBenchmarkRecording() {
         if (selectedPlayer !== 'custom') {
             // Save as global benchmark for all users (for NBA players)
             if (window.saveGlobalBenchmark) {
-                console.log('💾 Saving global benchmark...', benchmarkPoseData.length, 'frames');
+                console.log('üíæ Saving global benchmark...', benchmarkPoseData.length, 'frames');
                 const success = await window.saveGlobalBenchmark(benchmarkPoseData);
                 if (success) {
                     if (statusEl) {
-                        statusEl.textContent = `✅ Recorded ${benchmarkPoseData.length} frames. Saved as global benchmark for all users!`;
+                        statusEl.textContent = `‚úÖ Recorded ${benchmarkPoseData.length} frames. Saved as global benchmark for all users!`;
                         statusEl.className = 'status success';
                         statusEl.style.display = 'block';
                     }
-                    console.log('✅ Global benchmark saved successfully to Firebase');
-                    alert('✅ Global benchmark saved successfully! All users will now use this benchmark.');
+                    console.log('‚úÖ Global benchmark saved successfully to Firebase');
+                    alert('‚úÖ Global benchmark saved successfully! All users will now use this benchmark.');
                 } else {
-                    console.error('❌ Failed to save global benchmark');
+                    console.error('‚ùå Failed to save global benchmark');
                     if (statusEl) {
-                        statusEl.textContent = `⚠️ Recorded ${benchmarkPoseData.length} frames, but failed to save as global benchmark.`;
+                        statusEl.textContent = `‚ö†Ô∏è Recorded ${benchmarkPoseData.length} frames, but failed to save as global benchmark.`;
                         statusEl.className = 'status error';
                         statusEl.style.display = 'block';
                     }
-                    alert('⚠️ Warning: Benchmark recorded but failed to save globally. Please try again.');
+                    alert('‚ö†Ô∏è Warning: Benchmark recorded but failed to save globally. Please try again.');
                 }
             } else {
-                console.warn('⚠️ saveGlobalBenchmark function not available');
+                console.warn('‚ö†Ô∏è saveGlobalBenchmark function not available');
                 if (statusEl) {
                     statusEl.textContent = `Recorded ${benchmarkPoseData.length} frames. (Global save not available)`;
                 }
@@ -1106,11 +1106,11 @@ async function stopBenchmarkRecording() {
         } else {
             // Custom mode: just store locally for comparison
             if (statusEl) {
-                statusEl.textContent = `✅ Recorded ${benchmarkPoseData.length} frames. Now record your shot to compare!`;
+                statusEl.textContent = `‚úÖ Recorded ${benchmarkPoseData.length} frames. Now record your shot to compare!`;
                 statusEl.className = 'status success';
                 statusEl.style.display = 'block';
             }
-            console.log('✅ Custom benchmark recorded:', benchmarkPoseData.length, 'frames');
+            console.log('‚úÖ Custom benchmark recorded:', benchmarkPoseData.length, 'frames');
         }
         
         // Move to step 2
@@ -1129,7 +1129,7 @@ async function loadGlobalBenchmarkOnStart() {
         
         if (globalBenchmark && globalBenchmark.length > 0) {
             globalBenchmarkData = globalBenchmark;
-            console.log('✅ Global benchmark loaded:', globalBenchmark.length, 'frames');
+            console.log('‚úÖ Global benchmark loaded:', globalBenchmark.length, 'frames');
         } else {
             console.log('No global benchmark found yet');
             globalBenchmarkData = [];
@@ -1151,7 +1151,7 @@ async function loadGlobalBenchmark() {
             benchmarkPoseData = globalBenchmark;
             proPlayerBenchmarks['custom'] = globalBenchmark;
             globalBenchmarkData = globalBenchmark;
-            console.log('✅ Using global benchmark:', globalBenchmark.length, 'frames');
+            console.log('‚úÖ Using global benchmark:', globalBenchmark.length, 'frames');
         } else {
             // No global benchmark exists yet - will be created from first user shot
             console.log('No global benchmark found - will be created from your shot');
@@ -1183,37 +1183,43 @@ async function startUserRecording() {
         const video = document.getElementById('userVideo');
         const canvas = document.getElementById('userOutput');
         const ctx = canvas.getContext('2d');
-        
+
         // Set canvas dimensions
         canvas.width = 640;
         canvas.height = 480;
 
         // Get webcam stream
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 640, height: 480 } 
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 }
         });
-        
+
         userStream = stream;
         video.srcObject = stream;
         video.autoplay = true;
         video.playsInline = true;
         video.muted = true;
-        
+
         // Ensure video starts playing
         try {
             await video.play();
         } catch (error) {
             console.warn('Video autoplay failed, but stream should still work:', error);
         }
-        
+
         userPoseData = [];
-        
+
+        // Multi-shot recording state
+        const targetShotCount = window.selectedShotCount || 1;
+        let shotsCompleted = 0;
+        const allShotData = []; // Array of per-shot frame arrays
+        let currentShotFrames = []; // Frames for the shot currently being recorded
+
         let previousStage = "neutral";
         let startTime = null;
         let recordingActive = false;
         let seenFollowThrough = false;
         const lastPrintTime = { value: Date.now() };
-        
+
         document.getElementById('startUser').disabled = true;
         document.getElementById('stopUser').disabled = false;
         const userStatusEl = document.getElementById('userStatus');
@@ -1222,19 +1228,31 @@ async function startUserRecording() {
             userStatusEl.className = 'status recording';
             userStatusEl.style.display = 'block';
         }
-        
+
+        // Show live shot counter overlay
+        const shotCounterEl = document.getElementById('liveShotCounter');
+        if (shotCounterEl) {
+            shotCounterEl.style.display = 'block';
+            shotCounterEl.querySelector('.live-counter-current').textContent = '0';
+            shotCounterEl.querySelector('.live-counter-total').textContent = targetShotCount;
+        }
+
         // Throttle full body warning updates to avoid DOM thrashing
         let lastWarningUpdate = 0;
         const warningUpdateInterval = 200; // Update at most every 200ms
-        
+
         // Throttle status text updates
         let lastStatusUpdate = 0;
         const statusUpdateInterval = 100; // Update at most every 100ms
-        
+
+        // Cooldown after a shot completes before detecting the next
+        let cooldownFrames = 0;
+        const cooldownDuration = 15;
+
         userPose.onResults((results) => {
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             // Draw the video frame
             if (results.image) {
             ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
@@ -1253,7 +1271,7 @@ async function startUserRecording() {
                 }
                 lastWarningUpdate = now;
             }
-            
+
             if (results.poseLandmarks) {
                 // Convert MediaPipe landmarks to same format as video upload (shotsync/index.html)
                 const landmarks = results.poseLandmarks.map((lm, i) => ({
@@ -1262,7 +1280,7 @@ async function startUserRecording() {
                     z: lm.z || 0,
                     visibility: lm.visibility || 1
                 }));
-                
+
                 // Detect shot stage (same logic as video upload)
                 let state = 'neutral';
                 const rightWrist = landmarks[16];
@@ -1270,30 +1288,30 @@ async function startUserRecording() {
                 const rightShoulder = landmarks[12];
                 const leftShoulder = landmarks[11];
                 const rightHip = landmarks[24]; // Right hip (waist)
-                
+
                 if (rightWrist && rightShoulder && rightHip) {
                     // Follow-through: wrist is above shoulder (arm raised high)
                     // In normalized coordinates, smaller y = higher on screen
                     if (rightWrist.y < rightShoulder.y) {
                         state = 'follow_through';
                     }
-                    // Pre-shot: right wrist is below shoulder AND above right waist 
+                    // Pre-shot: right wrist is below shoulder AND above right waist
                     // AND within shoulder width distance of left wrist
                     else if (rightWrist.y > rightShoulder.y && rightWrist.y < rightHip.y) {
                         // Check if wrists are within shoulder width distance
                         if (leftWrist && leftShoulder) {
                             // Calculate shoulder width distance (3D distance)
                             const shoulderWidth = Math.sqrt(
-                                Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
+                                Math.pow(rightShoulder.x - leftShoulder.x, 2) +
                                 Math.pow((rightShoulder.z || 0) - (leftShoulder.z || 0), 2)
                             );
-                            
+
                             // Calculate distance between wrists (3D distance)
                             const wristDistance = Math.sqrt(
-                                Math.pow(rightWrist.x - leftWrist.x, 2) + 
+                                Math.pow(rightWrist.x - leftWrist.x, 2) +
                                 Math.pow((rightWrist.z || 0) - (leftWrist.z || 0), 2)
                             );
-                            
+
                             // Check if wrists are within shoulder width distance (hands together)
                             if (wristDistance <= shoulderWidth * 1.5) {
                                 state = 'pre_shot';
@@ -1301,10 +1319,10 @@ async function startUserRecording() {
                         }
                     }
                 }
-                
+
                 const overlayColor = getOverlayColor(state);
                 const currentTime = Date.now() / 1000.0;
-                
+
                 drawConnections(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
                     color: overlayColor,
                     lineWidth: 2
@@ -1314,66 +1332,107 @@ async function startUserRecording() {
                     lineWidth: 1,
                     radius: 3
                 });
-                
+
                 // Extract angles using extractAnglesFromLandmarks (same as video upload)
                 const angles = extractAnglesFromLandmarks(landmarks);
-                
+
+                // Handle cooldown between shots
+                if (cooldownFrames > 0) {
+                    cooldownFrames--;
+                    ctx.restore();
+                    return;
+                }
+
                 if (state !== previousStage) {
                     if (state === "pre_shot" && !recordingActive) {
                         recordingActive = true;
                         seenFollowThrough = false;
                         startTime = currentTime;
-                        userPoseData = [];
+                        currentShotFrames = [];
                         lastPrintTime.value = currentTime;
                         const statusEl = document.getElementById('userStatus');
                         if (statusEl) {
-                            statusEl.textContent = 'Recording shot...';
+                            statusEl.textContent = `Recording shot ${shotsCompleted + 1}/${targetShotCount}...`;
                             statusEl.style.display = 'block';
                         }
-                        console.log('Shot detected! Recording started.');
+                        console.log(`Shot ${shotsCompleted + 1}/${targetShotCount} detected! Recording started.`);
                     } else if (state === "neutral" && recordingActive && !seenFollowThrough) {
                         recordingActive = false;
                         seenFollowThrough = false;
                         startTime = null;
-                        userPoseData = [];
+                        currentShotFrames = [];
                     } else if (state === "follow_through" && recordingActive) {
                         seenFollowThrough = true;
                     } else if (state === "pre_shot" && recordingActive && seenFollowThrough) {
+                        // Shot complete - save final frame and finalize shot
                         const elapsed = currentTime - startTime;
-                        
-                        userPoseData.push({
+                        currentShotFrames.push({
                             state: state,
                             time: elapsed,
-                            landmarks: landmarks, // Store MediaPipe format landmarks (same as video upload)
-                            metrics: angles // Store angles from extractAnglesFromLandmarks
+                            landmarks: landmarks,
+                            metrics: angles
                         });
-                        stopUserRecording();
+
+                        // Save this completed shot
+                        if (currentShotFrames.length > 0) {
+                            allShotData.push([...currentShotFrames]);
+                            userPoseData = userPoseData.concat(currentShotFrames);
+                            shotsCompleted++;
+                            // Always sync to window so manual stop can access shot data
+                            window.webcamAllShotData = allShotData;
+                            console.log(`Shot ${shotsCompleted}/${targetShotCount} complete: ${currentShotFrames.length} frames`);
+
+                            // Update live counter
+                            const counterEl = document.getElementById('liveShotCounter');
+                            if (counterEl) {
+                                counterEl.querySelector('.live-counter-current').textContent = shotsCompleted;
+                            }
+                        }
+
+                        // Check if we've reached the target
+                        if (shotsCompleted >= targetShotCount) {
+                            console.log(`All ${targetShotCount} shots recorded!`);
+                            // Store allShotData on window for per-shot analysis
+                            window.webcamAllShotData = allShotData;
+                            stopUserRecording();
+                            ctx.restore();
+                            return;
+                        }
+
+                        // Reset for next shot with cooldown
+                        recordingActive = false;
+                        seenFollowThrough = false;
+                        startTime = null;
+                        currentShotFrames = [];
+                        cooldownFrames = cooldownDuration;
+                        previousStage = state;
+                        ctx.restore();
                         return;
                     }
                     previousStage = state;
                 }
-                
+
                 if (recordingActive) {
                     const elapsed = currentTime - startTime;
-                    
-                    userPoseData.push({
+
+                    currentShotFrames.push({
                         state: state,
                         time: elapsed,
-                        landmarks: landmarks, // Store MediaPipe format landmarks (same as video upload)
-                        metrics: angles // Store angles from extractAnglesFromLandmarks
+                        landmarks: landmarks,
+                        metrics: angles
                     });
-                    
+
                     // Update frame count display (throttled to avoid DOM thrashing)
                     const statusNow = Date.now();
                     if (statusNow - lastStatusUpdate >= statusUpdateInterval) {
                         const userStatusEl = document.getElementById('userStatus');
                         if (userStatusEl) {
-                            userStatusEl.textContent = `Recording shot... (${userPoseData.length} frames captured)`;
+                            userStatusEl.textContent = `Recording shot ${shotsCompleted + 1}/${targetShotCount}... (${currentShotFrames.length} frames)`;
                             userStatusEl.style.display = 'block';
                         }
                         lastStatusUpdate = statusNow;
                     }
-                    
+
                     if (state === "pre_shot" || state === "follow_through") {
                         if (currentTime - lastPrintTime.value >= 0.1) {
                             lastPrintTime.value = currentTime;
@@ -1381,16 +1440,20 @@ async function startUserRecording() {
                     }
                 }
             }
-            
+
             ctx.restore();
         });
-        
+
         // Monitor stream health
         const checkStreamHealth = () => {
             if (userStream) {
                 const videoTrack = userStream.getVideoTracks()[0];
                 if (videoTrack && videoTrack.readyState === 'ended') {
                     console.warn('Video track ended unexpectedly');
+                    // Store whatever shots we have so far
+                    if (allShotData.length > 0) {
+                        window.webcamAllShotData = allShotData;
+                    }
                     stopUserRecording();
                     return;
                 }
@@ -1400,20 +1463,20 @@ async function startUserRecording() {
             }
         };
         userCameraHealthCheck = setInterval(checkStreamHealth, 1000);
-        
+
         // Use Camera utility to process frames
         // Use requestAnimationFrame to throttle and prevent blocking
         let isProcessing = false;
         let frameQueue = [];
-        
+
         const processNextFrame = () => {
             if (isProcessing || frameQueue.length === 0) {
                 return;
             }
-            
+
             isProcessing = true;
             const frameData = frameQueue.shift();
-            
+
             if (!frameData || !frameData.video || frameData.video.readyState < 2) {
                 isProcessing = false;
                 if (frameQueue.length > 0) {
@@ -1421,7 +1484,7 @@ async function startUserRecording() {
                 }
                 return;
             }
-            
+
             // Send frame without awaiting to prevent blocking
             userPose.send({image: frameData.video}).then(() => {
                 isProcessing = false;
@@ -1436,22 +1499,22 @@ async function startUserRecording() {
                 }
             });
         };
-        
+
         userCamera = new Camera(video, {
             onFrame: () => {
                 // Check if video is ready before processing
                 if (!video || !video.readyState || video.readyState < 2) {
                     return;
                 }
-                
+
                 // Limit queue size to prevent memory issues
                 if (frameQueue.length >= 3) {
                     frameQueue.shift(); // Remove oldest frame
                 }
-                
+
                 // Add frame to queue
                 frameQueue.push({ video: video, timestamp: Date.now() });
-                
+
                 // Trigger processing if not already processing
                 if (!isProcessing) {
                     requestAnimationFrame(processNextFrame);
@@ -1461,7 +1524,7 @@ async function startUserRecording() {
             height: 480
         });
         userCamera.start();
-        
+
     } catch (error) {
         console.error('Error accessing camera:', error);
         const userStatusEl = document.getElementById('userStatus');
@@ -1478,27 +1541,31 @@ async function stopUserRecording() {
         clearInterval(userCameraHealthCheck);
         userCameraHealthCheck = null;
     }
-    
+
     if (userCamera) {
         userCamera.stop();
         userCamera = null;
     }
-    
+
     if (userStream) {
         userStream.getTracks().forEach(track => track.stop());
         userStream = null;
     }
-    
+
     document.getElementById('startUser').disabled = false;
     document.getElementById('stopUser').disabled = true;
-    
+
+    // Hide live shot counter
+    const shotCounterEl = document.getElementById('liveShotCounter');
+    if (shotCounterEl) shotCounterEl.style.display = 'none';
+
     if (userPoseData.length > 0) {
         document.getElementById('retakeUser').style.display = 'inline-block';
 
         // Store pose data for analysis
         window.recordedUserPoseData = userPoseData;
         window.userPoseData = userPoseData; // Expose for skeleton viewer
-        console.log(`✅ Shot recorded: ${userPoseData.length} frames captured`);
+        console.log(`‚úÖ Shot recorded: ${userPoseData.length} frames captured`);
 
         // Convert userPoseData to loop3DPoses/loop3DStages/loop3DAngles format (same as video upload)
         // This allows the 3D overlay to work with webcam recordings
@@ -1508,7 +1575,7 @@ async function stopUserRecording() {
             const convertedPoses = [];
             const convertedStages = [];
             const convertedAngles = [];
-            
+
             userPoseData.forEach(frame => {
                 // Store landmarks (already in MediaPipe format from recording)
                 convertedPoses.push(frame.landmarks || []);
@@ -1517,7 +1584,27 @@ async function stopUserRecording() {
                 // Store angles (from metrics)
                 convertedAngles.push(frame.metrics || {});
             });
-            
+
+            // Build per-shot raw data from webcam multi-shot recording
+            const allShotData = window.webcamAllShotData || [];
+            if (allShotData.length > 0) {
+                // Build detectedShots-style index and perShotRawData
+                let frameOffset = 0;
+                const detectedShots = [];
+                window.perShotRawData = allShotData.map(shotFrames => {
+                    const poses = shotFrames.map(f => f.landmarks || []);
+                    const stages = shotFrames.map(f => f.state || 'neutral');
+                    const angles = shotFrames.map(f => f.metrics || {});
+                    const start = frameOffset;
+                    const end = frameOffset + shotFrames.length - 1;
+                    frameOffset += shotFrames.length;
+                    detectedShots.push({ start, end, frames: shotFrames.length });
+                    return { poses, stages, angles };
+                });
+                window.detectedShots = detectedShots;
+                console.log(`‚úÖ Built per-shot raw data for ${allShotData.length} webcam shots`);
+            }
+
             // Set data on window (shotsync/index.html will sync these to its variables)
             window.loop3DPoses = convertedPoses;
             window.loop3DStages = convertedStages;
@@ -1526,7 +1613,7 @@ async function stopUserRecording() {
             window.isLoopPlaying = false;
             window.anglesExtracted = true;
             
-            console.log(`✅ Converted ${userPoseData.length} frames to 3D overlay format`);
+            console.log(`‚úÖ Converted ${userPoseData.length} frames to 3D overlay format`);
             
             // Initialize 3D viewer if available (from shotsync/index.html)
             if (typeof initLoop3DViewer === 'function') {
@@ -1773,18 +1860,18 @@ async function processUploadedUserVideo() {
                 
                 if (!hasBenchmark) {
                     // No benchmark exists yet - save this shot as the benchmark
-                    console.log('💾 No benchmark exists - saving uploaded shot as global benchmark...');
+                    console.log('üíæ No benchmark exists - saving uploaded shot as global benchmark...');
                     if (window.saveGlobalBenchmark) {
                         const success = await window.saveGlobalBenchmark(userPoseData);
                         if (success) {
                             benchmarkPoseData = [...userPoseData];
                             proPlayerBenchmarks['custom'] = [...userPoseData];
-                            console.log('✅ Uploaded shot saved as global benchmark');
+                            console.log('‚úÖ Uploaded shot saved as global benchmark');
                             if (statusEl) {
-                                statusEl.textContent = `✅ Processed ${userPoseData.length} frames. Saved as global benchmark!`;
+                                statusEl.textContent = `‚úÖ Processed ${userPoseData.length} frames. Saved as global benchmark!`;
                             }
                             // For first time, just show success message (no comparison yet)
-                            alert('✅ Your shot has been saved as the global benchmark! Record another shot to compare against it.');
+                            alert('‚úÖ Your shot has been saved as the global benchmark! Record another shot to compare against it.');
                             return; // Don't compare yet
                         } else {
                             console.error('Failed to save global benchmark');
@@ -1993,27 +2080,27 @@ async function processUploadedBenchmarkVideo() {
         if (benchmarkPoseData.length > 0) {
             // Save as global benchmark for all users
             if (window.saveGlobalBenchmark) {
-                console.log('💾 Saving global benchmark from uploaded video...', benchmarkPoseData.length, 'frames');
+                console.log('üíæ Saving global benchmark from uploaded video...', benchmarkPoseData.length, 'frames');
                 const success = await window.saveGlobalBenchmark(benchmarkPoseData);
                 if (success) {
-                    console.log('✅ Global benchmark saved successfully from uploaded video');
+                    console.log('‚úÖ Global benchmark saved successfully from uploaded video');
                     if (statusEl) {
-                        statusEl.textContent = `✅ Processed ${benchmarkPoseData.length} frames. Saved as global benchmark for all users!`;
+                        statusEl.textContent = `‚úÖ Processed ${benchmarkPoseData.length} frames. Saved as global benchmark for all users!`;
                         statusEl.className = 'status success';
                         statusEl.style.display = 'block';
                     }
-                    alert('✅ Global benchmark saved successfully! All users will now use this benchmark.');
+                    alert('‚úÖ Global benchmark saved successfully! All users will now use this benchmark.');
                 } else {
-                    console.error('❌ Failed to save global benchmark');
+                    console.error('‚ùå Failed to save global benchmark');
                     if (statusEl) {
-                        statusEl.textContent = `⚠️ Processed ${benchmarkPoseData.length} frames, but failed to save as global benchmark.`;
+                        statusEl.textContent = `‚ö†Ô∏è Processed ${benchmarkPoseData.length} frames, but failed to save as global benchmark.`;
                         statusEl.className = 'status error';
                         statusEl.style.display = 'block';
                     }
-                    alert('⚠️ Warning: Benchmark processed but failed to save globally. Please try again.');
+                    alert('‚ö†Ô∏è Warning: Benchmark processed but failed to save globally. Please try again.');
                 }
             } else {
-                console.warn('⚠️ saveGlobalBenchmark function not available');
+                console.warn('‚ö†Ô∏è saveGlobalBenchmark function not available');
                 if (statusEl) {
                     statusEl.textContent = `Processed ${benchmarkPoseData.length} frames. (Global save not available)`;
                     statusEl.className = 'status success';
@@ -2021,7 +2108,7 @@ async function processUploadedBenchmarkVideo() {
                 }
             }
             
-            if (!statusEl || !statusEl.textContent.includes('✅') && !statusEl.textContent.includes('⚠️')) {
+            if (!statusEl || !statusEl.textContent.includes('‚úÖ') && !statusEl.textContent.includes('‚ö†Ô∏è')) {
                 if (statusEl) {
                     statusEl.textContent = `Processed ${benchmarkPoseData.length} frames. Benchmark ready!`;
                     statusEl.className = 'status success';
@@ -2391,7 +2478,7 @@ function extractDetailedMetricsFromLandmarks(normalizedLandmarks) {
         const mag2 = Math.sqrt(armLine.x * armLine.x + armLine.y * armLine.y + armLine.z * armLine.z);
         if (mag1 > 1e-5 && mag2 > 1e-5) {
             const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI);
-            // Elbow flare is deviation from 90° (perpendicular to shoulder line)
+            // Elbow flare is deviation from 90¬∞ (perpendicular to shoulder line)
             metrics.elbow_flare = Math.abs(angle - 90);
         }
     }
@@ -2467,7 +2554,7 @@ function extractDetailedMetricsFromLandmarks(normalizedLandmarks) {
  * @returns {Promise<Array>} Benchmark data array
  */
 async function loadBenchmarkFromFile(playerId) {
-    console.log(`📂 Loading benchmark file: ${playerId}.js from /tool/player_data/`);
+    console.log(`üìÇ Loading benchmark file: ${playerId}.js from /tool/player_data/`);
     try {
         // Try to load from player_data folder
         const url = `/tool/player_data/${playerId}.js`;
@@ -2480,25 +2567,25 @@ async function loadBenchmarkFromFile(playerId) {
             console.log(`  Trying .json extension instead...`);
             const jsonResponse = await fetch(`/tool/player_data/${playerId}.json`);
             if (!jsonResponse.ok) {
-                console.error(`  ❌ Benchmark file not found: ${playerId} (.js or .json)`);
+                console.error(`  ‚ùå Benchmark file not found: ${playerId} (.js or .json)`);
                 throw new Error(`Benchmark file not found: ${playerId}`);
             }
             const data = await jsonResponse.json();
-            console.log(`  ✅ Loaded ${data.length} frames from ${playerId}.json`);
+            console.log(`  ‚úÖ Loaded ${data.length} frames from ${playerId}.json`);
             return data;
         }
         
         // For .js files, we need to execute them to get the data
         const text = await response.text();
-        console.log(`  ✅ Fetched ${text.length} bytes from ${playerId}.js`);
+        console.log(`  ‚úÖ Fetched ${text.length} bytes from ${playerId}.js`);
         // Extract the data variable (e.g., curry_data = [...], anthony_edwards_data = [...])
         // Handle both single-line and multi-line variable declarations
         const match = text.match(/const\s+\w+_data\s*=\s*(\[[\s\S]*?\]);/);
         if (match) {
-            console.log(`  ✅ Found data variable in ${playerId}.js`);
+            console.log(`  ‚úÖ Found data variable in ${playerId}.js`);
             try {
                 const data = eval(match[1]); // Safely evaluate the array
-                console.log(`  ✅ Parsed ${data.length} frames from ${playerId}.js`);
+                console.log(`  ‚úÖ Parsed ${data.length} frames from ${playerId}.js`);
                 // Convert landmarks format and ensure metrics are available
                 if (data && data.length > 0) {
                     data.forEach(frame => {
@@ -2531,14 +2618,14 @@ async function loadBenchmarkFromFile(playerId) {
                         }
                     });
                 }
-                console.log(`  ✅ Successfully loaded benchmark ${playerId}: ${data.length} frames, first frame has ${Object.keys(data[0]?.metrics || {}).length} metrics`);
+                console.log(`  ‚úÖ Successfully loaded benchmark ${playerId}: ${data.length} frames, first frame has ${Object.keys(data[0]?.metrics || {}).length} metrics`);
                 return data;
             } catch (e) {
-                console.error(`  ❌ Error parsing benchmark data for ${playerId}:`, e);
+                console.error(`  ‚ùå Error parsing benchmark data for ${playerId}:`, e);
                 throw new Error('Could not parse benchmark file: ' + e.message);
             }
         } else {
-            console.error(`  ❌ Could not find data variable in ${playerId}.js file`);
+            console.error(`  ‚ùå Could not find data variable in ${playerId}.js file`);
         }
         
         throw new Error('Could not parse benchmark file');
@@ -2636,7 +2723,7 @@ function compareDetailedMetrics(userData, benchmarkData) {
     console.log(`States match: ${statesMatch} (User: ${userStates.length}, Benchmark: ${benchStates.length})`);
     
     if (!statesMatch) {
-        console.warn('⚠️ State sequences differ! This will cause different metrics to be extracted.');
+        console.warn('‚ö†Ô∏è State sequences differ! This will cause different metrics to be extracted.');
         const firstDiff = userStates.findIndex((s, i) => s !== benchStates[i]);
         console.warn(`First difference at index ${firstDiff}: User="${userStates[firstDiff]}", Benchmark="${benchStates[firstDiff]}"`);
     }
@@ -2660,9 +2747,9 @@ function compareDetailedMetrics(userData, benchmarkData) {
     });
     
     if (metricsMatch) {
-        console.log('✅ Metrics are identical! Similarity should be 100%');
+        console.log('‚úÖ Metrics are identical! Similarity should be 100%');
     } else {
-        console.warn('⚠️ Metrics differ even though JSON files are identical. Differences:');
+        console.warn('‚ö†Ô∏è Metrics differ even though JSON files are identical. Differences:');
         Object.keys(userMetrics).forEach(key => {
             const userVal = userMetrics[key];
             const benchVal = benchmarkMetrics[key];
@@ -2686,7 +2773,7 @@ function compareDetailedMetrics(userData, benchmarkData) {
             metricScores[metricName] = null;
             metricDiffs[metricName] = null;
             if (isNaN(userValue) || isNaN(benchmarkValue)) {
-                console.warn(`⚠️ ${metricName}: Skipping comparison due to NaN - User: ${userValue}, Benchmark: ${benchmarkValue}`);
+                console.warn(`‚ö†Ô∏è ${metricName}: Skipping comparison due to NaN - User: ${userValue}, Benchmark: ${benchmarkValue}`);
             }
             return;
         }
@@ -2701,7 +2788,7 @@ function compareDetailedMetrics(userData, benchmarkData) {
         
         // Log if score is 0% to help debug
         if (score === 0) {
-            console.warn(`⚠️ ${metricName}: 0% similarity - User: ${userValue.toFixed(2)}, Benchmark: ${benchmarkValue.toFixed(2)}, Diff: ${diff.toFixed(2)}, MaxDiff: ${maxDiff}`);
+            console.warn(`‚ö†Ô∏è ${metricName}: 0% similarity - User: ${userValue.toFixed(2)}, Benchmark: ${benchmarkValue.toFixed(2)}, Diff: ${diff.toFixed(2)}, MaxDiff: ${maxDiff}`);
         }
     });
     
@@ -2723,7 +2810,7 @@ function compareDetailedMetrics(userData, benchmarkData) {
     
     // Check for NaN in final score
     if (isNaN(overallScore) || !isFinite(overallScore)) {
-        console.error('❌ Overall score is NaN or Infinity! Metric scores:', metricScores);
+        console.error('‚ùå Overall score is NaN or Infinity! Metric scores:', metricScores);
         console.error('Weighted sum:', weightedSum, 'Total weight:', totalWeight);
         return { overallScore: 0, metricScores: metricScores, sharedTraits: [], differences: [], userMetrics: userMetrics, benchmarkMetrics: benchmarkMetrics };
     }
@@ -2803,8 +2890,8 @@ function extractMetricsFromData(data) {
     let maxReleaseHeight = -Infinity;
     
     // Find first pre_shot frame that is part of a valid shot sequence (followed by follow_through)
-    // We need to ensure the pre_shot is in a sequence: pre_shot → ... → follow_through (without going to neutral first)
-    // Example: pre_shot → neutral → pre_shot → follow_through
+    // We need to ensure the pre_shot is in a sequence: pre_shot ‚Üí ... ‚Üí follow_through (without going to neutral first)
+    // Example: pre_shot ‚Üí neutral ‚Üí pre_shot ‚Üí follow_through
     //          First pre_shot is invalid (goes to neutral), second pre_shot is valid (goes to follow_through)
     for (let i = 0; i < data.length; i++) {
         if (data[i].state === 'pre_shot') {
@@ -2831,8 +2918,8 @@ function extractMetricsFromData(data) {
             }
             
             // Only use this pre_shot if it's part of a valid sequence
-            // Valid: pre_shot → ... → follow_through (no neutral in between)
-            // Invalid: pre_shot → neutral → ... (sequence broken)
+            // Valid: pre_shot ‚Üí ... ‚Üí follow_through (no neutral in between)
+            // Invalid: pre_shot ‚Üí neutral ‚Üí ... (sequence broken)
             if (foundFollowThrough && !sequenceBroken) {
                 firstPreShotFrame = data[i];
                 firstPreShotIndex = i;
@@ -2901,10 +2988,10 @@ function extractMetricsFromData(data) {
         
         // Check for NaN values
         if (isNaN(firstPreShotFrame.metrics.elbow_flare)) {
-            console.warn(`  ⚠️ elbow_flare is NaN in pre_shot frame! Raw value:`, firstPreShotFrame.metrics.elbow_flare);
+            console.warn(`  ‚ö†Ô∏è elbow_flare is NaN in pre_shot frame! Raw value:`, firstPreShotFrame.metrics.elbow_flare);
         }
     } else {
-        console.warn(`  ⚠️ No pre_shot frame found, cannot extract elbow_flare, knee_bend, trunk_lean`);
+        console.warn(`  ‚ö†Ô∏è No pre_shot frame found, cannot extract elbow_flare, knee_bend, trunk_lean`);
     }
     
     // 2. Elbow extension: (elbow angle at start of pre_shot) - (elbow angle at start of follow_through)
@@ -2920,7 +3007,7 @@ function extractMetricsFromData(data) {
     }
     
     // 3. Wrist snap: use value at release point (or follow_through if release point not available)
-    // Wrist snap is an absolute angle (0-90°), not a difference
+    // Wrist snap is an absolute angle (0-90¬∞), not a difference
     if (releasePointFrame && releasePointFrame.metrics) {
         const releasePointWristSnap = releasePointFrame.metrics.wrist_snap;
         console.log(`  Using release point frame for wrist_snap: ${releasePointWristSnap}`);
@@ -2959,7 +3046,7 @@ function extractMetricsFromData(data) {
         
         console.log(`  Extracted from follow_through: foot_alignment=${metrics.foot_alignment}, shoulder_angle=${metrics.shoulder_angle}, foot_angle=${metrics.foot_angle}`);
     } else {
-        console.warn(`  ⚠️ No follow_through frame found, cannot extract foot_alignment, shoulder_angle, foot_angle`);
+        console.warn(`  ‚ö†Ô∏è No follow_through frame found, cannot extract foot_alignment, shoulder_angle, foot_angle`);
     }
     
     // Fallback to averages for any metrics that couldn't be calculated at specific frames
@@ -3141,34 +3228,34 @@ async function compareWithAllBenchmarks(userData) {
         const comparisons = [];
         
         // Compare with each benchmark (with timeout protection)
-        console.log(`🔄 Starting comparison with ${benchmarkFiles.length} benchmark files...`);
+        console.log(`üîÑ Starting comparison with ${benchmarkFiles.length} benchmark files...`);
         const comparisonPromises = benchmarkFiles.map(async (playerId) => {
             try {
-                console.log(`\n📊 Comparing with benchmark: ${playerId}`);
+                console.log(`\nüìä Comparing with benchmark: ${playerId}`);
                 const benchmarkData = await loadBenchmarkFromFile(playerId);
                 if (!benchmarkData || benchmarkData.length === 0) {
-                    console.warn(`  ⚠️ Skipping ${playerId}: no benchmark data loaded`);
+                    console.warn(`  ‚ö†Ô∏è Skipping ${playerId}: no benchmark data loaded`);
                     return null; // Skip if couldn't load
                 }
                 
-                console.log(`  ✅ Loaded benchmark ${playerId}:`, {
+                console.log(`  ‚úÖ Loaded benchmark ${playerId}:`, {
                     frames: benchmarkData.length,
                     hasMetrics: benchmarkData[0]?.metrics ? Object.keys(benchmarkData[0].metrics).length : 0,
                     sampleMetrics: benchmarkData[0]?.metrics || {}
                 });
-                console.log(`  📊 User data:`, {
+                console.log(`  üìä User data:`, {
                     frames: userData.length,
                     hasMetrics: userData[0]?.metrics ? Object.keys(userData[0].metrics).length : 0,
                     sampleMetrics: userData[0]?.metrics || {}
                 });
                 
-                console.log(`  🔄 Running compareDetailedMetrics for ${playerId}...`);
+                console.log(`  üîÑ Running compareDetailedMetrics for ${playerId}...`);
                 const comparison = compareDetailedMetrics(userData, benchmarkData);
                 
                 // Count how many metrics have valid scores (not null)
                 const validMetricCount = Object.values(comparison.metricScores || {}).filter(score => score !== null && score !== undefined).length;
                 
-                console.log(`  ✅ Comparison result for ${playerId}:`, {
+                console.log(`  ‚úÖ Comparison result for ${playerId}:`, {
                     overallScore: comparison.overallScore.toFixed(2) + '%',
                     validMetrics: validMetricCount,
                     totalMetrics: Object.keys(comparison.metricScores || {}).length,
@@ -3329,9 +3416,9 @@ function dtw(series1, series2) {
  * More accurate: uses a steeper penalty curve for better discrimination.
  */
 function computeUserCloseness(benchForm, userForm, path) {
-    // More accurate alpha: for angles (0-180°), a 30° difference should be significant
-    // Formula: 100 - (diff / maxDiff) * 100, where maxDiff = 30° for 0% similarity
-    const maxAngleDiff = 30.0; // 30° difference = 0% similarity
+    // More accurate alpha: for angles (0-180¬∞), a 30¬∞ difference should be significant
+    // Formula: 100 - (diff / maxDiff) * 100, where maxDiff = 30¬∞ for 0% similarity
+    const maxAngleDiff = 30.0; // 30¬∞ difference = 0% similarity
     const userMap = {};
     
     for (const [i, j] of path) {
@@ -3345,7 +3432,7 @@ function computeUserCloseness(benchForm, userForm, path) {
             const iList = userMap[j];
             const iMid = iList[Math.floor(iList.length / 2)];
             const diff = Math.abs(userForm[j] - benchForm[iMid]);
-            // Linear scaling: 0° diff = 100%, 30° diff = 0%
+            // Linear scaling: 0¬∞ diff = 100%, 30¬∞ diff = 0%
             const score = Math.max(0, Math.min(100, 100 - (diff / maxAngleDiff) * 100));
             userCloseness.push(score);
         } else {
@@ -4424,15 +4511,15 @@ function displayStageAngleTabs(data) {
                         <h5 style="margin: 0 0 15px 0; color: #1a202c; font-size: 1.1em; font-weight: 600;">Elbow Angle</h5>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #718096;">Your:</span>
-                            <span style="font-weight: 600; color: ${elbowDiff > 10 || elbowDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.elbow_angle ? userMarker.elbow_angle.toFixed(1) : 'N/A'}°</span>
+                            <span style="font-weight: 600; color: ${elbowDiff > 10 || elbowDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.elbow_angle ? userMarker.elbow_angle.toFixed(1) : 'N/A'}¬∞</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #718096;">Benchmark:</span>
-                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.elbow_angle ? benchMarker.elbow_angle.toFixed(1) : 'N/A'}°</span>
+                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.elbow_angle ? benchMarker.elbow_angle.toFixed(1) : 'N/A'}¬∞</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0;">
                             <span style="color: #718096;">Difference:</span>
-                            <span style="font-weight: 600; color: ${Math.abs(elbowDiff) > 10 ? '#ef4444' : '#10b981'};">${elbowDiff > 0 ? '+' : ''}${elbowDiff.toFixed(1)}°</span>
+                            <span style="font-weight: 600; color: ${Math.abs(elbowDiff) > 10 ? '#ef4444' : '#10b981'};">${elbowDiff > 0 ? '+' : ''}${elbowDiff.toFixed(1)}¬∞</span>
                         </div>
                     </div>
                     
@@ -4440,15 +4527,15 @@ function displayStageAngleTabs(data) {
                         <h5 style="margin: 0 0 15px 0; color: #1a202c; font-size: 1.1em; font-weight: 600;">Wrist Angle</h5>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #718096;">Your:</span>
-                            <span style="font-weight: 600; color: ${wristDiff > 10 || wristDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.wrist_angle ? userMarker.wrist_angle.toFixed(1) : 'N/A'}°</span>
+                            <span style="font-weight: 600; color: ${wristDiff > 10 || wristDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.wrist_angle ? userMarker.wrist_angle.toFixed(1) : 'N/A'}¬∞</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #718096;">Benchmark:</span>
-                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.wrist_angle ? benchMarker.wrist_angle.toFixed(1) : 'N/A'}°</span>
+                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.wrist_angle ? benchMarker.wrist_angle.toFixed(1) : 'N/A'}¬∞</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0;">
                             <span style="color: #718096;">Difference:</span>
-                            <span style="font-weight: 600; color: ${Math.abs(wristDiff) > 10 ? '#ef4444' : '#10b981'};">${wristDiff > 0 ? '+' : ''}${wristDiff.toFixed(1)}°</span>
+                            <span style="font-weight: 600; color: ${Math.abs(wristDiff) > 10 ? '#ef4444' : '#10b981'};">${wristDiff > 0 ? '+' : ''}${wristDiff.toFixed(1)}¬∞</span>
                         </div>
                     </div>
                     
@@ -4456,15 +4543,15 @@ function displayStageAngleTabs(data) {
                         <h5 style="margin: 0 0 15px 0; color: #1a202c; font-size: 1.1em; font-weight: 600;">Arm Angle</h5>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #718096;">Your:</span>
-                            <span style="font-weight: 600; color: ${armDiff > 10 || armDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.arm_angle ? userMarker.arm_angle.toFixed(1) : 'N/A'}°</span>
+                            <span style="font-weight: 600; color: ${armDiff > 10 || armDiff < -10 ? '#ef4444' : '#10b981'};">${userMarker.arm_angle ? userMarker.arm_angle.toFixed(1) : 'N/A'}¬∞</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #718096;">Benchmark:</span>
-                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.arm_angle ? benchMarker.arm_angle.toFixed(1) : 'N/A'}°</span>
+                            <span style="font-weight: 600; color: #4a5568;">${benchMarker.arm_angle ? benchMarker.arm_angle.toFixed(1) : 'N/A'}¬∞</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0;">
                             <span style="color: #718096;">Difference:</span>
-                            <span style="font-weight: 600; color: ${Math.abs(armDiff) > 10 ? '#ef4444' : '#10b981'};">${armDiff > 0 ? '+' : ''}${armDiff.toFixed(1)}°</span>
+                            <span style="font-weight: 600; color: ${Math.abs(armDiff) > 10 ? '#ef4444' : '#10b981'};">${armDiff > 0 ? '+' : ''}${armDiff.toFixed(1)}¬∞</span>
                         </div>
                     </div>
                 </div>
@@ -4608,11 +4695,11 @@ function generatePlayerSpecificFeedback(data) {
             metrics: [],
             summary: '',
             playerSummary: `Stephen Curry revolutionized shooting with his signature one-motion shot. What makes his shot unique:
-• **Smooth, Continuous Motion**: Unlike traditional two-motion shots, Curry's form flows seamlessly from set point to release without a pause
-• **Quick Release**: His wrist snap happens almost simultaneously with his elbow extension, creating a lightning-fast release
-• **Optimal Elbow Extension (150°)**: Full extension maximizes power transfer from legs to ball
-• **Precise Wrist Snap (90°)**: The wrist angle creates perfect backspin and arc for long-range accuracy
-• **Consistent Arm Angle (50°)**: Maintains this angle throughout, allowing for consistent shooting from anywhere on the court
+‚Ä¢ **Smooth, Continuous Motion**: Unlike traditional two-motion shots, Curry's form flows seamlessly from set point to release without a pause
+‚Ä¢ **Quick Release**: His wrist snap happens almost simultaneously with his elbow extension, creating a lightning-fast release
+‚Ä¢ **Optimal Elbow Extension (150¬∞)**: Full extension maximizes power transfer from legs to ball
+‚Ä¢ **Precise Wrist Snap (90¬∞)**: The wrist angle creates perfect backspin and arc for long-range accuracy
+‚Ä¢ **Consistent Arm Angle (50¬∞)**: Maintains this angle throughout, allowing for consistent shooting from anywhere on the court
 Curry's form is designed for speed and range, making it ideal for quick catch-and-shoot situations and deep three-pointers.`
         },
         'lebron': {
@@ -4626,11 +4713,11 @@ Curry's form is designed for speed and range, making it ideal for quick catch-an
             metrics: [],
             summary: '',
             playerSummary: `LeBron James combines power and precision in his shooting form. What makes his shot unique:
-• **Power Generation**: His form emphasizes generating maximum power through his legs and core
-• **Elevation**: The 55° arm angle creates a high release point, making it difficult to block
-• **Strong Elbow Extension (140°)**: Slightly less than full extension allows for more control and power transfer
-• **Firm Wrist Snap (95°)**: The wrist maintains a slightly more open angle for better control on power shots
-• **Athletic Follow-Through**: His follow-through is strong and consistent, reflecting his powerful shooting style
+‚Ä¢ **Power Generation**: His form emphasizes generating maximum power through his legs and core
+‚Ä¢ **Elevation**: The 55¬∞ arm angle creates a high release point, making it difficult to block
+‚Ä¢ **Strong Elbow Extension (140¬∞)**: Slightly less than full extension allows for more control and power transfer
+‚Ä¢ **Firm Wrist Snap (95¬∞)**: The wrist maintains a slightly more open angle for better control on power shots
+‚Ä¢ **Athletic Follow-Through**: His follow-through is strong and consistent, reflecting his powerful shooting style
 LeBron's form is perfect for mid-range jumpers and contested shots where power and elevation are crucial.`
         },
         'jordan': {
@@ -4644,12 +4731,12 @@ LeBron's form is perfect for mid-range jumpers and contested shots where power a
             metrics: [],
             summary: '',
             playerSummary: `Michael Jordan's shooting form is the textbook definition of classic basketball mechanics. What makes his shot unique:
-• **Textbook Fundamentals**: Every aspect of his form follows traditional shooting principles
-• **Perfect Balance**: His 52° arm angle creates optimal balance between power and accuracy
-• **Elbow Position (145°)**: The ideal elbow extension provides both power and control
-• **Classic Wrist Snap (92°)**: The wrist angle creates perfect backspin and consistent arc
-• **Hang Time**: His form allows him to maintain shooting position in the air, creating space for difficult shots
-• **Consistent Follow-Through**: His follow-through is legendary - the "goose neck" finish is a hallmark of his form
+‚Ä¢ **Textbook Fundamentals**: Every aspect of his form follows traditional shooting principles
+‚Ä¢ **Perfect Balance**: His 52¬∞ arm angle creates optimal balance between power and accuracy
+‚Ä¢ **Elbow Position (145¬∞)**: The ideal elbow extension provides both power and control
+‚Ä¢ **Classic Wrist Snap (92¬∞)**: The wrist angle creates perfect backspin and consistent arc
+‚Ä¢ **Hang Time**: His form allows him to maintain shooting position in the air, creating space for difficult shots
+‚Ä¢ **Consistent Follow-Through**: His follow-through is legendary - the "goose neck" finish is a hallmark of his form
 Jordan's form is the gold standard for fundamental shooting mechanics, ideal for learning proper technique.`
         },
         'durant': {
@@ -4663,12 +4750,12 @@ Jordan's form is the gold standard for fundamental shooting mechanics, ideal for
             metrics: [],
             summary: '',
             playerSummary: `Kevin Durant's shooting form is defined by his incredible height and high release point. What makes his shot unique:
-• **Unblockable Release**: His 48° arm angle creates one of the highest release points in basketball
-• **Maximum Elbow Extension (155°)**: Nearly full extension maximizes his height advantage
-• **Tight Wrist Snap (88°)**: The slightly tighter wrist angle creates a flatter, more direct trajectory
-• **Length Advantage**: His form leverages his 7-foot wingspan to shoot over defenders
-• **Smooth Motion**: Despite his height, his shot remains fluid and consistent
-• **Mid-Range Mastery**: His form is optimized for pull-up jumpers and mid-range shots
+‚Ä¢ **Unblockable Release**: His 48¬∞ arm angle creates one of the highest release points in basketball
+‚Ä¢ **Maximum Elbow Extension (155¬∞)**: Nearly full extension maximizes his height advantage
+‚Ä¢ **Tight Wrist Snap (88¬∞)**: The slightly tighter wrist angle creates a flatter, more direct trajectory
+‚Ä¢ **Length Advantage**: His form leverages his 7-foot wingspan to shoot over defenders
+‚Ä¢ **Smooth Motion**: Despite his height, his shot remains fluid and consistent
+‚Ä¢ **Mid-Range Mastery**: His form is optimized for pull-up jumpers and mid-range shots
 Durant's form is perfect for taller players or anyone looking to create an unblockable shot.`
         },
         'clark': {
@@ -4682,12 +4769,12 @@ Durant's form is perfect for taller players or anyone looking to create an unblo
             metrics: [],
             summary: '',
             playerSummary: `Caitlin Clark's shooting form combines quick release with incredible range. What makes her shot unique:
-• **Lightning-Fast Release**: Her form is optimized for speed, allowing her to get shots off before defenders can react
-• **Deep Range**: The 51° arm angle and 148° elbow extension create optimal trajectory for long-range shots
-• **Efficient Motion**: Every movement is purposeful, eliminating wasted motion
-• **Quick Wrist Snap (91°)**: The wrist snap happens rapidly, creating backspin and arc
-• **Consistent Form**: Her form remains consistent whether shooting from 25 feet or 30 feet
-• **Catch-and-Shoot Mastery**: Her quick release makes her deadly on catch-and-shoot opportunities
+‚Ä¢ **Lightning-Fast Release**: Her form is optimized for speed, allowing her to get shots off before defenders can react
+‚Ä¢ **Deep Range**: The 51¬∞ arm angle and 148¬∞ elbow extension create optimal trajectory for long-range shots
+‚Ä¢ **Efficient Motion**: Every movement is purposeful, eliminating wasted motion
+‚Ä¢ **Quick Wrist Snap (91¬∞)**: The wrist snap happens rapidly, creating backspin and arc
+‚Ä¢ **Consistent Form**: Her form remains consistent whether shooting from 25 feet or 30 feet
+‚Ä¢ **Catch-and-Shoot Mastery**: Her quick release makes her deadly on catch-and-shoot opportunities
 Clark's form is ideal for players who want to shoot quickly from deep range, especially in fast-paced situations.`
         }
     };
@@ -4704,24 +4791,24 @@ Clark's form is ideal for players who want to shoot quickly from deep range, esp
     if (elbowDiff < 15) {
         feedback.strengths.push({
             title: 'Elbow Extension',
-            value: `${avgElbowAngle.toFixed(1)}°`,
-            ideal: `${feedback.idealElbow}°`,
+            value: `${avgElbowAngle.toFixed(1)}¬∞`,
+            ideal: `${feedback.idealElbow}¬∞`,
             score: Math.max(0, 100 - (elbowDiff * 2))
         });
     }
     if (wristDiff < 10) {
         feedback.strengths.push({
             title: 'Wrist Snap',
-            value: `${avgWristAngle.toFixed(1)}°`,
-            ideal: `${feedback.idealWrist}°`,
+            value: `${avgWristAngle.toFixed(1)}¬∞`,
+            ideal: `${feedback.idealWrist}¬∞`,
             score: Math.max(0, 100 - (wristDiff * 3))
         });
     }
     if (armDiff < 8) {
         feedback.strengths.push({
             title: 'Arm Angle',
-            value: `${avgArmAngle.toFixed(1)}°`,
-            ideal: `${feedback.idealArm}°`,
+            value: `${avgArmAngle.toFixed(1)}¬∞`,
+            ideal: `${feedback.idealArm}¬∞`,
             score: Math.max(0, 100 - (armDiff * 4))
         });
     }
@@ -4738,8 +4825,8 @@ Clark's form is ideal for players who want to shoot quickly from deep range, esp
     if (elbowDiff >= 15) {
         feedback.weaknesses.push({
             title: 'Elbow Extension',
-            value: `${avgElbowAngle.toFixed(1)}°`,
-            ideal: `${feedback.idealElbow}°`,
+            value: `${avgElbowAngle.toFixed(1)}¬∞`,
+            ideal: `${feedback.idealElbow}¬∞`,
             score: Math.max(0, 100 - (elbowDiff * 2)),
             tip: player === 'curry' ? 'Focus on a smooth, continuous motion from your set point to release. Curry\'s one-motion shot requires full elbow extension.' : 'Work on fully extending your elbow at the point of release.'
         });
@@ -4747,8 +4834,8 @@ Clark's form is ideal for players who want to shoot quickly from deep range, esp
     if (wristDiff >= 10) {
         feedback.weaknesses.push({
             title: 'Wrist Snap',
-            value: `${avgWristAngle.toFixed(1)}°`,
-            ideal: `${feedback.idealWrist}°`,
+            value: `${avgWristAngle.toFixed(1)}¬∞`,
+            ideal: `${feedback.idealWrist}¬∞`,
             score: Math.max(0, 100 - (wristDiff * 3)),
             tip: player === 'curry' ? 'The wrist snap is crucial for Curry\'s one-motion shot. Practice a quick, decisive flick at the end of your shooting motion.' : 'Improve your wrist snap timing and angle for better ball control.'
         });
@@ -4756,8 +4843,8 @@ Clark's form is ideal for players who want to shoot quickly from deep range, esp
     if (armDiff >= 8) {
         feedback.weaknesses.push({
             title: 'Arm Angle',
-            value: `${avgArmAngle.toFixed(1)}°`,
-            ideal: `${feedback.idealArm}°`,
+            value: `${avgArmAngle.toFixed(1)}¬∞`,
+            ideal: `${feedback.idealArm}¬∞`,
             score: Math.max(0, 100 - (armDiff * 4)),
             tip: player === 'durant' ? 'Durant\'s high release comes from optimal arm angle. Keep your shooting arm at the right angle for maximum elevation.' : 'Adjust your arm angle to match the ideal shooting form.'
         });
@@ -4825,9 +4912,9 @@ Clark's form is ideal for players who want to shoot quickly from deep range, esp
     
     // Add all metrics
     feedback.metrics = [
-        { label: 'Elbow Extension', value: `${avgElbowAngle > 0 ? avgElbowAngle.toFixed(1) + '°' : 'N/A'}`, ideal: `${feedback.idealElbow}°`, score: avgElbowAngle > 0 ? Math.max(0, 100 - elbowDiff * 2) : 0 },
-        { label: 'Wrist Snap', value: `${avgWristAngle > 0 ? avgWristAngle.toFixed(1) + '°' : 'N/A'}`, ideal: `${feedback.idealWrist}°`, score: avgWristAngle > 0 ? Math.max(0, 100 - wristDiff * 3) : 0 },
-        { label: 'Arm Angle', value: `${avgArmAngle > 0 ? avgArmAngle.toFixed(1) + '°' : 'N/A'}`, ideal: `${feedback.idealArm}°`, score: avgArmAngle > 0 ? Math.max(0, 100 - armDiff * 4) : 0 },
+        { label: 'Elbow Extension', value: `${avgElbowAngle > 0 ? avgElbowAngle.toFixed(1) + '¬∞' : 'N/A'}`, ideal: `${feedback.idealElbow}¬∞`, score: avgElbowAngle > 0 ? Math.max(0, 100 - elbowDiff * 2) : 0 },
+        { label: 'Wrist Snap', value: `${avgWristAngle > 0 ? avgWristAngle.toFixed(1) + '¬∞' : 'N/A'}`, ideal: `${feedback.idealWrist}¬∞`, score: avgWristAngle > 0 ? Math.max(0, 100 - wristDiff * 3) : 0 },
+        { label: 'Arm Angle', value: `${avgArmAngle > 0 ? avgArmAngle.toFixed(1) + '¬∞' : 'N/A'}`, ideal: `${feedback.idealArm}¬∞`, score: avgArmAngle > 0 ? Math.max(0, 100 - armDiff * 4) : 0 },
         { label: 'Overall Score', value: `${avgCloseness.toFixed(1)}%`, ideal: '100%', score: avgCloseness },
         { label: `${feedback.niche} Similarity`, value: `${nicheScore.toFixed(1)}%`, ideal: '100%', score: nicheScore }
     ];
@@ -4913,36 +5000,36 @@ function analyzeStage(stageName, userMarker, benchMarker, playerFeedback) {
         // Elbow angle feedback at set point
         if (elbowDiff !== null) {
             if (elbowDiff <= 5) {
-                angleDetails.push(`✅ **Elbow Angle**: ${userElbow.toFixed(1)}° (Ideal: ${benchElbow.toFixed(1)}°) - Excellent!`);
+                angleDetails.push(`‚úÖ **Elbow Angle**: ${userElbow.toFixed(1)}¬∞ (Ideal: ${benchElbow.toFixed(1)}¬∞) - Excellent!`);
             } else if (elbowDiff <= 10) {
-                angleDetails.push(`⚠️ **Elbow Angle**: ${userElbow.toFixed(1)}° (Ideal: ${benchElbow.toFixed(1)}°) - Close, but could be more precise.`);
+                angleDetails.push(`‚ö†Ô∏è **Elbow Angle**: ${userElbow.toFixed(1)}¬∞ (Ideal: ${benchElbow.toFixed(1)}¬∞) - Close, but could be more precise.`);
             } else if (elbowDiff > 10) {
                 const direction = userElbow > benchElbow ? 'too extended' : 'not extended enough';
-                angleDetails.push(`❌ **Elbow Angle**: ${userElbow.toFixed(1)}° (Ideal: ${benchElbow.toFixed(1)}°) - Your elbow is ${direction} at set point. ${userElbow > benchElbow ? 'Try bringing your elbow slightly lower to create better power transfer.' : 'Extend your elbow more to establish a stronger shooting base.'}`);
+                angleDetails.push(`‚ùå **Elbow Angle**: ${userElbow.toFixed(1)}¬∞ (Ideal: ${benchElbow.toFixed(1)}¬∞) - Your elbow is ${direction} at set point. ${userElbow > benchElbow ? 'Try bringing your elbow slightly lower to create better power transfer.' : 'Extend your elbow more to establish a stronger shooting base.'}`);
             }
         }
         
         // Wrist angle feedback at set point
         if (wristDiff !== null) {
             if (wristDiff <= 5) {
-                angleDetails.push(`✅ **Wrist Angle**: ${userWrist.toFixed(1)}° (Ideal: ${benchWrist.toFixed(1)}°) - Perfect positioning!`);
+                angleDetails.push(`‚úÖ **Wrist Angle**: ${userWrist.toFixed(1)}¬∞ (Ideal: ${benchWrist.toFixed(1)}¬∞) - Perfect positioning!`);
             } else if (wristDiff <= 10) {
-                angleDetails.push(`⚠️ **Wrist Angle**: ${userWrist.toFixed(1)}° (Ideal: ${benchWrist.toFixed(1)}°) - Good, minor adjustment needed.`);
+                angleDetails.push(`‚ö†Ô∏è **Wrist Angle**: ${userWrist.toFixed(1)}¬∞ (Ideal: ${benchWrist.toFixed(1)}¬∞) - Good, minor adjustment needed.`);
             } else if (wristDiff > 10) {
                 const direction = userWrist > benchWrist ? 'too open' : 'too closed';
-                angleDetails.push(`❌ **Wrist Angle**: ${userWrist.toFixed(1)}° (Ideal: ${benchWrist.toFixed(1)}°) - Your wrist is ${direction} at set point. ${userWrist > benchWrist ? 'Keep your wrist slightly more cocked back for better snap potential.' : 'Your wrist should be more open to prepare for the snap motion.'}`);
+                angleDetails.push(`‚ùå **Wrist Angle**: ${userWrist.toFixed(1)}¬∞ (Ideal: ${benchWrist.toFixed(1)}¬∞) - Your wrist is ${direction} at set point. ${userWrist > benchWrist ? 'Keep your wrist slightly more cocked back for better snap potential.' : 'Your wrist should be more open to prepare for the snap motion.'}`);
             }
         }
         
         // Arm angle feedback at set point
         if (armDiff !== null) {
             if (armDiff <= 5) {
-                angleDetails.push(`✅ **Arm Angle**: ${userArm.toFixed(1)}° (Ideal: ${benchArm.toFixed(1)}°) - Great alignment!`);
+                angleDetails.push(`‚úÖ **Arm Angle**: ${userArm.toFixed(1)}¬∞ (Ideal: ${benchArm.toFixed(1)}¬∞) - Great alignment!`);
             } else if (armDiff <= 10) {
-                angleDetails.push(`⚠️ **Arm Angle**: ${userArm.toFixed(1)}° (Ideal: ${benchArm.toFixed(1)}°) - Close to ideal.`);
+                angleDetails.push(`‚ö†Ô∏è **Arm Angle**: ${userArm.toFixed(1)}¬∞ (Ideal: ${benchArm.toFixed(1)}¬∞) - Close to ideal.`);
             } else if (armDiff > 10) {
                 const direction = userArm > benchArm ? 'too high' : 'too low';
-                angleDetails.push(`❌ **Arm Angle**: ${userArm.toFixed(1)}° (Ideal: ${benchArm.toFixed(1)}°) - Your arm is ${direction} at set point. ${userArm > benchArm ? 'Lower your shooting arm slightly for better balance and power.' : 'Raise your shooting arm to create a better shooting angle.'}`);
+                angleDetails.push(`‚ùå **Arm Angle**: ${userArm.toFixed(1)}¬∞ (Ideal: ${benchArm.toFixed(1)}¬∞) - Your arm is ${direction} at set point. ${userArm > benchArm ? 'Lower your shooting arm slightly for better balance and power.' : 'Raise your shooting arm to create a better shooting angle.'}`);
             }
         }
         
@@ -4955,36 +5042,36 @@ function analyzeStage(stageName, userMarker, benchMarker, playerFeedback) {
         // Elbow angle feedback at follow through
         if (elbowDiff !== null) {
             if (elbowDiff <= 5) {
-                angleDetails.push(`✅ **Elbow Extension**: ${userElbow.toFixed(1)}° (Ideal: ${benchElbow.toFixed(1)}°) - Perfect extension!`);
+                angleDetails.push(`‚úÖ **Elbow Extension**: ${userElbow.toFixed(1)}¬∞ (Ideal: ${benchElbow.toFixed(1)}¬∞) - Perfect extension!`);
             } else if (elbowDiff <= 10) {
-                angleDetails.push(`⚠️ **Elbow Extension**: ${userElbow.toFixed(1)}° (Ideal: ${benchElbow.toFixed(1)}°) - Good extension, aim for full extension.`);
+                angleDetails.push(`‚ö†Ô∏è **Elbow Extension**: ${userElbow.toFixed(1)}¬∞ (Ideal: ${benchElbow.toFixed(1)}¬∞) - Good extension, aim for full extension.`);
             } else if (elbowDiff > 10) {
                 const direction = userElbow > benchElbow ? 'over-extended' : 'not fully extended';
-                angleDetails.push(`❌ **Elbow Extension**: ${userElbow.toFixed(1)}° (Ideal: ${benchElbow.toFixed(1)}°) - Your elbow is ${direction} during follow-through. ${userElbow < benchElbow ? 'Fully extend your elbow through the shot for maximum power and consistency.' : 'Slightly reduce your extension to avoid over-straightening, which can affect accuracy.'}`);
+                angleDetails.push(`‚ùå **Elbow Extension**: ${userElbow.toFixed(1)}¬∞ (Ideal: ${benchElbow.toFixed(1)}¬∞) - Your elbow is ${direction} during follow-through. ${userElbow < benchElbow ? 'Fully extend your elbow through the shot for maximum power and consistency.' : 'Slightly reduce your extension to avoid over-straightening, which can affect accuracy.'}`);
             }
         }
         
         // Wrist angle feedback at follow through
         if (wristDiff !== null) {
             if (wristDiff <= 5) {
-                angleDetails.push(`✅ **Wrist Position**: ${userWrist.toFixed(1)}° (Ideal: ${benchWrist.toFixed(1)}°) - Excellent wrist snap!`);
+                angleDetails.push(`‚úÖ **Wrist Position**: ${userWrist.toFixed(1)}¬∞ (Ideal: ${benchWrist.toFixed(1)}¬∞) - Excellent wrist snap!`);
             } else if (wristDiff <= 10) {
-                angleDetails.push(`⚠️ **Wrist Position**: ${userWrist.toFixed(1)}° (Ideal: ${benchWrist.toFixed(1)}°) - Good snap, could be more consistent.`);
+                angleDetails.push(`‚ö†Ô∏è **Wrist Position**: ${userWrist.toFixed(1)}¬∞ (Ideal: ${benchWrist.toFixed(1)}¬∞) - Good snap, could be more consistent.`);
             } else if (wristDiff > 10) {
                 const direction = userWrist > benchWrist ? 'not snapping enough' : 'snapping too much';
-                angleDetails.push(`❌ **Wrist Position**: ${userWrist.toFixed(1)}° (Ideal: ${benchWrist.toFixed(1)}°) - Your wrist is ${direction}. ${userWrist > benchWrist ? 'Snap your wrist more decisively at release for better backspin and arc.' : 'Your wrist snap is too aggressive - maintain a more controlled snap for consistency.'}`);
+                angleDetails.push(`‚ùå **Wrist Position**: ${userWrist.toFixed(1)}¬∞ (Ideal: ${benchWrist.toFixed(1)}¬∞) - Your wrist is ${direction}. ${userWrist > benchWrist ? 'Snap your wrist more decisively at release for better backspin and arc.' : 'Your wrist snap is too aggressive - maintain a more controlled snap for consistency.'}`);
             }
         }
         
         // Arm angle feedback at follow through
         if (armDiff !== null) {
             if (armDiff <= 5) {
-                angleDetails.push(`✅ **Arm Position**: ${userArm.toFixed(1)}° (Ideal: ${benchArm.toFixed(1)}°) - Maintained perfectly!`);
+                angleDetails.push(`‚úÖ **Arm Position**: ${userArm.toFixed(1)}¬∞ (Ideal: ${benchArm.toFixed(1)}¬∞) - Maintained perfectly!`);
             } else if (armDiff <= 10) {
-                angleDetails.push(`⚠️ **Arm Position**: ${userArm.toFixed(1)}° (Ideal: ${benchArm.toFixed(1)}°) - Good consistency.`);
+                angleDetails.push(`‚ö†Ô∏è **Arm Position**: ${userArm.toFixed(1)}¬∞ (Ideal: ${benchArm.toFixed(1)}¬∞) - Good consistency.`);
             } else if (armDiff > 10) {
                 const direction = userArm > benchArm ? 'too high' : 'dropping too low';
-                angleDetails.push(`❌ **Arm Position**: ${userArm.toFixed(1)}° (Ideal: ${benchArm.toFixed(1)}°) - Your arm is ${direction} during follow-through. ${userArm > benchArm ? 'Keep your follow-through at a consistent height - don\'t over-extend upward.' : 'Maintain your arm position through the follow-through - don\'t let it drop too quickly.'}`);
+                angleDetails.push(`‚ùå **Arm Position**: ${userArm.toFixed(1)}¬∞ (Ideal: ${benchArm.toFixed(1)}¬∞) - Your arm is ${direction} during follow-through. ${userArm > benchArm ? 'Keep your follow-through at a consistent height - don\'t over-extend upward.' : 'Maintain your arm position through the follow-through - don\'t let it drop too quickly.'}`);
             }
         }
         
@@ -4997,7 +5084,7 @@ function analyzeStage(stageName, userMarker, benchMarker, playerFeedback) {
     
     return {
         title: `${stageName} Form`,
-        value: `${avgDiff.toFixed(1)}° avg difference`,
+        value: `${avgDiff.toFixed(1)}¬∞ avg difference`,
         ideal: 'Match benchmark',
         score: score,
         tip: feedbackText || `Work on matching the benchmark's ${stageName.toLowerCase()} position.`,
@@ -5119,15 +5206,15 @@ function generateGenericFeedback(data) {
         if (elbowDiff < 15) {
             feedback.strengths.push({
                 title: 'Elbow Extension',
-                value: `${avgElbowAngle.toFixed(1)}°`,
-                ideal: `${idealElbow}°`,
+                value: `${avgElbowAngle.toFixed(1)}¬∞`,
+                ideal: `${idealElbow}¬∞`,
                 score: Math.max(0, 100 - (elbowDiff * 2))
             });
         } else {
             feedback.weaknesses.push({
                 title: 'Elbow Extension',
-                value: `${avgElbowAngle.toFixed(1)}°`,
-                ideal: `${idealElbow}°`,
+                value: `${avgElbowAngle.toFixed(1)}¬∞`,
+                ideal: `${idealElbow}¬∞`,
                 score: Math.max(0, 100 - (elbowDiff * 2)),
                 tip: 'Work on fully extending your elbow at the point of release.'
             });
@@ -5140,15 +5227,15 @@ function generateGenericFeedback(data) {
         if (wristDiff < 10) {
             feedback.strengths.push({
                 title: 'Wrist Snap',
-                value: `${avgWristAngle.toFixed(1)}°`,
-                ideal: `${idealWrist}°`,
+                value: `${avgWristAngle.toFixed(1)}¬∞`,
+                ideal: `${idealWrist}¬∞`,
                 score: Math.max(0, 100 - (wristDiff * 3))
             });
         } else {
             feedback.weaknesses.push({
                 title: 'Wrist Snap',
-                value: `${avgWristAngle.toFixed(1)}°`,
-                ideal: `${idealWrist}°`,
+                value: `${avgWristAngle.toFixed(1)}¬∞`,
+                ideal: `${idealWrist}¬∞`,
                 score: Math.max(0, 100 - (wristDiff * 3)),
                 tip: 'Improve your wrist snap timing and angle for better ball control.'
             });
@@ -5161,15 +5248,15 @@ function generateGenericFeedback(data) {
         if (armDiff < 8) {
             feedback.strengths.push({
                 title: 'Arm Angle',
-                value: `${avgArmAngle.toFixed(1)}°`,
-                ideal: `${idealArm}°`,
+                value: `${avgArmAngle.toFixed(1)}¬∞`,
+                ideal: `${idealArm}¬∞`,
                 score: Math.max(0, 100 - (armDiff * 4))
             });
         } else {
             feedback.weaknesses.push({
                 title: 'Arm Angle',
-                value: `${avgArmAngle.toFixed(1)}°`,
-                ideal: `${idealArm}°`,
+                value: `${avgArmAngle.toFixed(1)}¬∞`,
+                ideal: `${idealArm}¬∞`,
                 score: Math.max(0, 100 - (armDiff * 4)),
                 tip: 'Adjust your arm angle to match the ideal shooting form.'
             });
@@ -5205,8 +5292,8 @@ function generateGenericFeedback(data) {
         const elbowDiff = Math.abs(avgElbowAngle - idealElbow);
         feedback.metrics.push({ 
             label: 'Elbow Extension', 
-            value: `${avgElbowAngle.toFixed(1)}°`, 
-            ideal: `${idealElbow}°`, 
+            value: `${avgElbowAngle.toFixed(1)}¬∞`, 
+            ideal: `${idealElbow}¬∞`, 
             score: Math.max(0, 100 - elbowDiff * 2) 
         });
     }
@@ -5216,8 +5303,8 @@ function generateGenericFeedback(data) {
         const wristDiff = Math.abs(avgWristAngle - idealWrist);
         feedback.metrics.push({ 
             label: 'Wrist Snap', 
-            value: `${avgWristAngle.toFixed(1)}°`, 
-            ideal: `${idealWrist}°`, 
+            value: `${avgWristAngle.toFixed(1)}¬∞`, 
+            ideal: `${idealWrist}¬∞`, 
             score: Math.max(0, 100 - wristDiff * 3) 
         });
     }
@@ -5227,8 +5314,8 @@ function generateGenericFeedback(data) {
         const armDiff = Math.abs(avgArmAngle - idealArm);
         feedback.metrics.push({ 
             label: 'Arm Angle', 
-            value: `${avgArmAngle.toFixed(1)}°`, 
-            ideal: `${idealArm}°`, 
+            value: `${avgArmAngle.toFixed(1)}¬∞`, 
+            ideal: `${idealArm}¬∞`, 
             score: Math.max(0, 100 - armDiff * 4) 
         });
     }
@@ -5299,7 +5386,7 @@ function populateFeedbackContent(feedback, playerName) {
         // Convert markdown-style formatting to HTML
         let summaryHtml = feedback.playerSummary
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/•/g, '•')
+            .replace(/‚Ä¢/g, '‚Ä¢')
             .replace(/\n/g, '<br>');
         playerSummaryText.innerHTML = summaryHtml;
         console.log('Displayed player summary');
@@ -5336,9 +5423,9 @@ function populateFeedbackContent(feedback, playerName) {
                 if (strength.tip) {
                     tipHtml = strength.tip
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/✅/g, '✅')
-                        .replace(/⚠️/g, '⚠️')
-                        .replace(/❌/g, '❌')
+                        .replace(/‚úÖ/g, '‚úÖ')
+                        .replace(/‚ö†Ô∏è/g, '‚ö†Ô∏è')
+                        .replace(/‚ùå/g, '‚ùå')
                         .replace(/\n/g, '<br>');
                 }
                 
@@ -5378,9 +5465,9 @@ function populateFeedbackContent(feedback, playerName) {
                 if (weakness.tip) {
                     tipHtml = weakness.tip
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/✅/g, '✅')
-                        .replace(/⚠️/g, '⚠️')
-                        .replace(/❌/g, '❌')
+                        .replace(/‚úÖ/g, '‚úÖ')
+                        .replace(/‚ö†Ô∏è/g, '‚ö†Ô∏è')
+                        .replace(/‚ùå/g, '‚ùå')
                         .replace(/\n/g, '<br>');
                 }
                 
@@ -5471,7 +5558,7 @@ async function sendEmailAutomatically(data) {
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5;">
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h1 style="color: #667eea; margin-top: 0; text-align: center;">🏀 ShotSync</h1>
+            <h1 style="color: #667eea; margin-top: 0; text-align: center;">üèÄ ShotSync</h1>
             <h2 style="color: #333; text-align: center; font-size: 24px;">Thank You for Using ShotSync!</h2>
             
             <p style="font-size: 16px;">Hi ${userInfo.firstName},</p>
@@ -5583,23 +5670,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const globalBenchmarkVideoUpload = document.getElementById('globalBenchmarkVideoUpload');
         const processGlobalBenchmarkVideo = document.getElementById('processGlobalBenchmarkVideo');
         
-        console.log('🔍 Looking for global benchmark buttons...');
+        console.log('üîç Looking for global benchmark buttons...');
         console.log('startGlobalBenchmark:', startGlobalBenchmark);
         console.log('stopGlobalBenchmark:', stopGlobalBenchmark);
         
         if (startGlobalBenchmark) {
-            console.log('✅ Found startGlobalBenchmark button, attaching event listener');
+            console.log('‚úÖ Found startGlobalBenchmark button, attaching event listener');
             startGlobalBenchmark.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🖱️ Start Global Benchmark button clicked');
+                console.log('üñ±Ô∏è Start Global Benchmark button clicked');
                 startGlobalBenchmarkRecording().catch(err => {
-                    console.error('❌ Error in startGlobalBenchmarkRecording:', err);
+                    console.error('‚ùå Error in startGlobalBenchmarkRecording:', err);
                     alert('Error starting recording: ' + err.message);
                 });
             });
         } else {
-            console.error('❌ startGlobalBenchmark button not found!');
+            console.error('‚ùå startGlobalBenchmark button not found!');
             console.log('Available elements with "global" in id:', 
                 Array.from(document.querySelectorAll('[id*="global"]')).map(el => el.id));
         }
@@ -5815,13 +5902,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Note: selectBenchmarkVideoBtn is now a label, so it will automatically trigger the file input
     // We just need to handle the change event
     if (selectBenchmarkVideoBtn) {
-        console.log('✅ selectBenchmarkVideoBtn (label) found');
+        console.log('‚úÖ selectBenchmarkVideoBtn (label) found');
     } else {
-        console.error('❌ selectBenchmarkVideoBtn element not found!');
+        console.error('‚ùå selectBenchmarkVideoBtn element not found!');
     }
     
     if (benchmarkVideoUpload) {
-        console.log('✅ benchmarkVideoUpload found, adding change listener');
+        console.log('‚úÖ benchmarkVideoUpload found, adding change listener');
         benchmarkVideoUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             console.log('Benchmark video file selected:', file?.name);
@@ -6037,7 +6124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====================== PLAYER SELECTION ======================
 
 function selectPlayer(player) {
-    console.log('🎯 selectPlayer called with player:', player);
+    console.log('üéØ selectPlayer called with player:', player);
     // Back buttons are now always visible on recording pages, no need to manually show them
     selectedPlayer = player;
     
@@ -6078,7 +6165,7 @@ function selectPlayer(player) {
             const curryInMemory = proPlayerBenchmarks['curry'] && proPlayerBenchmarks['curry'].length > 0;
             const curryBenchmarkExists = curryInMemory || curryFromFile;
             
-            console.log('🔍 Curry benchmark check:', {
+            console.log('üîç Curry benchmark check:', {
                 'curryFromFile': curryFromFile,
                 'curryInMemory': curryInMemory,
                 'curryBenchmarkExists': curryBenchmarkExists,
@@ -6089,12 +6176,12 @@ function selectPlayer(player) {
             // If we have data from file, use it
             if (curryFromFile && (!proPlayerBenchmarks['curry'] || proPlayerBenchmarks['curry'].length === 0)) {
                 proPlayerBenchmarks['curry'] = window.curry_benchmark_data;
-                console.log(`✅ Loaded Curry benchmark from file: ${proPlayerBenchmarks['curry'].length} frames`);
+                console.log(`‚úÖ Loaded Curry benchmark from file: ${proPlayerBenchmarks['curry'].length} frames`);
             }
             
             if (!curryBenchmarkExists) {
-                console.log('🏀 No realistic benchmark found. Processing Curry video to create benchmark for all players...');
-                console.log('📋 Current Curry benchmark status:', {
+                console.log('üèÄ No realistic benchmark found. Processing Curry video to create benchmark for all players...');
+                console.log('üìã Current Curry benchmark status:', {
                     'proPlayerBenchmarks[curry]': proPlayerBenchmarks['curry']?.length || 'undefined',
                     'window.curry_benchmark_data': typeof window.curry_benchmark_data !== 'undefined' ? window.curry_benchmark_data.length : 'undefined'
                 });
@@ -6109,10 +6196,10 @@ function selectPlayer(player) {
                 
                 // Process Curry video to create realistic benchmark
                 processCurryBenchmarkVideo().then(() => {
-                    console.log('✅ Realistic benchmark created from Curry video');
+                    console.log('‚úÖ Realistic benchmark created from Curry video');
                     // Update all players with the new benchmark
                     proPlayerBenchmarks[player] = [...proPlayerBenchmarks['curry']];
-                    console.log(`✅ Using realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
+                    console.log(`‚úÖ Using realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
                     
                     // Now proceed with player selection
                     const step2Title = document.getElementById('step2Title');
@@ -6120,7 +6207,7 @@ function selectPlayer(player) {
                         step2Title.textContent = `Record Your Shot (vs ${playerNames[player]})`;
                     }
                 }).catch(error => {
-                    console.error('❌ Error processing Curry video:', error);
+                    console.error('‚ùå Error processing Curry video:', error);
                     console.error('Error details:', error.message);
                     console.error('Error stack:', error.stack);
                     alert(`Failed to process Curry video: ${error.message}\n\nPlease make sure the video file exists in the tool/ directory.\n\nUsing default benchmark data.`);
@@ -6137,7 +6224,7 @@ function selectPlayer(player) {
     } else {
                 // Use existing Curry benchmark for all players
                 proPlayerBenchmarks[player] = [...proPlayerBenchmarks['curry']];
-                console.log(`✅ Using realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
+                console.log(`‚úÖ Using realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
                 
                 const step2Title = document.getElementById('step2Title');
                 if (step2Title) {
@@ -6149,7 +6236,7 @@ function selectPlayer(player) {
         } else {
             // Use global benchmark for all players
             proPlayerBenchmarks[player] = [...globalBenchmarkData];
-            console.log(`✅ Using global realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
+            console.log(`‚úÖ Using global realistic benchmark for ${playerNames[player]}:`, proPlayerBenchmarks[player].length, 'frames');
             
             const step2Title = document.getElementById('step2Title');
             if (step2Title) {
@@ -6188,7 +6275,7 @@ async function processCurryBenchmarkVideo() {
         'clark': 'Caitlin Clark'
     };
     
-    console.log('🎬 Starting Curry video processing using same method as LeBron...');
+    console.log('üé¨ Starting Curry video processing using same method as LeBron...');
     
     try {
         // Path to Curry video file - try the overlay version first (has 62 frames), then fallback
@@ -6201,7 +6288,7 @@ async function processCurryBenchmarkVideo() {
         ];
         
         let curryVideoPath = possiblePaths[0]; // Default to overlay version
-        console.log('📹 Attempting to fetch Curry video from:', curryVideoPath);
+        console.log('üìπ Attempting to fetch Curry video from:', curryVideoPath);
         
         // Fetch the video file and convert to File object for processVideoForBenchmark
         let videoFile = null;
@@ -6209,20 +6296,20 @@ async function processCurryBenchmarkVideo() {
         
         for (const path of possiblePaths) {
             try {
-                console.log(`📥 Trying to fetch: ${path}`);
+                console.log(`üì• Trying to fetch: ${path}`);
                 const response = await fetch(path);
                 if (response.ok) {
                     const blob = await response.blob();
                     // Create a File object from the blob
                     videoFile = new File([blob], path.split('/').pop(), { type: blob.type || 'video/mp4' });
-                    console.log(`✅ Successfully fetched video: ${path}`);
+                    console.log(`‚úÖ Successfully fetched video: ${path}`);
                     break;
                 } else {
-                    console.log(`❌ Failed to fetch ${path}: ${response.status} ${response.statusText}`);
+                    console.log(`‚ùå Failed to fetch ${path}: ${response.status} ${response.statusText}`);
                     lastError = new Error(`Failed to fetch ${path}: ${response.status} ${response.statusText}`);
                 }
             } catch (error) {
-                console.log(`❌ Error fetching ${path}:`, error.message);
+                console.log(`‚ùå Error fetching ${path}:`, error.message);
                 lastError = error;
             }
         }
@@ -6240,14 +6327,14 @@ async function processCurryBenchmarkVideo() {
         document.getElementById('step2').style.display = 'block';
         
         // Use the same processVideoForBenchmark function that was used for LeBron
-        console.log('🔄 Processing video using processVideoForBenchmark (same method as LeBron)...');
+        console.log('üîÑ Processing video using processVideoForBenchmark (same method as LeBron)...');
         const poseData = await processVideoForBenchmark(videoFile, 'curry');
         
-        console.log(`✅ Processed Curry benchmark: ${poseData.length} frames`);
+        console.log(`‚úÖ Processed Curry benchmark: ${poseData.length} frames`);
         
         // Store the benchmark data (poseData is returned from processVideoForBenchmark)
         if (poseData && poseData.length > 0) {
-            console.log('✅ Benchmark data sample:', poseData[0]);
+            console.log('‚úÖ Benchmark data sample:', poseData[0]);
             
             // Use Curry video as benchmark for ALL NBA players
             proPlayerBenchmarks['curry'] = poseData;
@@ -6264,13 +6351,13 @@ async function processCurryBenchmarkVideo() {
             
             // Save as global benchmark for all players
             if (window.saveGlobalBenchmark) {
-                console.log('💾 Saving Curry video as global benchmark for all players...');
+                console.log('üíæ Saving Curry video as global benchmark for all players...');
                 const success = await window.saveGlobalBenchmark(poseData);
                 if (success) {
-                    console.log('✅ Curry video saved as global benchmark! All players will use this realistic benchmark.');
-                    alert(`✅ Curry video processed successfully!\n\n${poseData.length} frames captured.\n\nThis realistic benchmark will be used for all players (Curry, LeBron, Jordan, Durant, Clark).`);
+                    console.log('‚úÖ Curry video saved as global benchmark! All players will use this realistic benchmark.');
+                    alert(`‚úÖ Curry video processed successfully!\n\n${poseData.length} frames captured.\n\nThis realistic benchmark will be used for all players (Curry, LeBron, Jordan, Durant, Clark).`);
                 } else {
-                    console.error('⚠️ Failed to save as global benchmark, but benchmarks are set locally');
+                    console.error('‚ö†Ô∏è Failed to save as global benchmark, but benchmarks are set locally');
                 }
             }
             
@@ -6288,7 +6375,7 @@ async function processCurryBenchmarkVideo() {
         }
         
     } catch (error) {
-        console.error('❌ Error processing Curry video:', error);
+        console.error('‚ùå Error processing Curry video:', error);
         console.error('Error details:', error.message, error.stack);
         alert(`Error processing Curry video: ${error.message}. Using default benchmark data.`);
         // Fall back to pre-loaded data
@@ -6575,7 +6662,7 @@ function retakeUser() {
 // ====================== GLOBAL BENCHMARK RECORDING ======================
 
 async function startGlobalBenchmarkRecording() {
-    console.log('🎬 startGlobalBenchmarkRecording called');
+    console.log('üé¨ startGlobalBenchmarkRecording called');
     try {
         const video = document.getElementById('globalBenchmarkVideo');
         const canvas = document.getElementById('globalBenchmarkCanvas');
@@ -6587,18 +6674,18 @@ async function startGlobalBenchmarkRecording() {
             throw new Error('globalBenchmarkCanvas element not found');
         }
         
-        console.log('✅ Found video and canvas elements');
+        console.log('‚úÖ Found video and canvas elements');
         
         const ctx = canvas.getContext('2d');
         
         canvas.width = 640;
         canvas.height = 480;
         
-        console.log('📹 Requesting camera access...');
+        console.log('üìπ Requesting camera access...');
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { width: 640, height: 480 } 
         });
-        console.log('✅ Camera access granted');
+        console.log('‚úÖ Camera access granted');
         
         globalBenchmarkStream = stream;
         video.srcObject = stream;
@@ -6606,7 +6693,7 @@ async function startGlobalBenchmarkRecording() {
         // Play the video
         try {
             await video.play();
-            console.log('✅ Video playing');
+            console.log('‚úÖ Video playing');
         } catch (playError) {
             console.warn('Video play warning:', playError);
         }
@@ -6621,7 +6708,7 @@ async function startGlobalBenchmarkRecording() {
         document.getElementById('stopGlobalBenchmark').style.display = 'inline-block';
         
         if (!globalBenchmarkPose) {
-            console.log('🔧 Initializing globalBenchmarkPose...');
+            console.log('üîß Initializing globalBenchmarkPose...');
             globalBenchmarkPose = new Pose({
                 locateFile: (file) => {
                     return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
@@ -6635,7 +6722,7 @@ async function startGlobalBenchmarkRecording() {
                 minDetectionConfidence: 0.7,
                 minTrackingConfidence: 0.7
             });
-            console.log('✅ globalBenchmarkPose initialized');
+            console.log('‚úÖ globalBenchmarkPose initialized');
         }
         
         globalBenchmarkPose.onResults((results) => {
@@ -6730,7 +6817,7 @@ async function startGlobalBenchmarkRecording() {
             ctx.restore();
         });
         
-        console.log('📷 Starting Camera...');
+        console.log('üì∑ Starting Camera...');
         if (typeof Camera === 'undefined') {
             throw new Error('MediaPipe Camera class not loaded. Please check script includes.');
         }
@@ -6743,9 +6830,9 @@ async function startGlobalBenchmarkRecording() {
             height: 480
         });
         globalBenchmarkCamera.start();
-        console.log('✅ Camera started successfully');
+        console.log('‚úÖ Camera started successfully');
     } catch (error) {
-        console.error('❌ Error starting global benchmark recording:', error);
+        console.error('‚ùå Error starting global benchmark recording:', error);
         console.error('Error stack:', error.stack);
         alert('Error accessing camera: ' + error.message);
         
@@ -6785,22 +6872,22 @@ async function stopGlobalBenchmarkRecording() {
         
         // Save as global benchmark
         if (window.saveGlobalBenchmark) {
-            console.log('💾 Saving global benchmark...', globalBenchmarkPoseData.length, 'frames');
+            console.log('üíæ Saving global benchmark...', globalBenchmarkPoseData.length, 'frames');
             const success = await window.saveGlobalBenchmark(globalBenchmarkPoseData);
             if (success) {
                 globalBenchmarkData = [...globalBenchmarkPoseData];
-                console.log('✅ Global benchmark saved successfully');
+                console.log('‚úÖ Global benchmark saved successfully');
                 if (statusEl) {
-                    statusEl.textContent = `✅ Recorded ${globalBenchmarkPoseData.length} frames. Saved as global benchmark for all players!`;
+                    statusEl.textContent = `‚úÖ Recorded ${globalBenchmarkPoseData.length} frames. Saved as global benchmark for all players!`;
                 }
-                alert('✅ Global benchmark saved successfully! All players will now use this benchmark.');
+                alert('‚úÖ Global benchmark saved successfully! All players will now use this benchmark.');
             } else {
-                console.error('❌ Failed to save global benchmark');
+                console.error('‚ùå Failed to save global benchmark');
                 if (statusEl) {
-                    statusEl.textContent = `⚠️ Recorded ${globalBenchmarkPoseData.length} frames, but failed to save.`;
+                    statusEl.textContent = `‚ö†Ô∏è Recorded ${globalBenchmarkPoseData.length} frames, but failed to save.`;
                     statusEl.className = 'status error';
                 }
-                alert('⚠️ Warning: Benchmark recorded but failed to save. Please try again.');
+                alert('‚ö†Ô∏è Warning: Benchmark recorded but failed to save. Please try again.');
             }
         }
     }
@@ -6962,30 +7049,30 @@ async function processGlobalBenchmarkUploadedVideo() {
     
     if (globalBenchmarkPoseData.length > 0) {
         if (window.saveGlobalBenchmark) {
-            console.log('💾 Saving global benchmark from uploaded video...', globalBenchmarkPoseData.length, 'frames');
+            console.log('üíæ Saving global benchmark from uploaded video...', globalBenchmarkPoseData.length, 'frames');
             const success = await window.saveGlobalBenchmark(globalBenchmarkPoseData);
             if (success) {
                 globalBenchmarkData = [...globalBenchmarkPoseData];
-                console.log('✅ Global benchmark saved successfully from uploaded video');
+                console.log('‚úÖ Global benchmark saved successfully from uploaded video');
                 if (statusEl) {
-                    statusEl.textContent = `✅ Processed ${globalBenchmarkPoseData.length} frames. Saved as global benchmark for all players!`;
+                    statusEl.textContent = `‚úÖ Processed ${globalBenchmarkPoseData.length} frames. Saved as global benchmark for all players!`;
                     statusEl.className = 'status success';
                     statusEl.style.display = 'block';
                 }
-                alert('✅ Global benchmark saved successfully! All players will now use this benchmark.');
+                alert('‚úÖ Global benchmark saved successfully! All players will now use this benchmark.');
             } else {
-                console.error('❌ Failed to save global benchmark');
+                console.error('‚ùå Failed to save global benchmark');
                 if (statusEl) {
-                    statusEl.textContent = `⚠️ Processed ${globalBenchmarkPoseData.length} frames, but failed to save.`;
+                    statusEl.textContent = `‚ö†Ô∏è Processed ${globalBenchmarkPoseData.length} frames, but failed to save.`;
                     statusEl.className = 'status error';
                     statusEl.style.display = 'block';
                 }
-                alert('⚠️ Warning: Benchmark processed but failed to save. Please try again.');
+                alert('‚ö†Ô∏è Warning: Benchmark processed but failed to save. Please try again.');
             }
         }
     } else {
         if (statusEl) {
-            statusEl.textContent = '⚠️ No shot detected in video. Please try again.';
+            statusEl.textContent = '‚ö†Ô∏è No shot detected in video. Please try again.';
             statusEl.className = 'status error';
             statusEl.style.display = 'block';
         }
@@ -7262,7 +7349,7 @@ function generatePose3dAnimation() {
         if (statusEl) statusEl.textContent = 'Error: Could not initialize 3D scene';
         if (generateBtn) {
             generateBtn.disabled = false;
-            generateBtn.textContent = '🎬 Generate Animation';
+            generateBtn.textContent = 'üé¨ Generate Animation';
         }
         return;
     }
@@ -7276,7 +7363,7 @@ function generatePose3dAnimation() {
         if (statusEl) statusEl.textContent = 'Error: No valid pose landmarks found';
         if (generateBtn) {
             generateBtn.disabled = false;
-            generateBtn.textContent = '🎬 Generate Animation';
+            generateBtn.textContent = 'üé¨ Generate Animation';
         }
         return;
     }
@@ -7294,20 +7381,20 @@ function generatePose3dAnimation() {
     // Show controls
     if (playPauseBtn) {
         playPauseBtn.style.display = 'inline-block';
-        playPauseBtn.textContent = '▶️ Play';
+        playPauseBtn.textContent = '‚ñ∂Ô∏è Play';
     }
     if (resetBtn) resetBtn.style.display = 'inline-block';
     
     // Update status
     if (statusEl) {
-        statusEl.textContent = `✅ Animation ready! ${pose3dFrames.length} frames loaded. Click Play to start.`;
+        statusEl.textContent = `‚úÖ Animation ready! ${pose3dFrames.length} frames loaded. Click Play to start.`;
         statusEl.style.color = '#4ade80';
     }
     
     // Re-enable button
     if (generateBtn) {
         generateBtn.disabled = false;
-        generateBtn.textContent = '🎬 Regenerate Animation';
+        generateBtn.textContent = 'üé¨ Regenerate Animation';
     }
     
     // Start animation loop
@@ -7340,7 +7427,7 @@ function togglePose3dAnimation() {
     pose3dIsPlaying = !pose3dIsPlaying;
     
     if (playPauseBtn) {
-        playPauseBtn.textContent = pose3dIsPlaying ? '⏸️ Pause' : '▶️ Play';
+        playPauseBtn.textContent = pose3dIsPlaying ? '‚è∏Ô∏è Pause' : '‚ñ∂Ô∏è Play';
     }
 }
 
@@ -7351,7 +7438,7 @@ function resetPose3dAnimation() {
     
     const playPauseBtn = document.getElementById('playPauseAnimationBtn');
     if (playPauseBtn) {
-        playPauseBtn.textContent = '▶️ Play';
+        playPauseBtn.textContent = '‚ñ∂Ô∏è Play';
     }
     
     if (pose3dFrames.length > 0) {
