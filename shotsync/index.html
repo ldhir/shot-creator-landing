@@ -1293,6 +1293,708 @@
             border-radius: 2px;
         }
 
+        /* ============================================ */
+        /* Video Playback Feedback                      */
+        /* ============================================ */
+        .vpf-section { display: none; margin-top: 48px; }
+        .vpf-section.active { display: block; }
+
+        .vpf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .vpf-header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            letter-spacing: 2px;
+            margin: 0;
+            line-height: 1;
+        }
+        .vpf-header h1 span { color: var(--primary-color); }
+        .vpf-header-sub {
+            color: var(--text-gray);
+            margin: 6px 0 0;
+            font-size: 15px;
+        }
+
+        /* Bucket Dropdown */
+        .vpf-bucket-select {
+            position: relative;
+        }
+        .vpf-bucket-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 18px;
+            color: var(--text-dark);
+            font-family: 'Work Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .vpf-bucket-btn:hover { border-color: var(--primary-color); }
+        .vpf-bucket-btn svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .vpf-bucket-btn.open svg { transform: rotate(180deg); }
+        .vpf-bucket-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 6px;
+            min-width: 220px;
+            z-index: 50;
+            opacity: 0;
+            transform: translateY(-8px);
+            pointer-events: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        }
+        .vpf-bucket-dropdown.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+        .vpf-bucket-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+        .vpf-bucket-option:hover { background: var(--bg-elevated); color: var(--text-dark); }
+        .vpf-bucket-option.active { background: rgba(255, 107, 122, 0.1); color: var(--primary-color); }
+        .vpf-bucket-option .vpf-opt-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 15px;
+        }
+        .vpf-bucket-option .vpf-opt-label { font-weight: 600; }
+        .vpf-bucket-option .vpf-opt-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        /* Video Container */
+        .vpf-video-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .vpf-video-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .vpf-video-card-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .vpf-video-card-title::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+        .vpf-mode-pill {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255, 107, 122, 0.12);
+            color: var(--primary-color);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .vpf-video-area {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #0d0d0d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .vpf-video-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-muted);
+        }
+        .vpf-video-placeholder svg {
+            width: 56px;
+            height: 56px;
+            opacity: 0.3;
+        }
+        .vpf-video-placeholder span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .vpf-video-timeline {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-card);
+        }
+        .vpf-timeline-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+        .vpf-timeline-progress {
+            width: 35%;
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 2px;
+            position: relative;
+        }
+        .vpf-timeline-progress::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            box-shadow: 0 0 8px rgba(255, 107, 122, 0.5);
+        }
+        .vpf-timeline-markers {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .vpf-timeline-marker {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 12px;
+            border-radius: 2px;
+            background: #FFD93D;
+            opacity: 0.7;
+        }
+        .vpf-time-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        /* Suggestion Cards */
+        .vpf-suggestions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .vpf-suggestion-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .vpf-suggestion-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--border-color);
+            transition: background 0.25s ease;
+        }
+        .vpf-suggestion-card:hover {
+            border-color: rgba(255, 107, 122, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        .vpf-suggestion-card:hover::before {
+            background: var(--gradient-main);
+        }
+        .vpf-suggestion-card.active {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 1px var(--primary-color), 0 8px 24px rgba(255, 107, 122, 0.15);
+        }
+        .vpf-suggestion-card.active::before {
+            background: var(--gradient-main);
+        }
+        .vpf-suggestion-tag {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        .vpf-suggestion-title {
+            font-family: 'Work Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+        .vpf-suggestion-stat {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .vpf-suggestion-stat-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Search Bar */
+        .vpf-search-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            transition: border-color 0.2s ease;
+        }
+        .vpf-search-container:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 107, 122, 0.1);
+        }
+        .vpf-search-icon {
+            padding: 12px 14px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+        }
+        .vpf-search-icon svg { width: 18px; height: 18px; }
+        .vpf-search-input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-dark);
+            font-family: 'Work Sans', sans-serif;
+            font-size: 14px;
+            padding: 12px 0;
+        }
+        .vpf-search-input::placeholder { color: var(--text-muted); }
+        .vpf-search-btn {
+            background: var(--gradient-main);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Work Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .vpf-search-btn:hover { opacity: 0.9; transform: scale(1.02); }
+        .vpf-search-hint {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .vpf-search-hint kbd {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 11px;
+            font-family: inherit;
+        }
+
+        /* VPF YouTube-style Controls */
+        .vpf-yt-controls {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            padding: 0 16px 10px;
+        }
+        .vpf-scrub-wrap {
+            padding: 10px 0 6px;
+            cursor: pointer;
+        }
+        .vpf-scrub-track {
+            position: relative;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            transition: height 0.15s ease;
+        }
+        .vpf-scrub-wrap:hover .vpf-scrub-track { height: 6px; }
+        .vpf-scrub-fill {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 2px;
+            width: 0%;
+            position: relative;
+        }
+        .vpf-scrub-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            box-shadow: 0 0 6px rgba(255, 107, 122, 0.5);
+        }
+        .vpf-scrub-wrap:hover .vpf-scrub-thumb { opacity: 1; }
+        .vpf-scrub-markers {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .vpf-ctrl-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .vpf-ctrl-left, .vpf-ctrl-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .vpf-ctrl-btn {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .vpf-ctrl-btn:hover { color: var(--text-dark); background: rgba(255,255,255,0.06); }
+        .vpf-ctrl-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        /* Speed dropdown */
+        .vpf-speed-select { position: relative; }
+        .vpf-speed-btn {
+            font-family: 'Work Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 36px;
+        }
+        .vpf-speed-dropdown {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 4px;
+            min-width: 80px;
+            opacity: 0;
+            transform: translateY(4px);
+            pointer-events: none;
+            transition: all 0.15s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 55;
+        }
+        .vpf-speed-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: all; }
+        .vpf-speed-opt {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-gray);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            text-align: center;
+        }
+        .vpf-speed-opt:hover { background: var(--bg-elevated); color: var(--text-dark); }
+        .vpf-speed-opt.active { color: var(--primary-color); }
+        /* Annotation toggle */
+        .vpf-annotate-btn.active { color: var(--primary-color); background: rgba(255, 107, 122, 0.1); }
+        /* Annotation box */
+        .vpf-annotation {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            max-width: 320px;
+            background: rgba(10, 10, 10, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 107, 122, 0.25);
+            border-radius: 12px;
+            padding: 14px 16px;
+            z-index: 7;
+            display: none;
+            font-family: 'Work Sans', sans-serif;
+        }
+        .vpf-annotation.visible { display: block; }
+        .vpf-annotation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .vpf-annotation-icon { display: flex; align-items: center; }
+        .vpf-annotation-angle {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+        }
+        .vpf-annotation-angle span {
+            font-family: 'Work Sans', sans-serif;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .vpf-annotation-body { display: flex; flex-direction: column; gap: 6px; }
+        .vpf-annotation-row { display: flex; flex-direction: column; gap: 1px; }
+        .vpf-annotation-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+        }
+        .vpf-annotation-row > span:last-child {
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+        /* Auto-slowmo indicator */
+        .vpf-slowmo-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 60, 80, 0.85);
+            color: #fff;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 14px;
+            letter-spacing: 1px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            z-index: 6;
+            display: none;
+            backdrop-filter: blur(6px);
+        }
+        .vpf-slowmo-badge.visible { display: block; }
+
+        /* VPF Video + Canvas Overlay */
+        .vpf-video-area video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+            display: none;
+        }
+        .vpf-video-area video.visible { display: block; }
+        .vpf-video-area canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+        }
+        .vpf-video-area canvas.visible { display: block; }
+        .vpf-play-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            background: rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .vpf-play-overlay.visible { opacity: 1; }
+        .vpf-play-overlay .vpf-play-circle {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 107, 122, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(255, 107, 122, 0.4);
+            transition: transform 0.2s ease;
+        }
+        .vpf-play-overlay:hover .vpf-play-circle { transform: scale(1.08); }
+        .vpf-play-overlay svg { width: 24px; height: 24px; fill: #fff; margin-left: 3px; }
+
+        /* Mistake label overlay */
+        .vpf-mistake-label {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(255, 60, 80, 0.88);
+            color: #fff;
+            font-family: 'Work Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 8px;
+            z-index: 6;
+            display: none;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(6px);
+        }
+        .vpf-mistake-label.visible { display: flex; align-items: center; gap: 8px; }
+        .vpf-angle-live {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .vpf-header { flex-direction: column; }
+            .vpf-header h1 { font-size: 36px; }
+            .vpf-suggestions { grid-template-columns: 1fr; }
+            .vpf-bucket-dropdown { right: auto; left: 0; }
+        }
+
+        /* Weakness Highlighter — REMOVED, consolidated into Visual Mistakes */
+
+        /* Dev Demo Button */
+        #devDemoBtn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #FF6B7A 0%, #FF8A94 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-family: 'Work Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 122, 0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #devDemoBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(255, 107, 122, 0.5); }
+        #devDemoBtn:active { transform: scale(0.97); }
+        #devDemoBtn.loading { pointer-events: none; opacity: 0.8; }
+        #devDemoProgress {
+            position: fixed;
+            bottom: 76px;
+            right: 24px;
+            z-index: 9999;
+            background: var(--bg-card, #161616);
+            border: 1px solid var(--border-color, #2a2a2a);
+            border-radius: 10px;
+            padding: 12px 18px;
+            color: #f8fafc;
+            font-family: 'Work Sans', sans-serif;
+            font-size: 12px;
+            display: none;
+            min-width: 220px;
+        }
+        #devDemoProgress .demo-bar {
+            height: 3px;
+            background: var(--border-color, #2a2a2a);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        #devDemoProgress .demo-fill {
+            height: 100%;
+            background: var(--primary-color, #FF6B7A);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Skeleton Lab Button */
+        #skeletonLabBtn {
+            position: fixed;
+            bottom: 24px;
+            right: 240px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #FF6B7A 0%, #FF8A94 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-family: 'Work Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 122, 0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #skeletonLabBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(255, 107, 122, 0.5); }
+        #skeletonLabBtn:active { transform: scale(0.97); }
+
         .if-tips-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
         .if-tip-item {
             display: flex;
@@ -3531,6 +4233,164 @@
                         </button>
                         <button id="ifNewAnalysis" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">New Analysis</button>
                     </div>
+                </div>
+
+                <!-- Video Playback Feedback Section -->
+                <div id="videoPlaybackFeedback" class="vpf-section">
+                    <!-- Header + Bucket Dropdown -->
+                    <div class="vpf-header">
+                        <div>
+                            <h1>VIDEO <span>PLAYBACK</span></h1>
+                            <p class="vpf-header-sub" id="vpfSubtitle">Track how your mechanics change over time</p>
+                        </div>
+                        <div class="vpf-bucket-select">
+                            <button class="vpf-bucket-btn" id="vpfBucketBtn">
+                                <span id="vpfBucketLabel">Trends</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            <div class="vpf-bucket-dropdown" id="vpfDropdown">
+                                <div class="vpf-bucket-option active" data-bucket="trends">
+                                    <div class="vpf-opt-icon" style="background: rgba(0, 212, 255, 0.1); color: #00D4FF;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                    </div>
+                                    <div>
+                                        <div class="vpf-opt-label">Trends</div>
+                                        <div class="vpf-opt-desc">Track mechanics over time</div>
+                                    </div>
+                                </div>
+                                <div class="vpf-bucket-option" data-bucket="visual-mistakes">
+                                    <div class="vpf-opt-icon" style="background: rgba(255, 107, 122, 0.1); color: #FF6B7A;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                    </div>
+                                    <div>
+                                        <div class="vpf-opt-label">Visual Mistakes</div>
+                                        <div class="vpf-opt-desc">See errors frame-by-frame</div>
+                                    </div>
+                                </div>
+                                <div class="vpf-bucket-option" data-bucket="skeleton-lab">
+                                    <div class="vpf-opt-icon" style="background: rgba(163, 130, 255, 0.1); color: #A382FF;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line><line x1="12" y1="16" x2="8" y2="22"></line><line x1="12" y1="16" x2="16" y2="22"></line></svg>
+                                    </div>
+                                    <div>
+                                        <div class="vpf-opt-label">Skeleton Lab</div>
+                                        <div class="vpf-opt-desc">3D pose comparison view</div>
+                                    </div>
+                                </div>
+                                <div class="vpf-bucket-option" data-bucket="coaching">
+                                    <div class="vpf-opt-icon" style="background: rgba(61, 214, 140, 0.1); color: #3DD68C;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <div class="vpf-opt-label">Coaching Playback</div>
+                                        <div class="vpf-opt-desc">AI-narrated shot review</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Player Card -->
+                    <div class="vpf-video-card">
+                        <div class="vpf-video-card-header">
+                            <div class="vpf-video-card-title" id="vpfVideoTitle">SHOT REPLAY</div>
+                            <span class="vpf-mode-pill" id="vpfModePill">TRENDS</span>
+                        </div>
+                        <div class="vpf-video-area" id="vpfVideoArea">
+                            <div class="vpf-video-placeholder" id="vpfPlaceholder">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <span id="vpfPlaceholderText">Select a clip below to start</span>
+                            </div>
+                            <video id="vpfVideo" playsinline muted></video>
+                            <canvas id="vpfCanvas"></canvas>
+                            <div class="vpf-mistake-label" id="vpfMistakeLabel">
+                                <span id="vpfMistakeName">Elbow Flare</span>
+                                <span class="vpf-angle-live" id="vpfAngleLive">43°</span>
+                            </div>
+                            <div class="vpf-slowmo-badge" id="vpfSlowmoBadge">0.25x SLOW-MO</div>
+                            <!-- Annotation Box -->
+                            <div class="vpf-annotation" id="vpfAnnotation">
+                                <div class="vpf-annotation-header">
+                                    <span class="vpf-annotation-icon">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    </span>
+                                    <span id="vpfAnnotationTitle">Elbow Flare</span>
+                                </div>
+                                <div class="vpf-annotation-angle" id="vpfAnnotationAngle">43° <span>Ideal: 5-15°</span></div>
+                                <div class="vpf-annotation-body">
+                                    <div class="vpf-annotation-row">
+                                        <span class="vpf-annotation-label">What's happening</span>
+                                        <span id="vpfAnnotationWhat">Your elbow is flaring out</span>
+                                    </div>
+                                    <div class="vpf-annotation-row">
+                                        <span class="vpf-annotation-label">Consequence</span>
+                                        <span id="vpfAnnotationConseq">Causes left/right misses</span>
+                                    </div>
+                                    <div class="vpf-annotation-row">
+                                        <span class="vpf-annotation-label">Fix</span>
+                                        <span id="vpfAnnotationFix">Tuck your shooting elbow closer to your body</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="vpf-play-overlay" id="vpfPlayOverlay">
+                                <div class="vpf-play-circle">
+                                    <svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"></polygon></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- YouTube-style Controls -->
+                        <div class="vpf-yt-controls" id="vpfControls">
+                            <!-- Scrubber track -->
+                            <div class="vpf-scrub-wrap">
+                                <div class="vpf-scrub-track" id="vpfScrubTrack">
+                                    <div class="vpf-scrub-fill" id="vpfScrubFill"></div>
+                                    <div class="vpf-scrub-markers" id="vpfScrubMarkers"></div>
+                                    <div class="vpf-scrub-thumb" id="vpfScrubThumb"></div>
+                                </div>
+                            </div>
+                            <!-- Button row -->
+                            <div class="vpf-ctrl-row">
+                                <div class="vpf-ctrl-left">
+                                    <button class="vpf-ctrl-btn" id="vpfCtrlPlay" title="Play/Pause">
+                                        <svg id="vpfPlaySvg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"></polygon></svg>
+                                        <svg id="vpfPauseSvg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5" y="3" width="4" height="18"></rect><rect x="15" y="3" width="4" height="18"></rect></svg>
+                                    </button>
+                                    <span class="vpf-ctrl-time" id="vpfCtrlTime">0:00 / 0:00</span>
+                                </div>
+                                <div class="vpf-ctrl-right">
+                                    <!-- Speed selector -->
+                                    <div class="vpf-speed-select" id="vpfSpeedSelect">
+                                        <button class="vpf-ctrl-btn vpf-speed-btn" id="vpfSpeedBtn" title="Playback speed">1x</button>
+                                        <div class="vpf-speed-dropdown" id="vpfSpeedDropdown">
+                                            <div class="vpf-speed-opt" data-speed="0.25">0.25x</div>
+                                            <div class="vpf-speed-opt" data-speed="0.5">0.5x</div>
+                                            <div class="vpf-speed-opt active" data-speed="1">1x</div>
+                                            <div class="vpf-speed-opt" data-speed="1.5">1.5x</div>
+                                            <div class="vpf-speed-opt" data-speed="2">2x</div>
+                                        </div>
+                                    </div>
+                                    <!-- Annotation toggle -->
+                                    <button class="vpf-ctrl-btn vpf-annotate-btn" id="vpfAnnotateBtn" title="Toggle annotations">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Suggestion Cards -->
+                    <div class="vpf-suggestions" id="vpfSuggestions">
+                        <!-- Populated by JS based on active bucket -->
+                    </div>
+
+                    <!-- StatMuse-style Search Bar -->
+                    <div class="vpf-search-container">
+                        <div class="vpf-search-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </div>
+                        <input type="text" class="vpf-search-input" id="vpfSearchInput" placeholder="How does my release height change when I'm tired?">
+                        <button class="vpf-search-btn">Ask</button>
+                    </div>
+                    <div class="vpf-search-hint">Try asking about specific mechanics, shot comparisons, or session patterns</div>
                 </div>
 
             </section>
@@ -11706,6 +12566,8 @@
             if (fileInput) fileInput.value = '';
             // Deselect analysis buttons
             document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
+            // Destroy weakness highlighter
+            if (typeof WeaknessHighlighter !== 'undefined') WeaknessHighlighter.destroy();
             // Clear recorded pose data
             window.recordedUserPoseData = null;
             window.userPoseData = null;
@@ -14086,6 +14948,67 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             jumpHeight: 'Jump Height'
         };
 
+        // --- Weakness → Landmark mapping for overlay ---
+        const WEAKNESS_LANDMARK_MAP = {
+            elbowFlare: {
+                displayName: 'Elbow Flare',
+                landmarkIndices: [MP.RIGHT_HIP, MP.RIGHT_SHOULDER, MP.RIGHT_ELBOW],
+                connections: [[MP.RIGHT_HIP, MP.RIGHT_SHOULDER], [MP.RIGHT_SHOULDER, MP.RIGHT_ELBOW]],
+                computeAngle: function(lm) {
+                    const h = lm[MP.RIGHT_HIP], s = lm[MP.RIGHT_SHOULDER], e = lm[MP.RIGHT_ELBOW];
+                    if (!h || !s || !e) return null;
+                    const raw = calculateAngle(h, s, e);
+                    return raw !== null ? Math.abs(raw - 90) : null;
+                }
+            },
+            trunkLean: {
+                displayName: 'Trunk Lean',
+                landmarkIndices: [MP.LEFT_SHOULDER, MP.RIGHT_SHOULDER, MP.LEFT_HIP, MP.RIGHT_HIP],
+                connections: [],
+                _isSpine: true,
+                computeAngle: function(lm) {
+                    const ls = lm[MP.LEFT_SHOULDER], rs = lm[MP.RIGHT_SHOULDER];
+                    const lh = lm[MP.LEFT_HIP], rh = lm[MP.RIGHT_HIP];
+                    if (!ls || !rs || !lh || !rh) return null;
+                    const midS = { x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2, z: (ls.z + rs.z) / 2 };
+                    const midH = { x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2, z: (lh.z + rh.z) / 2 };
+                    const vertRef = { x: midH.x, y: midH.y - 0.5, z: midH.z };
+                    return calculateAngle(midS, midH, vertRef);
+                }
+            },
+            kneeBend: {
+                displayName: 'Knee Bend',
+                landmarkIndices: [MP.RIGHT_HIP, MP.RIGHT_KNEE, MP.RIGHT_ANKLE],
+                connections: [[MP.RIGHT_HIP, MP.RIGHT_KNEE], [MP.RIGHT_KNEE, MP.RIGHT_ANKLE]],
+                computeAngle: function(lm) {
+                    const h = lm[MP.RIGHT_HIP], k = lm[MP.RIGHT_KNEE], a = lm[MP.RIGHT_ANKLE];
+                    if (!h || !k || !a) return null;
+                    return calculateAngle(h, k, a);
+                }
+            },
+            elbowExtension: {
+                displayName: 'Elbow Extension',
+                landmarkIndices: [MP.RIGHT_SHOULDER, MP.RIGHT_ELBOW, MP.RIGHT_WRIST],
+                connections: [[MP.RIGHT_SHOULDER, MP.RIGHT_ELBOW], [MP.RIGHT_ELBOW, MP.RIGHT_WRIST]],
+                computeAngle: function(lm) {
+                    const s = lm[MP.RIGHT_SHOULDER], e = lm[MP.RIGHT_ELBOW], w = lm[MP.RIGHT_WRIST];
+                    if (!s || !e || !w) return null;
+                    return calculateAngle(s, e, w);
+                }
+            },
+            wristSnap: {
+                displayName: 'Wrist Snap',
+                landmarkIndices: [MP.RIGHT_ELBOW, MP.RIGHT_WRIST, 20],
+                connections: [[MP.RIGHT_ELBOW, MP.RIGHT_WRIST], [MP.RIGHT_WRIST, 20]],
+                computeAngle: function(lm) {
+                    const e = lm[MP.RIGHT_ELBOW], w = lm[MP.RIGHT_WRIST], idx = lm[20];
+                    if (!e || !w || !idx) return null;
+                    const raw = calculateAngle(e, w, idx);
+                    return raw !== null ? Math.abs(180 - raw) : null;
+                }
+            }
+        };
+
         // --- Compute metrics from pose data ---
         function computeMetricsFromPoseData(poseData) {
             if (!poseData || poseData.length === 0) return null;
@@ -14353,7 +15276,344 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             updateFootAlignmentCard(metrics);
             updateFootStanceCard(metrics);
             updateReleaseHeightCard(metrics);
+
+            // Wire Weakness Highlighter
+            const userVideoEl = document.getElementById('userVideo');
+            const videoSrc = userVideoEl ? userVideoEl.src : null;
+            WeaknessHighlighter.init(result.scores, window.userPoseData, videoSrc);
         }
+
+        // WeaknessHighlighter REMOVED — consolidated into Visual Mistakes
+        var WeaknessHighlighter = { init: function(){}, destroy: function(){} };
+        /* DEAD CODE BELOW — original WH module (kept as no-op stub above) */
+        if (false) { (function() {
+            let animFrameId = null;
+            let blobUrl = null;
+            let isScrubbing = false;
+            let isPlaying = false;
+            let biggestWeakness = null;
+            let poseData = null;
+
+            const els = {};
+
+            function cacheEls() {
+                els.container = document.getElementById('weaknessHighlighter');
+                els.video = document.getElementById('whVideo');
+                els.canvas = document.getElementById('whCanvas');
+                els.ctx = els.canvas ? els.canvas.getContext('2d') : null;
+                els.playBtn = document.getElementById('whPlayBtn');
+                els.playIcon = document.getElementById('whPlayIcon');
+                els.scrubber = document.getElementById('whScrubber');
+                els.time = document.getElementById('whTime');
+                els.angleValue = document.getElementById('whAngleValue');
+                els.angleLabel = document.getElementById('whAngleLabel');
+                els.badge = document.getElementById('whBadge');
+                els.status = document.getElementById('whStatus');
+                els.statusText = document.getElementById('whStatusText');
+            }
+
+            function formatTime(s) {
+                if (!s || !isFinite(s)) return '0:00';
+                const m = Math.floor(s / 60);
+                const sec = Math.floor(s % 60);
+                return m + ':' + (sec < 10 ? '0' : '') + sec;
+            }
+
+            function findNearestFrame(time) {
+                if (!poseData || !poseData.length) return null;
+                let lo = 0, hi = poseData.length - 1;
+                while (lo < hi) {
+                    const mid = (lo + hi) >> 1;
+                    if (poseData[mid].time < time) lo = mid + 1;
+                    else hi = mid;
+                }
+                if (lo > 0) {
+                    const dPrev = Math.abs(poseData[lo - 1].time - time);
+                    const dCurr = Math.abs(poseData[lo].time - time);
+                    if (dPrev < dCurr) lo--;
+                }
+                return poseData[lo];
+            }
+
+            function drawOverlayForCurrentTime() {
+                const ctx = els.ctx;
+                if (!ctx || !els.canvas) return;
+                const time = els.video.currentTime;
+                const frame = findNearestFrame(time);
+                ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+
+                if (!frame || !frame.landmarks || frame.landmarks.length < 33) {
+                    els.angleValue.textContent = '--°';
+                    return;
+                }
+
+                const lm = frame.landmarks;
+                const map = biggestWeakness.map;
+
+                // Visibility check
+                for (const idx of map.landmarkIndices) {
+                    if (!lm[idx] || (lm[idx].visibility !== undefined && lm[idx].visibility < 0.3)) {
+                        els.angleValue.textContent = '--°';
+                        return;
+                    }
+                }
+
+                const angle = map.computeAngle(lm);
+                if (angle === null) {
+                    els.angleValue.textContent = '--°';
+                    return;
+                }
+
+                els.angleValue.textContent = Math.round(angle) + '°';
+
+                const [lo, hi] = THRESHOLDS[biggestWeakness.key].ideal;
+                const isOutside = angle < lo || angle > hi;
+
+                if (isOutside) {
+                    els.status.className = 'wh-status-indicator outside';
+                    els.statusText.textContent = 'Outside Ideal Range';
+                } else {
+                    els.status.className = 'wh-status-indicator inside';
+                    els.statusText.textContent = 'In Ideal Range';
+                }
+
+                if (!isOutside) return;
+
+                // Draw overlay
+                const w = els.canvas.width;
+                const h = els.canvas.height;
+                function toCanvas(landmark) {
+                    return { x: landmark.x * w, y: landmark.y * h };
+                }
+
+                ctx.save();
+                ctx.strokeStyle = '#FF3B30';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#FF3B30';
+                ctx.shadowBlur = 16;
+                ctx.lineCap = 'round';
+
+                if (map._isSpine) {
+                    // Trunk lean special case: draw spine + dashed vertical
+                    const ls = lm[MP.LEFT_SHOULDER], rs = lm[MP.RIGHT_SHOULDER];
+                    const lh = lm[MP.LEFT_HIP], rh = lm[MP.RIGHT_HIP];
+                    const midS = toCanvas({ x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2 });
+                    const midH = toCanvas({ x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2 });
+                    // Spine line
+                    ctx.beginPath();
+                    ctx.moveTo(midS.x, midS.y);
+                    ctx.lineTo(midH.x, midH.y);
+                    ctx.stroke();
+                    // Vertical reference (dashed)
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.shadowBlur = 0;
+                    ctx.beginPath();
+                    ctx.moveTo(midH.x, midH.y);
+                    ctx.lineTo(midH.x, midH.y - (midH.y - midS.y) * 1.2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    // Dots at midpoints
+                    [midS, midH].forEach(p => {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+                        ctx.fillStyle = '#FF3B30';
+                        ctx.shadowBlur = 16;
+                        ctx.shadowColor = '#FF3B30';
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fff';
+                        ctx.shadowBlur = 0;
+                        ctx.fill();
+                    });
+                } else {
+                    // Standard connections + dots
+                    for (const [i1, i2] of map.connections) {
+                        const p1 = toCanvas(lm[i1]);
+                        const p2 = toCanvas(lm[i2]);
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                    for (const idx of map.landmarkIndices) {
+                        const p = toCanvas(lm[idx]);
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+                        ctx.fillStyle = '#FF3B30';
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fff';
+                        ctx.shadowBlur = 0;
+                        ctx.fill();
+                        ctx.shadowBlur = 16;
+                    }
+                }
+
+                // Angle pill near the vertex (second landmark = vertex for standard, midH for spine)
+                ctx.shadowBlur = 0;
+                let vertexScreen;
+                if (map._isSpine) {
+                    const lh2 = lm[MP.LEFT_HIP], rh2 = lm[MP.RIGHT_HIP];
+                    vertexScreen = toCanvas({ x: (lh2.x + rh2.x) / 2, y: (lh2.y + rh2.y) / 2 });
+                } else {
+                    vertexScreen = toCanvas(lm[map.landmarkIndices[1]]);
+                }
+                const text = Math.round(angle) + '°';
+                ctx.font = '600 13px "Work Sans", sans-serif';
+                const textWidth = ctx.measureText(text).width;
+                const pillW = textWidth + 16;
+                const pillH = 24;
+                const pillX = vertexScreen.x + 16;
+                const pillY = vertexScreen.y - 12;
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.beginPath();
+                ctx.roundRect(pillX, pillY, pillW, pillH, 6);
+                ctx.fill();
+                ctx.fillStyle = '#FF6B7A';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, pillX + 8, pillY + pillH / 2);
+
+                ctx.restore();
+            }
+
+            function renderLoop() {
+                if (!isScrubbing) {
+                    drawOverlayForCurrentTime();
+                    if (els.video.duration) {
+                        els.scrubber.value = (els.video.currentTime / els.video.duration) * 1000;
+                    }
+                    els.time.textContent = formatTime(els.video.currentTime) + ' / ' + formatTime(els.video.duration);
+                }
+                animFrameId = requestAnimationFrame(renderLoop);
+            }
+
+            function onPlayPause() {
+                if (els.video.paused) {
+                    els.video.play();
+                    isPlaying = true;
+                    els.playIcon.innerHTML = '<rect x="5" y="3" width="4" height="18"></rect><rect x="15" y="3" width="4" height="18"></rect>';
+                } else {
+                    els.video.pause();
+                    isPlaying = false;
+                    els.playIcon.innerHTML = '<polygon points="6,3 20,12 6,21"></polygon>';
+                }
+            }
+
+            function onScrubInput() {
+                isScrubbing = true;
+                const pct = els.scrubber.value / 1000;
+                els.video.currentTime = pct * els.video.duration;
+                drawOverlayForCurrentTime();
+                els.time.textContent = formatTime(els.video.currentTime) + ' / ' + formatTime(els.video.duration);
+            }
+
+            function onScrubChange() {
+                isScrubbing = false;
+            }
+
+            function onEnded() {
+                isPlaying = false;
+                els.playIcon.innerHTML = '<polygon points="6,3 20,12 6,21"></polygon>';
+                if (animFrameId) {
+                    cancelAnimationFrame(animFrameId);
+                    animFrameId = null;
+                }
+            }
+
+            function init(scores, poseFrames, videoSrc) {
+                cacheEls();
+                if (!els.container || !els.video || !els.canvas) return;
+
+                // Find biggest weakness (lowest score among radar metrics)
+                const radarKeys = ['elbowFlare','trunkLean','kneeBend','elbowExtension','wristSnap'];
+                let minKey = null, minScore = Infinity;
+                for (const k of radarKeys) {
+                    if (scores && scores[k] !== undefined && scores[k] < minScore && WEAKNESS_LANDMARK_MAP[k]) {
+                        minScore = scores[k];
+                        minKey = k;
+                    }
+                }
+
+                if (!minKey || !poseFrames || !poseFrames.length) {
+                    els.container.classList.remove('visible');
+                    return;
+                }
+
+                biggestWeakness = { key: minKey, map: WEAKNESS_LANDMARK_MAP[minKey] };
+                poseData = poseFrames;
+
+                // Update UI labels
+                els.badge.textContent = biggestWeakness.map.displayName;
+                const t = THRESHOLDS[minKey];
+                els.angleLabel.textContent = 'Ideal: ' + t.ideal[0] + '° – ' + t.ideal[1] + '°';
+
+                // Create blob URL from uploadedFile
+                const userVideoEl = document.getElementById('userVideo');
+                if (userVideoEl && userVideoEl.uploadedFile) {
+                    if (blobUrl) URL.revokeObjectURL(blobUrl);
+                    blobUrl = URL.createObjectURL(userVideoEl.uploadedFile);
+                    els.video.src = blobUrl;
+                } else if (videoSrc) {
+                    els.video.src = videoSrc;
+                } else {
+                    els.container.classList.remove('visible');
+                    return;
+                }
+
+                els.video.addEventListener('loadedmetadata', function onMeta() {
+                    els.video.removeEventListener('loadedmetadata', onMeta);
+                    els.canvas.width = els.video.videoWidth;
+                    els.canvas.height = els.video.videoHeight;
+                    els.video.currentTime = 0;
+                    els.video.pause();
+                    drawOverlayForCurrentTime();
+                    els.container.classList.add('visible');
+                    renderLoop();
+                });
+
+                els.video.load();
+
+                // Bind events
+                els.playBtn.addEventListener('click', onPlayPause);
+                els.scrubber.addEventListener('input', onScrubInput);
+                els.scrubber.addEventListener('change', onScrubChange);
+                els.video.addEventListener('ended', onEnded);
+            }
+
+            function destroy() {
+                if (animFrameId) {
+                    cancelAnimationFrame(animFrameId);
+                    animFrameId = null;
+                }
+                if (blobUrl) {
+                    URL.revokeObjectURL(blobUrl);
+                    blobUrl = null;
+                }
+                cacheEls();
+                if (els.container) els.container.classList.remove('visible');
+                if (els.video) {
+                    els.video.pause();
+                    els.video.removeAttribute('src');
+                    els.video.load();
+                }
+                if (els.playBtn) els.playBtn.removeEventListener('click', onPlayPause);
+                if (els.scrubber) {
+                    els.scrubber.removeEventListener('input', onScrubInput);
+                    els.scrubber.removeEventListener('change', onScrubChange);
+                }
+                if (els.video) els.video.removeEventListener('ended', onEnded);
+                isPlaying = false;
+                isScrubbing = false;
+                biggestWeakness = null;
+                poseData = null;
+            }
+
+            return { init: init, destroy: destroy };
+        })(); }
 
         function updateRhythmCard(metrics) {
             const offset = metrics.rhythmOffset || 0;
@@ -14641,6 +15901,9 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
                 clone.addEventListener('click', function() {
                     if (this.id === 'backToRecordBtn') return;
+
+                    // Destroy previous weakness highlighter before re-analysis
+                    if (typeof WeaknessHighlighter !== 'undefined') WeaknessHighlighter.destroy();
 
                     document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('selected'));
                     this.classList.add('selected');
@@ -18147,6 +19410,845 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             }
         });
 
+    /* ============================================ */
+    /* Video Playback Feedback — UI Controller       */
+    /* ============================================ */
+    (function initVideoPlaybackFeedback() {
+        const BUCKETS = {
+            trends: {
+                label: 'Trends',
+                pill: 'TRENDS',
+                subtitle: 'Track how your mechanics change over time',
+                placeholder: 'How does my release height change when I\'m tired?',
+                videoTitle: 'SHOT REPLAY',
+                placeholderText: 'Select a clip to view trend analysis',
+                suggestions: [
+                    { tag: 'RELEASE HEIGHT', title: 'Release point dropping in late sessions', stat: '2.1" avg decline after rep 40', color: '#FFD93D' },
+                    { tag: 'ELBOW ANGLE', title: 'Elbow flare increasing week over week', stat: '+4.2° avg since last Tuesday', color: '#FF6B7A' },
+                    { tag: 'CONSISTENCY', title: 'Most consistent mechanic: knee bend', stat: '92% within ideal range all week', color: '#3DD68C' }
+                ]
+            },
+            'visual-mistakes': {
+                label: 'Visual Mistakes',
+                pill: 'VISUAL MISTAKES',
+                subtitle: 'See your worst mechanical errors frame-by-frame',
+                placeholder: 'Show me my worst elbow flare',
+                videoTitle: 'ERROR REPLAY',
+                placeholderText: 'Select an error clip to review',
+                suggestions: [
+                    { tag: 'WORST FRAME', title: 'Elbow flare at 43° — Shot #14', stat: 'Ideal range: 5-15° from body', color: '#FF6B7A' },
+                    { tag: 'TRUNK LEAN', title: 'Forward lean 18° at release — Shot #8', stat: 'Target: under 8° lean at release', color: '#FFD93D' },
+                    { tag: 'WRIST SNAP', title: 'Incomplete follow-through — Shot #22', stat: 'Wrist angle 142° vs 170° ideal', color: '#FF6B7A' }
+                ]
+            },
+            'skeleton-lab': {
+                label: 'Skeleton Lab',
+                pill: 'SKELETON LAB',
+                subtitle: 'Compare your 3D pose against pro reference frames',
+                placeholder: 'Compare my release to Steph Curry\'s',
+                videoTitle: '3D POSE VIEW',
+                placeholderText: 'Select a comparison to load',
+                suggestions: [
+                    { tag: 'VS CURRY', title: 'Release point comparison — your set vs Curry', stat: 'Elbow 12° wider, release 3" lower', color: '#A382FF' },
+                    { tag: 'VS YOUR BEST', title: 'Current form vs your personal best session', stat: 'Hip rotation 8° less today', color: '#00D4FF' },
+                    { tag: 'OVERLAY', title: 'Side-by-side skeleton at peak release', stat: 'Frame 34: biggest divergence point', color: '#A382FF' }
+                ]
+            },
+            coaching: {
+                label: 'Coaching Playback',
+                pill: 'COACHING',
+                subtitle: 'AI-narrated review of your shot mechanics',
+                placeholder: 'What should I focus on in my next session?',
+                videoTitle: 'COACHING REVIEW',
+                placeholderText: 'Select a coaching clip to listen',
+                suggestions: [
+                    { tag: 'TOP PRIORITY', title: '"Your elbow is the #1 thing holding you back"', stat: 'AI confidence: 94%', color: '#FF6B7A' },
+                    { tag: 'POSITIVE NOTE', title: '"Great knee drive consistency this session"', stat: 'Improved 12% from last week', color: '#3DD68C' },
+                    { tag: 'DRILL PICK', title: '"Try wall shooting for trunk stability"', stat: 'Based on 3 sessions of trunk lean data', color: '#00D4FF' }
+                ]
+            }
+        };
+
+        let activeBucket = 'trends';
+        let activeCard = null;
+
+        const section      = document.getElementById('videoPlaybackFeedback');
+        const bucketBtn    = document.getElementById('vpfBucketBtn');
+        const bucketLabel  = document.getElementById('vpfBucketLabel');
+        const dropdown     = document.getElementById('vpfDropdown');
+        const subtitle     = document.getElementById('vpfSubtitle');
+        const modePill     = document.getElementById('vpfModePill');
+        const videoTitle   = document.getElementById('vpfVideoTitle');
+        const placeholderT = document.getElementById('vpfPlaceholderText');
+        const suggestions  = document.getElementById('vpfSuggestions');
+        const searchInput  = document.getElementById('vpfSearchInput');
+
+        if (!section || !bucketBtn) return;
+
+        // Toggle dropdown
+        bucketBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains('open');
+            dropdown.classList.toggle('open');
+            bucketBtn.classList.toggle('open');
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', function() {
+            dropdown.classList.remove('open');
+            bucketBtn.classList.remove('open');
+        });
+        dropdown.addEventListener('click', function(e) { e.stopPropagation(); });
+
+        // Bucket selection
+        dropdown.querySelectorAll('.vpf-bucket-option').forEach(function(opt) {
+            opt.addEventListener('click', function() {
+                const bucket = this.dataset.bucket;
+                if (bucket === activeBucket) {
+                    dropdown.classList.remove('open');
+                    bucketBtn.classList.remove('open');
+                    return;
+                }
+                activeBucket = bucket;
+                activeCard = null;
+
+                dropdown.querySelectorAll('.vpf-bucket-option').forEach(function(o) { o.classList.remove('active'); });
+                this.classList.add('active');
+                dropdown.classList.remove('open');
+                bucketBtn.classList.remove('open');
+
+                renderBucket();
+            });
+        });
+
+        function renderBucket() {
+            const b = BUCKETS[activeBucket];
+            bucketLabel.textContent = b.label;
+            subtitle.textContent = b.subtitle;
+            modePill.textContent = b.pill;
+            videoTitle.textContent = b.videoTitle;
+            placeholderT.textContent = b.placeholderText;
+            searchInput.setAttribute('placeholder', b.placeholder);
+
+            // Tear down any active visual-mistakes playback
+            if (window._visualMistakes) window._visualMistakes.destroy();
+
+            if (activeBucket === 'visual-mistakes') {
+                // Let VisualMistakes module populate cards + wire video
+                if (window._visualMistakes) {
+                    window._visualMistakes.init();
+                }
+                return;
+            }
+
+            // Default: render static placeholder cards
+            suggestions.innerHTML = '';
+            b.suggestions.forEach(function(s, i) {
+                var card = document.createElement('div');
+                card.className = 'vpf-suggestion-card';
+                card.innerHTML =
+                    '<div class="vpf-suggestion-tag">' + s.tag + '</div>' +
+                    '<div class="vpf-suggestion-title">' + s.title + '</div>' +
+                    '<div class="vpf-suggestion-stat">' +
+                        '<span class="vpf-suggestion-stat-dot" style="background: ' + s.color + ';"></span>' +
+                        s.stat +
+                    '</div>';
+                card.addEventListener('click', function() {
+                    suggestions.querySelectorAll('.vpf-suggestion-card').forEach(function(c) { c.classList.remove('active'); });
+                    card.classList.add('active');
+                    activeCard = i;
+                    placeholderT.textContent = 'Loading: ' + s.title.replace(/"/g, '');
+                });
+                suggestions.appendChild(card);
+            });
+
+            // Reset video area to placeholder state
+            var vpfVid = document.getElementById('vpfVideo');
+            var vpfCvs = document.getElementById('vpfCanvas');
+            var vpfPh  = document.getElementById('vpfPlaceholder');
+            var vpfOvl = document.getElementById('vpfPlayOverlay');
+            var vpfLbl = document.getElementById('vpfMistakeLabel');
+            if (vpfVid) { vpfVid.classList.remove('visible'); vpfVid.pause(); vpfVid.removeAttribute('src'); }
+            if (vpfCvs) vpfCvs.classList.remove('visible');
+            if (vpfPh) vpfPh.style.display = '';
+            if (vpfOvl) vpfOvl.classList.remove('visible');
+            if (vpfLbl) vpfLbl.classList.remove('visible');
+        }
+
+        // Show section whenever idealFormResults becomes active
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+                if (m.target.id === 'idealFormResults' && m.target.classList.contains('active')) {
+                    section.classList.add('active');
+                    renderBucket();
+                } else if (m.target.id === 'idealFormResults' && !m.target.classList.contains('active')) {
+                    section.classList.remove('active');
+                }
+            });
+        });
+        const ifResults = document.getElementById('idealFormResults');
+        if (ifResults) {
+            observer.observe(ifResults, { attributes: true, attributeFilter: ['class'] });
+            // If already active on load
+            if (ifResults.classList.contains('active')) {
+                section.classList.add('active');
+                renderBucket();
+            }
+        }
+
+        // Initial render
+        renderBucket();
+    })();
+
+    /* ============================================ */
+    /* Visual Mistakes — Mistake Detection + Replay */
+    /* ============================================ */
+    window._visualMistakes = (function() {
+        // DOM refs
+        var video       = document.getElementById('vpfVideo');
+        var canvas      = document.getElementById('vpfCanvas');
+        var ctx         = canvas ? canvas.getContext('2d') : null;
+        var placeholder = document.getElementById('vpfPlaceholder');
+        var playOverlay = document.getElementById('vpfPlayOverlay');
+        var mistakeLabel  = document.getElementById('vpfMistakeLabel');
+        var mistakeName   = document.getElementById('vpfMistakeName');
+        var angleLive     = document.getElementById('vpfAngleLive');
+        var suggestionsEl = document.getElementById('vpfSuggestions');
+        var slowmoBadge   = document.getElementById('vpfSlowmoBadge');
+        // Annotation refs
+        var annotationEl  = document.getElementById('vpfAnnotation');
+        var annTitle      = document.getElementById('vpfAnnotationTitle');
+        var annAngle      = document.getElementById('vpfAnnotationAngle');
+        var annWhat       = document.getElementById('vpfAnnotationWhat');
+        var annConseq     = document.getElementById('vpfAnnotationConseq');
+        var annFix        = document.getElementById('vpfAnnotationFix');
+        var annotateBtn   = document.getElementById('vpfAnnotateBtn');
+        // YT controls refs
+        var ctrlPlay      = document.getElementById('vpfCtrlPlay');
+        var playSvg       = document.getElementById('vpfPlaySvg');
+        var pauseSvg      = document.getElementById('vpfPauseSvg');
+        var ctrlTime      = document.getElementById('vpfCtrlTime');
+        var scrubTrack    = document.getElementById('vpfScrubTrack');
+        var scrubFill     = document.getElementById('vpfScrubFill');
+        var scrubThumb    = document.getElementById('vpfScrubThumb');
+        var scrubMarkers  = document.getElementById('vpfScrubMarkers');
+        var speedBtn      = document.getElementById('vpfSpeedBtn');
+        var speedDropdown = document.getElementById('vpfSpeedDropdown');
+
+        var segments = [];
+        var activeSegment = null;
+        var poseData = null;
+        var rafId = null;
+        var blobUrl = null;
+        var isPlaying = false;
+        var annotationsOn = false;
+        var userSpeed = 1;          // user-selected speed
+        var autoSlowmo = true;      // auto slow-mo during errors
+        var isScrubbing = false;
+        var videoDuration = 0;
+
+        var SCAN_METRICS = ['elbowFlare', 'trunkLean', 'kneeBend', 'elbowExtension', 'wristSnap'];
+        var METRIC_COLORS = { elbowFlare: '#FF6B7A', trunkLean: '#FFD93D', kneeBend: '#00D4FF', elbowExtension: '#A382FF', wristSnap: '#FF6B7A' };
+
+        function init() {
+            poseData = window.userPoseData;
+            if (!poseData || poseData.length === 0) { renderNoData(); return; }
+
+            segments = detectMistakes(poseData);
+            segments.sort(function(a, b) { return b.worstDeviation - a.worstDeviation; });
+
+            var top3 = segments.slice(0, 3);
+            renderCards(top3);
+            setupVideo();
+            bindControls();
+        }
+
+        /* ---- Mistake detection ---- */
+        function detectMistakes(frames) {
+            var result = [];
+            SCAN_METRICS.forEach(function(metricKey) {
+                var map = typeof WEAKNESS_LANDMARK_MAP !== 'undefined' ? WEAKNESS_LANDMARK_MAP[metricKey] : null;
+                var thresh = typeof THRESHOLDS !== 'undefined' ? THRESHOLDS[metricKey] : null;
+                if (!map || !thresh) return;
+                var idealMin = thresh.ideal[0], idealMax = thresh.ideal[1];
+                var cur = null;
+                for (var i = 0; i < frames.length; i++) {
+                    var frame = frames[i], lm = frame.landmarks;
+                    if (!lm || lm.length < 33) { if (cur) { result.push(cur); cur = null; } continue; }
+                    var visible = true;
+                    map.landmarkIndices.forEach(function(idx) {
+                        if (!lm[idx] || (lm[idx].visibility !== undefined && lm[idx].visibility < 0.3)) visible = false;
+                    });
+                    if (!visible) { if (cur) { result.push(cur); cur = null; } continue; }
+                    var angle = map.computeAngle(lm);
+                    if (angle === null) { if (cur) { result.push(cur); cur = null; } continue; }
+                    var outside = angle < idealMin || angle > idealMax;
+                    if (outside) {
+                        var dev = angle < idealMin ? idealMin - angle : angle - idealMax;
+                        if (!cur) {
+                            cur = { metric: metricKey, displayName: map.displayName, startTime: frame.time, endTime: frame.time,
+                                startIdx: i, endIdx: i, worstAngle: angle, worstDeviation: dev,
+                                idealRange: [idealMin, idealMax], unit: thresh.unit || '\u00B0' };
+                        } else {
+                            cur.endTime = frame.time; cur.endIdx = i;
+                            if (dev > cur.worstDeviation) { cur.worstDeviation = dev; cur.worstAngle = angle; }
+                        }
+                    } else { if (cur) { result.push(cur); cur = null; } }
+                }
+                if (cur) result.push(cur);
+            });
+            return result.filter(function(s) { return s.endIdx - s.startIdx >= 1; });
+        }
+
+        /* ---- Cards ---- */
+        function renderCards(top3) {
+            if (!suggestionsEl) return;
+            suggestionsEl.innerHTML = '';
+            if (top3.length === 0) {
+                suggestionsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">No significant mistakes detected</div>';
+                return;
+            }
+            top3.forEach(function(seg, i) {
+                var dur = (seg.endTime - seg.startTime).toFixed(1);
+                var card = document.createElement('div');
+                card.className = 'vpf-suggestion-card';
+                var col = METRIC_COLORS[seg.metric] || '#FF6B7A';
+                card.innerHTML =
+                    '<div class="vpf-suggestion-tag">' + seg.displayName.toUpperCase() + '</div>' +
+                    '<div class="vpf-suggestion-title">' + seg.displayName + ' at ' + Math.round(seg.worstAngle) + seg.unit + ' \u2014 ' + fmtTime(seg.startTime) + '</div>' +
+                    '<div class="vpf-suggestion-stat"><span class="vpf-suggestion-stat-dot" style="background:' + col + ';"></span>Ideal: ' + seg.idealRange[0] + '-' + seg.idealRange[1] + seg.unit + ' \u00B7 ' + dur + 's clip</div>';
+                card.addEventListener('click', function() {
+                    suggestionsEl.querySelectorAll('.vpf-suggestion-card').forEach(function(c) { c.classList.remove('active'); });
+                    card.classList.add('active');
+                    playSegment(seg);
+                });
+                suggestionsEl.appendChild(card);
+            });
+            // Auto-select first
+            suggestionsEl.querySelector('.vpf-suggestion-card').classList.add('active');
+            loadSegment(top3[0]);
+        }
+
+        /* ---- Video setup ---- */
+        function setupVideo() {
+            if (!video) return;
+            var userVideoEl = document.getElementById('userVideo');
+            if (userVideoEl && userVideoEl.uploadedFile) {
+                if (blobUrl) URL.revokeObjectURL(blobUrl);
+                blobUrl = URL.createObjectURL(userVideoEl.uploadedFile);
+                video.src = blobUrl;
+            } else if (userVideoEl && userVideoEl.src) {
+                video.src = userVideoEl.src;
+            }
+            video.load();
+            video.addEventListener('loadedmetadata', function() {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                videoDuration = video.duration;
+                renderScrubMarkers();
+                updateTimeDisplay();
+            });
+        }
+
+        /* ---- Scrub markers ---- */
+        function renderScrubMarkers() {
+            if (!scrubMarkers || videoDuration <= 0) return;
+            scrubMarkers.innerHTML = '';
+            segments.forEach(function(seg) {
+                var left = (seg.startTime / videoDuration * 100).toFixed(2);
+                var width = Math.max(0.5, ((seg.endTime - seg.startTime) / videoDuration * 100)).toFixed(2);
+                var el = document.createElement('div');
+                el.style.cssText = 'position:absolute;top:0;height:100%;background:rgba(255,60,80,0.45);border-radius:2px;left:' + left + '%;width:' + width + '%;';
+                el.title = seg.displayName;
+                scrubMarkers.appendChild(el);
+            });
+        }
+
+        /* ---- Load / Play segment ---- */
+        function loadSegment(seg) {
+            activeSegment = seg;
+            if (!video || !video.src) return;
+            placeholder.style.display = 'none';
+            video.classList.add('visible');
+            canvas.classList.add('visible');
+            playOverlay.classList.add('visible');
+            mistakeLabel.classList.add('visible');
+            mistakeName.textContent = seg.displayName;
+            angleLive.textContent = Math.round(seg.worstAngle) + seg.unit;
+            updateAnnotation(seg, seg.worstAngle);
+            var seekTo = Math.max(0, seg.startTime - 0.5);
+            video.currentTime = seekTo;
+            video.playbackRate = userSpeed;
+            if (video.readyState >= 1) drawOverlayAtTime(seekTo);
+            updateScrubPosition();
+            updateTimeDisplay();
+            showPlayIcon();
+        }
+
+        function playSegment(seg) {
+            loadSegment(seg);
+            doPlay();
+        }
+
+        function doPlay() {
+            playOverlay.classList.remove('visible');
+            video.play().then(function() {
+                isPlaying = true;
+                showPauseIcon();
+                startRenderLoop();
+            }).catch(function() { playOverlay.classList.add('visible'); });
+        }
+
+        function doPause() {
+            video.pause();
+            isPlaying = false;
+            cancelAnimationFrame(rafId);
+            showPlayIcon();
+        }
+
+        /* ---- Controls binding ---- */
+        function bindControls() {
+            // Play/pause button
+            if (ctrlPlay) ctrlPlay.addEventListener('click', function() {
+                if (!activeSegment) return;
+                if (isPlaying) doPause(); else doPlay();
+            });
+
+            // Play overlay
+            if (playOverlay) playOverlay.addEventListener('click', function() {
+                if (!activeSegment) return;
+                doPlay();
+            });
+
+            // Click video to pause
+            if (video) video.addEventListener('click', function() {
+                if (isPlaying) { doPause(); playOverlay.classList.add('visible'); }
+            });
+
+            // Scrubber
+            if (scrubTrack) {
+                scrubTrack.addEventListener('mousedown', onScrubStart);
+                scrubTrack.addEventListener('touchstart', onScrubStart, { passive: true });
+            }
+
+            // Speed selector
+            if (speedBtn) speedBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                speedDropdown.classList.toggle('open');
+            });
+            if (speedDropdown) {
+                speedDropdown.querySelectorAll('.vpf-speed-opt').forEach(function(opt) {
+                    opt.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        userSpeed = parseFloat(this.dataset.speed);
+                        speedBtn.textContent = this.dataset.speed + 'x';
+                        speedDropdown.querySelectorAll('.vpf-speed-opt').forEach(function(o) { o.classList.remove('active'); });
+                        this.classList.add('active');
+                        speedDropdown.classList.remove('open');
+                        if (video && !isScrubbing) video.playbackRate = userSpeed;
+                    });
+                });
+            }
+            document.addEventListener('click', function() { if (speedDropdown) speedDropdown.classList.remove('open'); });
+
+            // Annotation toggle
+            if (annotateBtn) annotateBtn.addEventListener('click', function() {
+                annotationsOn = !annotationsOn;
+                this.classList.toggle('active', annotationsOn);
+                if (annotationEl) annotationEl.classList.toggle('visible', annotationsOn);
+            });
+
+            // Video ended
+            if (video) video.addEventListener('ended', function() {
+                isPlaying = false;
+                cancelAnimationFrame(rafId);
+                showPlayIcon();
+                playOverlay.classList.add('visible');
+            });
+        }
+
+        /* ---- Scrub logic ---- */
+        function onScrubStart(e) {
+            if (!video || videoDuration <= 0) return;
+            isScrubbing = true;
+            var wasPaused = video.paused;
+            if (!wasPaused) video.pause();
+            seekToPointer(e);
+
+            function onMove(ev) { seekToPointer(ev); }
+            function onUp() {
+                isScrubbing = false;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onUp);
+                if (!wasPaused && !video.paused) { /* already playing */ }
+                else if (!wasPaused) doPlay();
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+            document.addEventListener('touchmove', onMove, { passive: true });
+            document.addEventListener('touchend', onUp);
+        }
+
+        function seekToPointer(e) {
+            var rect = scrubTrack.getBoundingClientRect();
+            var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            var pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            video.currentTime = pct * videoDuration;
+            updateScrubPosition();
+            updateTimeDisplay();
+            drawOverlayAtTime(video.currentTime);
+        }
+
+        /* ---- Render loop ---- */
+        function startRenderLoop() {
+            cancelAnimationFrame(rafId);
+            function loop() {
+                if (!isPlaying || !activeSegment) return;
+
+                // Auto slow-mo
+                var t = video.currentTime;
+                var inMistake = isInMistakeSegment(t);
+                if (autoSlowmo && inMistake) {
+                    if (video.playbackRate !== 0.25) {
+                        video.playbackRate = 0.25;
+                        if (slowmoBadge) slowmoBadge.classList.add('visible');
+                    }
+                } else {
+                    if (video.playbackRate !== userSpeed) {
+                        video.playbackRate = userSpeed;
+                        if (slowmoBadge) slowmoBadge.classList.remove('visible');
+                    }
+                }
+
+                // Loop clip
+                var segEnd = activeSegment.endTime + 0.5;
+                if (t >= segEnd || video.ended) {
+                    video.currentTime = Math.max(0, activeSegment.startTime - 0.5);
+                }
+
+                drawOverlayAtTime(video.currentTime);
+                updateScrubPosition();
+                updateTimeDisplay();
+                rafId = requestAnimationFrame(loop);
+            }
+            rafId = requestAnimationFrame(loop);
+        }
+
+        function isInMistakeSegment(time) {
+            if (!activeSegment) return false;
+            return time >= activeSegment.startTime && time <= activeSegment.endTime;
+        }
+
+        /* ---- Draw overlay ---- */
+        function drawOverlayAtTime(time) {
+            if (!ctx || !poseData || !activeSegment) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            var frame = findNearestFrame(time);
+            if (!frame) return;
+            var lm = frame.landmarks;
+            if (!lm || lm.length < 33) return;
+
+            var map = typeof WEAKNESS_LANDMARK_MAP !== 'undefined' ? WEAKNESS_LANDMARK_MAP[activeSegment.metric] : null;
+            if (!map) return;
+
+            var angle = map.computeAngle(lm);
+            if (angle === null) return;
+
+            var outside = angle < activeSegment.idealRange[0] || angle > activeSegment.idealRange[1];
+            angleLive.textContent = Math.round(angle) + activeSegment.unit;
+            updateAnnotation(activeSegment, angle);
+
+            if (outside) {
+                mistakeLabel.style.background = 'rgba(255, 60, 80, 0.88)';
+                var w = canvas.width, h = canvas.height;
+                ctx.strokeStyle = '#FF3C50';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = 'rgba(255, 60, 80, 0.7)';
+                ctx.shadowBlur = 18;
+                ctx.lineCap = 'round';
+
+                if (map._isSpine) {
+                    var ls = lm[11], rs = lm[12], lh = lm[23], rh = lm[24];
+                    if (ls && rs && lh && rh) {
+                        var midSx = (ls.x + rs.x) / 2 * w, midSy = (ls.y + rs.y) / 2 * h;
+                        var midHx = (lh.x + rh.x) / 2 * w, midHy = (lh.y + rh.y) / 2 * h;
+                        ctx.beginPath(); ctx.moveTo(midHx, midHy); ctx.lineTo(midSx, midSy); ctx.stroke();
+                        ctx.setLineDash([8, 6]); ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.shadowBlur = 0;
+                        ctx.beginPath(); ctx.moveTo(midHx, midHy); ctx.lineTo(midHx, midHy - (midHy - midSy) * 1.2); ctx.stroke();
+                        ctx.setLineDash([]);
+                        drawDot(midSx, midSy); drawDot(midHx, midHy);
+                    }
+                } else {
+                    map.connections.forEach(function(pair) {
+                        var p1 = lm[pair[0]], p2 = lm[pair[1]];
+                        if (!p1 || !p2) return;
+                        ctx.beginPath(); ctx.moveTo(p1.x * w, p1.y * h); ctx.lineTo(p2.x * w, p2.y * h); ctx.stroke();
+                    });
+                    map.landmarkIndices.forEach(function(idx) {
+                        var pt = lm[idx]; if (!pt) return;
+                        drawDot(pt.x * w, pt.y * h);
+                    });
+                }
+
+                // Angle pill near vertex
+                var vIdx = map._isSpine ? null : map.landmarkIndices[1];
+                if (vIdx !== undefined && vIdx !== null && lm[vIdx]) {
+                    var vx = lm[vIdx].x * w, vy = lm[vIdx].y * h;
+                    ctx.shadowBlur = 0;
+                    ctx.font = 'bold 14px "Work Sans", sans-serif';
+                    var txt = Math.round(angle) + '\u00B0';
+                    var tw = ctx.measureText(txt).width;
+                    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                    ctx.beginPath(); ctx.roundRect(vx + 14, vy - 12, tw + 14, 24, 6); ctx.fill();
+                    ctx.fillStyle = '#FF3C50';
+                    ctx.fillText(txt, vx + 21, vy + 5);
+                }
+                ctx.shadowBlur = 0;
+            } else {
+                mistakeLabel.style.background = 'rgba(61, 214, 140, 0.8)';
+            }
+        }
+
+        function drawDot(x, y) {
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#FF3C50';
+            ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+        }
+
+        /* ---- Annotation ---- */
+        function updateAnnotation(seg, currentAngle) {
+            if (!annotationEl) return;
+            var fb = typeof FEEDBACK !== 'undefined' ? FEEDBACK[seg.metric] : null;
+            annTitle.textContent = seg.displayName;
+            annAngle.innerHTML = Math.round(currentAngle) + seg.unit + ' <span>Ideal: ' + seg.idealRange[0] + '-' + seg.idealRange[1] + seg.unit + '</span>';
+
+            if (fb) {
+                // Split "bad" feedback on " — " to get description and consequence
+                var badText = fb.bad || '';
+                var parts = badText.split(' \u2014 ');
+                if (parts.length < 2) parts = badText.split(' - ');
+                annWhat.textContent = parts[0] || seg.displayName + ' detected';
+                annConseq.textContent = parts[1] || 'May affect shot accuracy';
+                annFix.textContent = (fb.warning || '').replace(/^Slight[a-z ]*\. /, '').replace(/^Mild[a-z ]*\. /, '') || 'Focus on this mechanic during practice';
+            } else {
+                annWhat.textContent = seg.displayName + ' outside ideal range';
+                annConseq.textContent = 'May affect shot accuracy';
+                annFix.textContent = 'Focus on this mechanic';
+            }
+        }
+
+        /* ---- UI helpers ---- */
+        function updateScrubPosition() {
+            if (!scrubFill || !scrubThumb || videoDuration <= 0) return;
+            var pct = (video.currentTime / videoDuration * 100).toFixed(2);
+            scrubFill.style.width = pct + '%';
+            scrubThumb.style.left = pct + '%';
+        }
+
+        function updateTimeDisplay() {
+            if (!ctrlTime) return;
+            ctrlTime.textContent = fmtTime(video.currentTime) + ' / ' + fmtTime(videoDuration || 0);
+        }
+
+        function showPlayIcon() { if (playSvg) playSvg.style.display = ''; if (pauseSvg) pauseSvg.style.display = 'none'; }
+        function showPauseIcon() { if (playSvg) playSvg.style.display = 'none'; if (pauseSvg) pauseSvg.style.display = ''; }
+
+        function findNearestFrame(time) {
+            if (!poseData || poseData.length === 0) return null;
+            var lo = 0, hi = poseData.length - 1;
+            while (lo < hi) { var mid = (lo + hi) >> 1; if (poseData[mid].time < time) lo = mid + 1; else hi = mid; }
+            if (lo > 0 && Math.abs(poseData[lo - 1].time - time) < Math.abs(poseData[lo].time - time)) return poseData[lo - 1];
+            return poseData[lo];
+        }
+
+        function fmtTime(s) {
+            var m = Math.floor(s / 60), sec = Math.floor(s % 60);
+            return m + ':' + (sec < 10 ? '0' : '') + sec;
+        }
+
+        function renderNoData() {
+            if (!suggestionsEl) return;
+            suggestionsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">Run an analysis first to detect visual mistakes</div>';
+        }
+
+        function destroy() {
+            cancelAnimationFrame(rafId);
+            isPlaying = false; activeSegment = null; segments = [];
+            if (video) { video.pause(); video.removeAttribute('src'); video.classList.remove('visible'); video.playbackRate = 1; }
+            if (canvas) { canvas.classList.remove('visible'); if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); }
+            if (placeholder) placeholder.style.display = '';
+            if (playOverlay) playOverlay.classList.remove('visible');
+            if (mistakeLabel) mistakeLabel.classList.remove('visible');
+            if (annotationEl) annotationEl.classList.remove('visible');
+            if (slowmoBadge) slowmoBadge.classList.remove('visible');
+            if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+            showPlayIcon();
+        }
+
+        return { init: init, destroy: destroy };
+    })();
+
+    </script>
+
+    <!-- Skeleton Lab Button -->
+    <button id="skeletonLabBtn" onclick="openSkeletonLab()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        3D Skeleton Lab
+    </button>
+
+    <!-- Dev Demo Button -->
+    <button id="devDemoBtn" onclick="runDevDemo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21"></polygon></svg>
+        Demo: Steph Curry
+    </button>
+    <div id="devDemoProgress">
+        <span id="devDemoText">Loading...</span>
+        <div class="demo-bar"><div class="demo-fill" id="devDemoFill"></div></div>
+    </div>
+
+    <script>
+    function openSkeletonLab() {
+        if (window.userPoseData && window.userPoseData.length > 0) {
+            try {
+                localStorage.setItem('skeletonLabPoseData', JSON.stringify(window.userPoseData));
+            } catch (e) {
+                console.warn('[SkeletonLab] Could not store pose data:', e);
+            }
+        }
+        window.open('skeleton-lab.html', '_blank');
+    }
+
+    async function runDevDemo() {
+        const btn = document.getElementById('devDemoBtn');
+        const progress = document.getElementById('devDemoProgress');
+        const textEl = document.getElementById('devDemoText');
+        const fillEl = document.getElementById('devDemoFill');
+
+        if (btn.classList.contains('loading')) return;
+        btn.classList.add('loading');
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Running...';
+        progress.style.display = 'block';
+
+        try {
+            // 1. Fetch the video as a File object
+            textEl.textContent = 'Loading video...';
+            fillEl.style.width = '5%';
+            const resp = await fetch('/tool/steph_curry_shooting.mov');
+            const blob = await resp.blob();
+            const file = new File([blob], 'steph_curry_shooting.mov', { type: blob.type || 'video/quicktime' });
+
+            // 2. Set it on the userVideo element so WeaknessHighlighter can use uploadedFile
+            const userVideo = document.getElementById('userVideo');
+            if (userVideo) {
+                if (userVideo.src && userVideo.src.startsWith('blob:')) URL.revokeObjectURL(userVideo.src);
+                const url = URL.createObjectURL(file);
+                userVideo.src = url;
+                userVideo.uploadedFile = file;
+                userVideo.load();
+            }
+
+            // 3. Init MediaPipe Pose
+            textEl.textContent = 'Initializing MediaPipe...';
+            fillEl.style.width = '15%';
+            const pose = new Pose({
+                locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
+            });
+            pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+
+            const frames = [];
+            pose.onResults((results) => {
+                if (results.poseLandmarks) {
+                    frames.push({
+                        time: tempVideo.currentTime,
+                        landmarks: results.poseLandmarks.map(lm => ({ x: lm.x, y: lm.y, z: lm.z, visibility: lm.visibility }))
+                    });
+                }
+            });
+            await pose.initialize();
+
+            // 4. Use a temp video to extract poses
+            const tempVideo = document.createElement('video');
+            tempVideo.muted = true;
+            tempVideo.playsInline = true;
+            tempVideo.src = URL.createObjectURL(file);
+            await new Promise((res, rej) => {
+                tempVideo.onloadedmetadata = res;
+                tempVideo.onerror = rej;
+            });
+
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = tempVideo.videoWidth;
+            offCanvas.height = tempVideo.videoHeight;
+            const offCtx = offCanvas.getContext('2d');
+
+            const duration = tempVideo.duration;
+            const fps = 15;
+            const step = 1 / fps;
+            const totalFrames = Math.ceil(duration * fps);
+            let processed = 0;
+            let t = 0;
+
+            textEl.textContent = 'Extracting poses...';
+            fillEl.style.width = '20%';
+
+            while (t < duration) {
+                tempVideo.currentTime = t;
+                await new Promise(r => tempVideo.onseeked = r);
+                offCtx.drawImage(tempVideo, 0, 0, offCanvas.width, offCanvas.height);
+                await pose.send({ image: offCanvas });
+                processed++;
+                const pct = 20 + (processed / totalFrames) * 70;
+                fillEl.style.width = Math.min(92, pct) + '%';
+                textEl.textContent = `Extracting poses... ${processed}/${totalFrames}`;
+                t += step;
+            }
+            pose.close();
+            URL.revokeObjectURL(tempVideo.src);
+
+            // 5. Store pose data
+            window.userPoseData = frames;
+            console.log(`[Demo] Extracted ${frames.length} pose frames`);
+
+            // 6. Compute metrics & show Ideal Form results
+            textEl.textContent = 'Computing metrics...';
+            fillEl.style.width = '95%';
+            const metrics = computeMetricsFromPoseData(frames);
+
+            // Hide all steps, show step3 with ideal form
+            document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+            document.getElementById('step3').style.display = 'block';
+            document.getElementById('playerMatchResults').classList.remove('active');
+            document.getElementById('idealFormResults').classList.add('active');
+
+            if (metrics) {
+                const result = classifyIdealForm(metrics);
+                const workOnItems = getWorkOnItems(result.workOn);
+                populateIdealFormUI(result, workOnItems, metrics);
+                if (window.applyPlayerDetails) window.applyPlayerDetails();
+            }
+
+            fillEl.style.width = '100%';
+            textEl.textContent = 'Done!';
+            setTimeout(() => { progress.style.display = 'none'; }, 1000);
+
+        } catch (err) {
+            console.error('[Demo] Error:', err);
+            textEl.textContent = 'Error: ' + err.message;
+            fillEl.style.width = '0%';
+        }
+
+        btn.classList.remove('loading');
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21"></polygon></svg> Demo: Steph Curry';
+    }
     </script>
 </body>
 </html>
