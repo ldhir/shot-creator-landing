@@ -1813,6 +1813,30 @@
             transition: width 0.3s;
         }
 
+        /* Skeleton Lab Button */
+        #skeletonLabBtn {
+            position: fixed;
+            bottom: 24px;
+            right: 240px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #FF6B7A 0%, #FF8A94 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-family: 'Work Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 122, 0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #skeletonLabBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(255, 107, 122, 0.5); }
+        #skeletonLabBtn:active { transform: scale(0.97); }
+
         .if-tips-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
         .if-tip-item {
             display: flex;
@@ -18743,6 +18767,16 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
     </script>
 
+    <!-- Skeleton Lab Button -->
+    <button id="skeletonLabBtn" onclick="openSkeletonLab()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        3D Skeleton Lab
+    </button>
+
     <!-- Dev Demo Button -->
     <button id="devDemoBtn" onclick="runDevDemo()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21"></polygon></svg>
@@ -18754,6 +18788,17 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
     </div>
 
     <script>
+    function openSkeletonLab() {
+        if (window.userPoseData && window.userPoseData.length > 0) {
+            try {
+                localStorage.setItem('skeletonLabPoseData', JSON.stringify(window.userPoseData));
+            } catch (e) {
+                console.warn('[SkeletonLab] Could not store pose data:', e);
+            }
+        }
+        window.open('skeleton-lab.html', '_blank');
+    }
+
     async function runDevDemo() {
         const btn = document.getElementById('devDemoBtn');
         const progress = document.getElementById('devDemoProgress');
