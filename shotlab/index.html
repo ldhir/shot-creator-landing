@@ -1,143 +1,170 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShotLab | Session Analysis</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/shotlab/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShotLab - Coaching Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shotlab/style.css">
 </head>
 <body>
-    <main class="page">
-        <header class="hero">
-            <div class="hero-top">
-                <a class="back-link" href="/">← Back to Home</a>
-            </div>
-            <h1>ShotLab Session Analyzer</h1>
-            <p>Upload a shooting session to detect jump shots, makes, and on-court zones. Each zone returns a ShotSync score against a benchmark and completion percentage.</p>
-            <div class="angle-requirement">
-                MVP camera requirement: place the camera behind the basket, facing the shooter (camera facing you).
-            </div>
-        </header>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-mark">SL</div>
+      <div>
+        <h1>ShotLab Coaching</h1>
+        <p>Behind-basket shooting analysis</p>
+      </div>
+    </header>
 
-        <section class="upload-card">
-            <div class="upload-info">
-                <h2>Upload Session Video</h2>
-                <p>MP4, MOV, AVI, MKV, or WEBM. 30 seconds+ recommended. Use only behind-basket angle for now.</p>
-                <p>No manual court calibration is required in this MVP mode.</p>
+    <main class="content" id="contentRoot">
+      <section id="uploadScreen" class="screen upload-screen">
+        <div class="card intro-card">
+          <h2>Upload your shooting session</h2>
+          <p>Place your phone behind the basket, facing the shooter. Landscape mode is recommended.</p>
+        </div>
+
+        <div class="card upload-card">
+          <div id="dropZone" class="drop-zone">
+            <input id="videoFile" type="file" accept="video/*" class="file-input-overlay">
+            <span class="drop-title">Drag and drop video</span>
+            <span class="drop-subtitle">or tap to choose file</span>
+          </div>
+
+          <form id="uploadForm" novalidate>
+            <div id="fileName" class="file-name" aria-live="polite">No file selected</div>
+            <div id="uploadError" class="error-box" role="alert" hidden></div>
+            <button id="analyzeBtn" type="submit" class="primary-btn">Analyze Session</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="loadingScreen" class="screen loading-screen" hidden>
+        <div class="card loading-card">
+          <div class="loading-kicker">Video Analysis In Progress</div>
+          <h2>Analyzing your shots</h2>
+          <div id="progressPercent" class="progress-percent">0%</div>
+          <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+          <div id="progressText" class="progress-text">Analyzing your shots...</div>
+        </div>
+      </section>
+
+      <section id="resultsScreen" class="screen results-screen" hidden>
+        <div class="results-toolbar">
+          <h2>Session Results</h2>
+          <button id="newSessionBtn" class="secondary-btn" type="button">Analyze Another Session</button>
+        </div>
+
+        <section class="card session-header" id="sessionHeader">
+          <div class="gauge-wrap">
+            <div id="shotsyncGauge" class="gauge">
+              <div class="gauge-inner">
+                <div id="gaugeValue" class="gauge-value">--</div>
+                <div id="gaugeScore" class="gauge-score">--/100</div>
+                <div class="gauge-caption">FORM SCORE</div>
+              </div>
             </div>
-            <div class="upload-actions">
-                <label class="file-picker">
-                    <input id="videoInput" type="file" accept="video/*" />
-                    <span>Select video</span>
-                </label>
-                <div id="fileName" class="file-name">No file selected</div>
-                <button id="analyzeBtn" class="cta" disabled>Analyze Session</button>
-            </div>
-            <label class="data-optout">
-                <input id="collectTrainingData" type="checkbox" checked />
-                Allow anonymized training data collection
-            </label>
-            <p class="privacy-note">We sample frames for model training. Faces are blurred when this is enabled.</p>
-            <div id="status" class="status hidden"></div>
+            <div id="gaugeLabel" class="gauge-label">Waiting for score</div>
+          </div>
+          <div id="quickStats" class="quick-stats">0 shots | 0 makes | 0 misses | 0.0%</div>
         </section>
 
-        <section id="results" class="results hidden">
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="summary-label">Total Jump Shots</div>
-                    <div id="totalShots" class="summary-value">0</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">Total Makes</div>
-                    <div id="totalMakes" class="summary-value">0</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">Session FG%</div>
-                    <div id="totalPct" class="summary-value">0%</div>
-                </div>
-            </div>
-
-            <div class="heatmap-card">
-                <div class="table-header">
-                    <h3>Zone Heatmap</h3>
-                    <span class="table-sub">Left / Center / Right make %</span>
-                </div>
-                <div class="heatmap">
-                    <svg viewBox="0 0 50 47" aria-label="Basketball court heatmap">
-                        <rect class="court" x="0" y="0" width="50" height="47" />
-                        <rect data-zone="left" x="0" y="0" width="16.67" height="47" />
-                        <rect data-zone="center" x="16.67" y="0" width="16.66" height="47" />
-                        <rect data-zone="right" x="33.33" y="0" width="16.67" height="47" />
-                        <line x1="16.67" y1="0" x2="16.67" y2="47" stroke="#323232" stroke-width="0.4" />
-                        <line x1="33.33" y1="0" x2="33.33" y2="47" stroke="#323232" stroke-width="0.4" />
-                    </svg>
-                </div>
-                <div class="legend">
-                    <span>0%</span>
-                    <div class="legend-bar"></div>
-                    <span>100%</span>
-                </div>
-            </div>
-
-            <div class="tables">
-                <div class="table-card">
-                    <div class="table-header">
-                        <h3>Zone Breakdown</h3>
-                        <span class="table-sub">Completion % + ShotSync score vs benchmark</span>
-                    </div>
-                    <div class="table-scroll">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Zone</th>
-                                    <th>Attempts</th>
-                                    <th>Makes</th>
-                                    <th>Completion %</th>
-                                    <th>ShotSync Score</th>
-                                </tr>
-                            </thead>
-                            <tbody id="zoneTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <div class="table-header">
-                        <h3>Shot-by-Shot</h3>
-                        <span class="table-sub">Zone + result + ShotSync score</span>
-                    </div>
-                    <div class="table-scroll">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Zone</th>
-                                    <th>Result</th>
-                                    <th>ShotSync Score</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="shotTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="warnings" class="warnings hidden"></div>
-
-            <div id="clipViewer" class="clip-viewer hidden">
-                <div class="clip-card">
-                    <div class="clip-title">Shot Replay</div>
-                    <div id="clipMeta" class="clip-meta">Select a shot to view the clip.</div>
-                    <video id="clipVideo" class="clip-video" controls preload="metadata"></video>
-                </div>
-            </div>
+        <section class="card insights" id="insightsSection">
+          <h3>Coaching Insights</h3>
+          <div class="insight-grid">
+            <article id="topImprovementCard" class="insight-card top-improvement">
+              <h4>Top Improvement</h4>
+              <p class="insight-title" id="topImprovementTitle">-</p>
+              <p class="insight-text" id="topImprovementText">No coaching insight yet.</p>
+            </article>
+            <article id="strengthCard" class="insight-card strength">
+              <h4>Strength</h4>
+              <p class="insight-title" id="strengthTitle">-</p>
+              <p class="insight-text" id="strengthText">No strength insight yet.</p>
+            </article>
+          </div>
+          <div class="insight-block" id="makeVsMissBlock">
+            <h4>Make vs Miss Insight</h4>
+            <p id="makeVsMissText">No make-vs-miss insight available yet.</p>
+          </div>
         </section>
+
+        <section class="card check-breakdown" id="checkBreakdownSection">
+          <h3>Your Form Profile</h3>
+          <div id="checkBreakdown" class="check-list"></div>
+        </section>
+
+        <section class="card shot-table" id="shotTableSection">
+          <div class="table-header">
+            <h3>Shot-by-Shot</h3>
+            <label class="sort-label" for="shotSort">Sort</label>
+            <select id="shotSort">
+              <option value="shot_order">Shot Order</option>
+              <option value="score_desc">Score High to Low</option>
+              <option value="score_asc">Score Low to High</option>
+              <option value="outcome">Outcome</option>
+            </select>
+          </div>
+          <div id="shotList" class="shot-list"></div>
+        </section>
+
+        <section class="card comparison-section comparison-section-secondary" id="comparisonSection" hidden>
+          <div class="comparison-kicker">DEEPER ANALYSIS</div>
+          <h3>Make vs Miss Comparison</h3>
+          <p class="comparison-intro">See how your form changes between makes and misses</p>
+          <div id="comparisonContent"></div>
+        </section>
+
+        <section class="card session-summary" id="sessionSummarySection">
+          <h3>Session Coaching Summary</h3>
+          <p id="overallConsistencyText">No consistency summary available.</p>
+          <p id="zoneSummaryText">No zone summary available.</p>
+        </section>
+
+        <section class="card shot-chart" id="shotChartSection">
+          <h3>Shot Chart</h3>
+          <div class="court-wrap">
+            <svg id="shotChartSvg" viewBox="0 0 100 120" role="img" aria-label="Half-court shot chart">
+              <rect x="8" y="8" width="84" height="104" class="court-line"></rect>
+              <line x1="30" y1="8" x2="30" y2="38" class="court-line"></line>
+              <line x1="70" y1="8" x2="70" y2="38" class="court-line"></line>
+              <rect x="30" y="8" width="40" height="34" class="court-line"></rect>
+              <circle cx="50" cy="20" r="2" class="court-line"></circle>
+              <path d="M 24 38 A 26 26 0 0 0 76 38" class="court-line"></path>
+              <path d="M 18 56 A 32 32 0 0 0 82 56" class="court-line faint"></path>
+              <line x1="8" y1="8" x2="8" y2="66" class="court-line"></line>
+              <line x1="92" y1="8" x2="92" y2="66" class="court-line"></line>
+              <line x1="44" y1="11" x2="56" y2="11" class="court-line"></line>
+              <g id="shotDots"></g>
+            </svg>
+            <div class="zone-labels">
+              <span>Left</span>
+              <span>Center</span>
+              <span>Right</span>
+            </div>
+          </div>
+          <div id="zoneStats" class="zone-stats"></div>
+          <div id="zoneTips" class="zone-tips"></div>
+        </section>
+
+        <section class="card corrections-controls" id="correctionsCard" hidden>
+          <div class="corrections-row">
+            <div id="correctionsCount" class="corrections-count">0 manual corrections ready to save</div>
+            <button id="saveCorrectionsBtn" type="button" class="secondary-btn">Save Corrections</button>
+          </div>
+          <div id="saveCorrectionsStatus" class="save-status" aria-live="polite"></div>
+        </section>
+
+
+
+      </section>
     </main>
+  </div>
 
-    <script src="/shotlab/app.js"></script>
+  <script src="/shotlab/app.js" defer></script>
 </body>
 </html>
