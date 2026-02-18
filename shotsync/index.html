@@ -680,6 +680,21 @@
         .pm-shot-tab:not(.active) .pm-tab-delete { background: rgba(255,107,122,0.15); color: var(--primary-color); }
         .pm-shot-tab:not(.active) .pm-tab-delete:hover { background: rgba(255,107,122,0.3); }
 
+        .metric-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-gray);
+            font-family: 'Work Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .metric-tab:hover { border-color: var(--primary-color); color: var(--text-dark); }
+        .metric-tab.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+
         .pm-grid {
             display: grid;
             grid-template-columns: 1fr 380px;
@@ -1751,11 +1766,11 @@
         // Save global benchmark (for all users)
         window.saveGlobalBenchmark = async (benchmarkData) => {
             try {
-                console.log('üíæ Attempting to save global benchmark to Firebase...');
+                console.log('💾 Attempting to save global benchmark to Firebase...');
                 console.log('Benchmark data length:', benchmarkData?.length || 0);
                 
                 if (!benchmarkData || benchmarkData.length === 0) {
-                    console.error('‚ùå Cannot save: benchmark data is empty');
+                    console.error('❌ Cannot save: benchmark data is empty');
                     return false;
                 }
                 
@@ -1797,12 +1812,12 @@
                     frameCount: firebaseCompatibleData.length
                 }, { merge: true });
                 
-                console.log('‚úÖ Global benchmark saved successfully to Firebase');
+                console.log('✅ Global benchmark saved successfully to Firebase');
                 console.log('Saved to path: globalBenchmark/custom');
                 console.log('Frame count:', firebaseCompatibleData.length);
                 return true;
             } catch (error) {
-                console.error('‚ùå Error saving global benchmark:', error);
+                console.error('❌ Error saving global benchmark:', error);
                 console.error('Error details:', error.message, error.code);
                 return false;
             }
@@ -1816,7 +1831,7 @@
                 if (benchmarkDoc.exists()) {
                     const data = benchmarkDoc.data();
                     const firebaseData = data.data || [];
-                    console.log('‚úÖ Global benchmark loaded:', firebaseData.length, 'frames');
+                    console.log('✅ Global benchmark loaded:', firebaseData.length, 'frames');
                     
                     // Convert Firebase format back to original format (landmarks as arrays)
                     const convertedData = firebaseData.map(frame => {
@@ -2606,7 +2621,7 @@
             <button id="profileButton" class="btn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 8px 12px; border-radius: 20px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
                 <span id="profileInitials" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">U</span>
                 <span id="profileName" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px;"></span>
-                <span style="font-size: 10px;">‚ñº</span>
+                <span style="font-size: 10px;">▼</span>
             </button>
             <div id="profileMenu" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; display: none; z-index: 1001;">
                 <div style="padding: 16px; border-bottom: 1px solid #e0e0e0;">
@@ -2766,7 +2781,7 @@
                     </div>
                     <!-- Idle overlay (shown when not recording/processing) -->
                     <div id="videoIdleOverlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; border-radius: 12px; pointer-events: none;">
-                        <div style="font-size: 40px; margin-bottom: 12px;">üé•</div>
+                        <div style="font-size: 40px; margin-bottom: 12px;">🎥</div>
                         <p style="color: #fff; font-size: 16px; font-weight: 600; margin: 0; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px;">Upload a Video or Start Recording</p>
                         <p style="color: #8B8B96; font-size: 13px; margin-top: 6px;">Your shot will appear here</p>
                     </div>
@@ -2775,15 +2790,15 @@
                         <div class="skeleton-viewer-container">
                             <canvas id="skeletonCanvas3d"></canvas>
                             <div class="skeleton-controls">
-                                <button id="playPauseLoop" class="skeleton-btn">‚è∏</button>
+                                <button id="playPauseLoop" class="skeleton-btn">⏸</button>
                                 <input type="range" id="frameSlider" min="0" max="100" value="0" class="frame-slider">
                                 <span id="frameCounter">0 / 0</span>
                                 <div class="camera-controls">
-                                    <label title="Horizontal">‚Üî</label>
+                                    <label title="Horizontal">↔</label>
                                     <input type="range" id="cameraX" min="-5" max="5" value="0" step="0.1" class="camera-slider">
-                                    <label title="Vertical">‚Üï</label>
+                                    <label title="Vertical">↕</label>
                                     <input type="range" id="cameraY" min="-5" max="5" value="0" step="0.1" class="camera-slider">
-                                    <label title="Zoom">üîç</label>
+                                    <label title="Zoom">🔍</label>
                                     <input type="range" id="cameraZoom" min="2" max="10" value="5" step="0.1" class="camera-slider">
                                 </div>
                             </div>
@@ -2804,16 +2819,16 @@
                         <div class="skeleton-viewer-container" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5;">
                             <canvas id="skeletonCanvas3d"></canvas>
                             <div class="skeleton-controls">
-                                <button id="playPauseLoop" class="skeleton-btn">‚ñ∂</button>
-                                <button id="pauseLoopBtn" class="skeleton-btn" style="display: none;">‚è∏</button>
+                                <button id="playPauseLoop" class="skeleton-btn">▶</button>
+                                <button id="pauseLoopBtn" class="skeleton-btn" style="display: none;">⏸</button>
                                 <input type="range" id="frameSlider" min="0" max="100" value="0" class="frame-slider">
                                 <span id="frameCounter">0 / 0</span>
                                 <div class="camera-controls">
-                                    <label title="Horizontal">‚Üî</label>
+                                    <label title="Horizontal">↔</label>
                                     <input type="range" id="cameraX" min="-5" max="5" value="0" step="0.1" class="camera-slider">
-                                    <label title="Vertical">‚Üï</label>
+                                    <label title="Vertical">↕</label>
                                     <input type="range" id="cameraY" min="-5" max="5" value="0" step="0.1" class="camera-slider">
-                                    <label title="Zoom">üîç</label>
+                                    <label title="Zoom">🔍</label>
                                     <input type="range" id="cameraZoom" min="2" max="10" value="5" step="0.1" class="camera-slider">
                                 </div>
                             </div>
@@ -2939,7 +2954,7 @@
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px; border-radius: 10px; align-self: center;">
-                                    üíæ Extract Angles & Save to Player Data
+                                    💾 Extract Angles & Save to Player Data
                                 </button>
                                 <div id="savePlayerDataStatus" style="margin-top: 10px; padding: 10px; border-radius: 8px; display: none; text-align: center;"></div>
                             </form>
@@ -3062,12 +3077,12 @@
                             <div class="pm-fixes-header"><span>&#128295;</span> Quick Fixes</div>
                             <div class="pm-fix-item">
                                 <button class="pm-fix-toggle">
-                                    <div class="pm-fix-icon">üßç</div>
+                                    <div class="pm-fix-icon">🧍</div>
                                     <div class="pm-fix-content">
                                         <div class="pm-fix-title">Stay more upright</div>
                                         <div class="pm-fix-tip">Reduce forward trunk lean to match Curry's vertical posture</div>
                                     </div>
-                                    <span class="pm-fix-arrow">‚ñº</span>
+                                    <span class="pm-fix-arrow">▼</span>
                                 </button>
                                 <div class="pm-drill-content">
                                     <div class="pm-drill-card">
@@ -3075,7 +3090,7 @@
                                         <div class="pm-drill-name">Wall Alignment Drill</div>
                                         <div class="pm-drill-desc">Stand with your back against a wall and practice your shooting motion. Keep your shoulders touching the wall throughout to build muscle memory for upright posture.</div>
                                         <div class="pm-drill-footer">
-                                            <div class="pm-drill-meta"><span>‚è±Ô∏è 10 mins</span><span>üèÄ 25 reps</span></div>
+                                            <div class="pm-drill-meta"><span>⏱️ 10 mins</span><span>🏀 25 reps</span></div>
                                             <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
                                                 <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                                             </a>
@@ -3085,12 +3100,12 @@
                             </div>
                             <div class="pm-fix-item">
                                 <button class="pm-fix-toggle">
-                                    <div class="pm-fix-icon">ü¶µ</div>
+                                    <div class="pm-fix-icon">🦵</div>
                                     <div class="pm-fix-content">
                                         <div class="pm-fix-title">Deepen your knee bend</div>
                                         <div class="pm-fix-tip">More knee flexion generates power and consistency at release</div>
                                     </div>
-                                    <span class="pm-fix-arrow">‚ñº</span>
+                                    <span class="pm-fix-arrow">▼</span>
                                 </button>
                                 <div class="pm-drill-content">
                                     <div class="pm-drill-card">
@@ -3098,7 +3113,7 @@
                                         <div class="pm-drill-name">Squat & Shoot</div>
                                         <div class="pm-drill-desc">Start in a low squat position before each shot. Explode up through your legs and transfer that energy into your shot. Focus on consistent knee bend depth.</div>
                                         <div class="pm-drill-footer">
-                                            <div class="pm-drill-meta"><span>‚è±Ô∏è 15 mins</span><span>üèÄ 20 reps</span></div>
+                                            <div class="pm-drill-meta"><span>⏱️ 15 mins</span><span>🏀 20 reps</span></div>
                                             <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
                                                 <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                                             </a>
@@ -3108,12 +3123,12 @@
                             </div>
                             <div class="pm-fix-item">
                                 <button class="pm-fix-toggle">
-                                    <div class="pm-fix-icon">ü§ö</div>
+                                    <div class="pm-fix-icon">🤚</div>
                                     <div class="pm-fix-content">
                                         <div class="pm-fix-title">Snap your wrist fully</div>
                                         <div class="pm-fix-tip">Complete follow-through with a full wrist snap for better rotation</div>
                                     </div>
-                                    <span class="pm-fix-arrow">‚ñº</span>
+                                    <span class="pm-fix-arrow">▼</span>
                                 </button>
                                 <div class="pm-drill-content">
                                     <div class="pm-drill-card">
@@ -3121,7 +3136,7 @@
                                         <div class="pm-drill-name">Gooseneck Hold Drill</div>
                                         <div class="pm-drill-desc">After each shot, hold your follow-through with wrist fully snapped (gooseneck position) until the ball hits the rim. This builds muscle memory for complete wrist rotation.</div>
                                         <div class="pm-drill-footer">
-                                            <div class="pm-drill-meta"><span>‚è±Ô∏è 10 mins</span><span>üèÄ 30 reps</span></div>
+                                            <div class="pm-drill-meta"><span>⏱️ 10 mins</span><span>🏀 30 reps</span></div>
                                             <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
                                                 <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                                             </a>
@@ -3145,15 +3160,15 @@
                                     <span class="pm-player-name">Stephen Curry</span>
                                 </div>
                                 <div class="pm-trait-item">
-                                    <div class="pm-trait-icon">üìê</div>
+                                    <div class="pm-trait-icon">📐</div>
                                     <div class="pm-trait-text">
                                         <div class="pm-trait-name">Release Angle</div>
-                                        <div class="pm-trait-detail">Optimal 52¬∞ release trajectory</div>
+                                        <div class="pm-trait-detail">Optimal 52° release trajectory</div>
                                     </div>
                                     <div class="pm-trait-match">96%</div>
                                 </div>
                                 <div class="pm-trait-item">
-                                    <div class="pm-trait-icon">üîÑ</div>
+                                    <div class="pm-trait-icon">🔄</div>
                                     <div class="pm-trait-text">
                                         <div class="pm-trait-name">Follow Through</div>
                                         <div class="pm-trait-detail">Full extension with wrist snap</div>
@@ -3161,7 +3176,7 @@
                                     <div class="pm-trait-match">94%</div>
                                 </div>
                                 <div class="pm-trait-item">
-                                    <div class="pm-trait-icon">üìè</div>
+                                    <div class="pm-trait-icon">📏</div>
                                     <div class="pm-trait-text">
                                         <div class="pm-trait-name">Release Height</div>
                                         <div class="pm-trait-detail">High release point above forehead</div>
@@ -3169,7 +3184,7 @@
                                     <div class="pm-trait-match">92%</div>
                                 </div>
                                 <div class="pm-trait-item">
-                                    <div class="pm-trait-icon">ü¶∂</div>
+                                    <div class="pm-trait-icon">🦶</div>
                                     <div class="pm-trait-text">
                                         <div class="pm-trait-name">Foot Alignment</div>
                                         <div class="pm-trait-detail">Squared stance to the basket</div>
@@ -3184,7 +3199,7 @@
                                     <span class="pm-player-name">Stephen Curry</span>
                                 </div>
                                 <div class="pm-diff-item">
-                                    <div class="pm-diff-icon">üßç</div>
+                                    <div class="pm-diff-icon">🧍</div>
                                     <div class="pm-diff-text">
                                         <div class="pm-diff-name">Trunk Lean</div>
                                         <div class="pm-diff-detail">More forward lean than Curry's upright form</div>
@@ -3192,7 +3207,7 @@
                                     <div class="pm-diff-gap">-15%</div>
                                 </div>
                                 <div class="pm-diff-item">
-                                    <div class="pm-diff-icon">ü¶µ</div>
+                                    <div class="pm-diff-icon">🦵</div>
                                     <div class="pm-diff-text">
                                         <div class="pm-diff-name">Knee Bend</div>
                                         <div class="pm-diff-detail">Less knee flexion at release point</div>
@@ -3209,6 +3224,7 @@
                         </button>
                         <button id="pmNewComparison" class="btn btn-secondary" style="padding: 12px 20px; font-size: 14px; opacity: 0.8;">New Comparison</button>
                     </div>
+
                 </div>
 
                 <!-- Benchmark Comparison Modal -->
@@ -3483,7 +3499,7 @@
                                         <div class="if-workon-drill-name">Back-to-Wall Shooting</div>
                                         <div class="if-workon-drill-tip">If you feel the wall, you're leaning</div>
                                         <div class="if-workon-drill-footer">
-                                            <div class="if-workon-drill-meta"><span>‚è±Ô∏è 10 mins</span><span>üèÄ 15 reps</span></div>
+                                            <div class="if-workon-drill-meta"><span>⏱️ 10 mins</span><span>🏀 15 reps</span></div>
                                             <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
                                                 <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                                             </a>
@@ -3498,7 +3514,7 @@
                                         <div class="if-workon-drill-name">Rhythm Shooting</div>
                                         <div class="if-workon-drill-tip">Say "catch-dip-shoot" out loud to feel the flow</div>
                                         <div class="if-workon-drill-footer">
-                                            <div class="if-workon-drill-meta"><span>‚è±Ô∏è 10 mins</span><span>üèÄ 20 reps</span></div>
+                                            <div class="if-workon-drill-meta"><span>⏱️ 10 mins</span><span>🏀 20 reps</span></div>
                                             <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
                                                 <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                                             </a>
@@ -3507,13 +3523,13 @@
                                 </div>
                                 <div class="if-workon-card">
                                     <div class="if-workon-title">Foot Alignment</div>
-                                    <div class="if-workon-desc">Feet are angled 8¬∞ off center, affecting accuracy on longer shots.</div>
+                                    <div class="if-workon-desc">Feet are angled 8° off center, affecting accuracy on longer shots.</div>
                                     <div class="if-workon-drill">
                                         <div class="if-workon-drill-label">Recommended Drill</div>
                                         <div class="if-workon-drill-name">Catch-and-Square</div>
                                         <div class="if-workon-drill-tip">Toes to the rim before the ball touches your hands</div>
                                         <div class="if-workon-drill-footer">
-                                            <div class="if-workon-drill-meta"><span>‚è±Ô∏è 15 mins</span><span>üèÄ 3x10</span></div>
+                                            <div class="if-workon-drill-meta"><span>⏱️ 15 mins</span><span>🏀 3x10</span></div>
                                             <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
                                                 <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                                             </a>
@@ -3551,11 +3567,11 @@
                         <h3 style="font-family: 'Bebas Neue', sans-serif; margin-bottom: 20px; font-size: 24px; letter-spacing: 1px;">Upload Video</h3>
                         <input type="file" id="benchmarkVideoInput" accept="video/*" style="display: none;">
                         <label for="benchmarkVideoInput" class="btn btn-primary" style="cursor: pointer; display: inline-block; padding: 12px 30px; font-size: 16px; border-radius: 10px; margin-bottom: 15px;">
-                            üìÅ Choose Benchmark Video
+                            📁 Choose Benchmark Video
                         </label>
                         <div id="benchmarkVideoFileName" style="margin-top: 10px; font-size: 14px; color: var(--text-gray);"></div>
                         <button id="processBenchmarkBtn" class="btn btn-success" style="padding: 12px 30px; font-size: 16px; border-radius: 10px; margin-left: 10px; display: none;">
-                            üîÑ Process Video
+                            🔄 Process Video
                         </button>
                         <div id="benchmarkProcessingStatus" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none;"></div>
                     </div>
@@ -3625,7 +3641,7 @@
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px; border-radius: 10px; align-self: flex-start;">
-                                    üíæ Save Benchmark to Player Data
+                                    💾 Save Benchmark to Player Data
                                 </button>
                                 <div id="saveBenchmarkStatus" style="margin-top: 10px; padding: 10px; border-radius: 8px; display: none;"></div>
                             </form>
@@ -3647,7 +3663,7 @@
                     <form id="shotTrackerUploadForm" enctype="multipart/form-data" style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
                         <input type="file" id="shotTrackerFileInput" name="video" accept="video/*" required style="display: none;">
                         <label for="shotTrackerFileInput" class="btn btn-primary" style="cursor: pointer; display: inline-block; padding: 12px 30px; font-size: 16px; border-radius: 10px;">
-                            üìÅ Choose Video File
+                            📁 Choose Video File
                         </label>
                         <div id="uploadedFileName" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
                         <button type="submit" id="uploadBtn" class="btn btn-success" style="padding: 12px 40px; font-size: 16px; border-radius: 10px;">Upload & Analyze Video</button>
@@ -3660,7 +3676,7 @@
                     <img id="shotTrackerVideoStream" src="/api/video_feed" alt="Video Stream" style="max-width: 100%; border-radius: 15px; background: #000;">
                     <!-- Algorithm Indicator -->
                     <div id="algorithmIndicator" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.85); color: white; padding: 12px 16px; border-radius: 8px; font-size: 11px; display: block; z-index: 3; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.5);">
-                        <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: #4ade80;">üèÄ Model: AI-Basketball-Shot-Detection-Tracker</div>
+                        <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: #4ade80;">🏀 Model: AI-Basketball-Shot-Detection-Tracker</div>
                         <div style="font-weight: 600; margin-bottom: 4px; font-size: 11px; color: #94a3b8;">YOLOv8 (best.pt)</div>
                     </div>
                     </div>
@@ -3692,8 +3708,8 @@
                     <div style="font-size: 24px; font-weight: bold; margin-bottom: 15px; text-align: center;">Shot Heatmap</div>
                     <canvas id="shotTrackerHeatmap" width="800" height="600" style="background: rgba(0, 0, 0, 0.3); border-radius: 10px; max-width: 100%; height: auto; display: block; margin: 0 auto;"></canvas>
                     <div style="margin-top: 15px; font-size: 14px; text-align: center;">
-                        <span style="color: #00ff00;">‚óè Makes</span> | 
-                        <span style="color: #ff0000;">‚úï Misses</span>
+                        <span style="color: #00ff00;">● Makes</span> | 
+                        <span style="color: #ff0000;">✕ Misses</span>
                     </div>
                 </div>
                 
@@ -3718,7 +3734,7 @@
                 <!-- Save to Training Database Button -->
                 <div style="text-align: center; margin-top: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">
                     <button id="saveToTrainingDbBtn" class="btn btn-primary" onclick="if(typeof window.saveShotTrackerToTrainingDbLocal === 'function') { window.saveShotTrackerToTrainingDbLocal(); } else if(typeof saveShotTrackerToTrainingDb === 'function') { saveShotTrackerToTrainingDb(); } else { console.error('saveShotTrackerToTrainingDb function not found'); alert('Error: Save function not loaded. Please check console.'); }" style="min-width: 200px; padding: 12px 24px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;">
-                        üíæ Save to Training Database
+                        💾 Save to Training Database
                     </button>
                     <div id="saveTrainingDbMessage" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none; width: 100%; text-align: center; font-size: 14px;"></div>
                         </div>
@@ -3739,7 +3755,7 @@
             <!-- Shooting Percentage Tracker Button -->
             <div style="text-align: center; margin-bottom: 30px;">
                 <button id="shotTrackerBtn" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); color: white; border: none; padding: 12px 28px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 107, 122, 0.3); transition: all 0.3s ease;" onclick="showShotTracker()">
-                    üèÄ Shooting Percentage Tracker
+                    🏀 Shooting Percentage Tracker
                 </button>
             </div>
 
@@ -3840,7 +3856,7 @@
     <!-- Progress Pics View -->
     <div id="progressPicsView" class="tab-view" style="display: none;">
         <div class="container" style="max-width: 1200px; margin: 40px auto; padding: 20px;">
-            <h2 style="font-family: 'Bebas Neue', sans-serif; margin-bottom: 30px;">üì∏ Progress Pics</h2>
+            <h2 style="font-family: 'Bebas Neue', sans-serif; margin-bottom: 30px;">📸 Progress Pics</h2>
             <p style="color: var(--text-gray); margin-bottom: 30px; text-align: center;">
                 Track your progress by uploading photos daily. See how far you've come!
             </p>
@@ -3851,7 +3867,7 @@
                 <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
                     <input type="file" id="progressPicUpload" accept="image/*" capture="environment" style="display: none;">
                     <button id="selectProgressPicBtn" class="btn btn-primary" style="min-width: 200px; padding: 12px 24px;">
-                        üì∑ Choose Photo
+                        📷 Choose Photo
                     </button>
                     <div id="progressPicPreview" style="display: none; margin-top: 20px; width: 100%; max-width: 300px;">
                         <img id="previewImage" src="" alt="Preview" style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: block; margin: 0 auto;">
@@ -3861,8 +3877,8 @@
                             <div style="font-size: 12px; color: var(--text-gray); margin-top: 5px; font-family: 'Bebas Neue', sans-serif;">Add weight, body fat %, or any notes</div>
                         </div>
                         <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
-                            <button id="saveProgressPicBtn" class="btn btn-success" style="min-width: 150px;">üíæ Save Photo</button>
-                            <button id="cancelProgressPicBtn" class="btn btn-secondary" style="min-width: 150px;">‚ùå Cancel</button>
+                            <button id="saveProgressPicBtn" class="btn btn-success" style="min-width: 150px;">💾 Save Photo</button>
+                            <button id="cancelProgressPicBtn" class="btn btn-secondary" style="min-width: 150px;">❌ Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -3910,7 +3926,7 @@
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <!-- Google Calendar sync button hidden for now -->
                             <!-- <button id="syncToCalendarBtn" onclick="syncToGoogleCalendar()" class="btn" style="padding: 8px 16px; background: #34a853; color: white;">
-                                üìÖ Sync to Google Calendar
+                                📅 Sync to Google Calendar
                             </button> -->
                             <button id="editScheduleBtn" onclick="toggleScheduleEditMode()" class="btn btn-secondary" style="padding: 8px 16px;">Edit</button>
                         </div>
@@ -3920,7 +3936,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span id="calendarStatusText">Click "Connect Google Calendar" to sync your schedule</span>
                             <a href="https://calendar.google.com" target="_blank" style="color: #4285f4; text-decoration: none; font-weight: 600; margin-left: 10px;">
-                                üìÖ Open Google Calendar ‚Üí
+                                📅 Open Google Calendar →
                             </a>
                         </div>
                     </div> -->
@@ -4973,7 +4989,7 @@
                     id: 'loginStreak',
                     name: 'Consistency Champion',
                     description: 'Log in consecutive days',
-                    icon: 'üî•',
+                    icon: '🔥',
                     levels: [
                         { level: 'bronze', requirement: '5 days', current: loginStreak + ' days' },
                         { level: 'silver', requirement: '10 days', current: loginStreak + ' days' },
@@ -4984,7 +5000,7 @@
                     id: 'similarity',
                     name: 'Form Master',
                     description: 'Achieve high similarity scores',
-                    icon: 'üéØ',
+                    icon: '🎯',
                     levels: [
                         { level: 'bronze', requirement: '80%', current: maxSimilarity.toFixed(1) + '%' },
                         { level: 'silver', requirement: '90%', current: maxSimilarity.toFixed(1) + '%' },
@@ -4995,7 +5011,7 @@
                     id: 'practiceWarrior',
                     name: 'Practice Warrior',
                     description: 'Complete training sessions',
-                    icon: 'üí™',
+                    icon: '💪',
                     levels: [
                         { level: 'bronze', requirement: '10 sessions', current: totalSessions + ' sessions' },
                         { level: 'silver', requirement: '50 sessions', current: totalSessions + ' sessions' },
@@ -5006,7 +5022,7 @@
                     id: 'firstSteps',
                     name: 'First Steps',
                     description: 'Complete your first analysis',
-                    icon: 'üë£',
+                    icon: '👣',
                     levels: [
                         { level: 'bronze', requirement: '1 session', current: totalSessions + ' sessions' },
                         { level: 'silver', requirement: '5 sessions', current: totalSessions + ' sessions' },
@@ -5017,7 +5033,7 @@
                     id: 'halfCentury',
                     name: 'Milestone Master',
                     description: 'Reach session milestones',
-                    icon: 'üèÜ',
+                    icon: '🏆',
                     levels: [
                         { level: 'bronze', requirement: '50 sessions', current: totalSessions + ' sessions' },
                         { level: 'silver', requirement: '100 sessions', current: totalSessions + ' sessions' },
@@ -5028,7 +5044,7 @@
                     id: 'risingStar',
                     name: 'Rising Star',
                     description: 'Improve your scores over time',
-                    icon: '‚≠ê',
+                    icon: '⭐',
                     levels: [
                         { level: 'bronze', requirement: '10% improvement', current: improvement.toFixed(1) + '%' },
                         { level: 'silver', requirement: '20% improvement', current: improvement.toFixed(1) + '%' },
@@ -5039,7 +5055,7 @@
                     id: 'fastTrack',
                     name: 'Fast Track',
                     description: 'Rapid improvement in sessions',
-                    icon: '‚ö°',
+                    icon: '⚡',
                     levels: [
                         { level: 'bronze', requirement: '15% in 3 sessions', current: improvement.toFixed(1) + '%' },
                         { level: 'silver', requirement: '20% in 5 sessions', current: improvement.toFixed(1) + '%' },
@@ -5050,7 +5066,7 @@
                     id: 'breakthrough',
                     name: 'Breakthrough',
                     description: 'Achieve new personal bests',
-                    icon: 'üí•',
+                    icon: '💥',
                     levels: [
                         { level: 'bronze', requirement: '1 new PB', current: maxSimilarity.toFixed(1) + '%' },
                         { level: 'silver', requirement: '3 new PBs', current: maxSimilarity.toFixed(1) + '%' },
@@ -5061,7 +5077,7 @@
                     id: 'versatileShooter',
                     name: 'Versatile Shooter',
                     description: 'Master multiple players',
-                    icon: 'üé®',
+                    icon: '🎨',
                     levels: [
                         { level: 'bronze', requirement: '3 players at 85%+', current: playersWithHighScores.length + ' players' },
                         { level: 'silver', requirement: '4 players at 85%+', current: playersWithHighScores.length + ' players' },
@@ -5072,7 +5088,7 @@
                     id: 'steadyHand',
                     name: 'Steady Hand',
                     description: 'Maintain consistent high scores',
-                    icon: 'ü§≤',
+                    icon: '🤲',
                     levels: [
                         { level: 'bronze', requirement: '80%+ avg (10 sessions)', current: avgScore.toFixed(1) + '% avg' },
                         { level: 'silver', requirement: '90%+ avg (20 sessions)', current: avgScore.toFixed(1) + '% avg' },
@@ -5083,7 +5099,7 @@
                     id: 'rockSolid',
                     name: 'Rock Solid',
                     description: 'Consecutive sessions at 85%+',
-                    icon: 'ü™®',
+                    icon: '🪨',
                     levels: [
                         { level: 'bronze', requirement: '5x 85%+', current: recentScores.length >= 5 ? recentScores.every(s => s >= 85) ? 'Achieved!' : 'In progress' : 'Need 5 sessions' },
                         { level: 'silver', requirement: '10x 85%+', current: scoreValues.length >= 10 ? scoreValues.slice(0, 10).every(s => s >= 85) ? 'Achieved!' : 'In progress' : 'Need 10 sessions' },
@@ -5094,7 +5110,7 @@
                     id: 'nearPerfect',
                     name: 'Near Perfect',
                     description: 'Achieve near-perfect scores',
-                    icon: '‚ú®',
+                    icon: '✨',
                     levels: [
                         { level: 'bronze', requirement: '95%', current: maxSimilarity.toFixed(1) + '%' },
                         { level: 'silver', requirement: '98%', current: maxSimilarity.toFixed(1) + '%' },
@@ -5105,7 +5121,7 @@
                     id: 'perfectionist',
                     name: 'Perfectionist',
                     description: 'Achieve perfect form',
-                    icon: 'üíé',
+                    icon: '💎',
                     levels: [
                         { level: 'bronze', requirement: '98%', current: maxSimilarity.toFixed(1) + '%' },
                         { level: 'silver', requirement: '100%', current: maxSimilarity.toFixed(1) + '%' },
@@ -5116,7 +5132,7 @@
                     id: 'weekWarrior',
                     name: 'Week Warrior',
                     description: 'Practice consecutive days',
-                    icon: 'üìÖ',
+                    icon: '📅',
                     levels: [
                         { level: 'bronze', requirement: '7 days', current: maxConsecutive + ' days' },
                         { level: 'silver', requirement: '30 days', current: maxConsecutive + ' days' },
@@ -5127,7 +5143,7 @@
                     id: 'dailyGrinder',
                     name: 'Daily Grinder',
                     description: 'Consecutive days with sessions',
-                    icon: 'üåÖ',
+                    icon: '🌅',
                     levels: [
                         { level: 'bronze', requirement: '3 days', current: maxConsecutive + ' days' },
                         { level: 'silver', requirement: '7 days', current: maxConsecutive + ' days' },
@@ -5138,7 +5154,7 @@
                     id: 'explorer',
                     name: 'Explorer',
                     description: 'Try all pro players',
-                    icon: 'üó∫Ô∏è',
+                    icon: '🗺️',
                     levels: [
                         { level: 'bronze', requirement: '5 players', current: uniquePlayers.length + ' players' },
                         { level: 'silver', requirement: '5 players + custom', current: uniquePlayers.length + ' players' },
@@ -5149,7 +5165,7 @@
                     id: 'adventurer',
                     name: 'Adventurer',
                     description: 'Try custom benchmarks',
-                    icon: 'üß≠',
+                    icon: '🧭',
                     levels: [
                         { level: 'bronze', requirement: '1 custom session', current: playerScores['custom'] ? playerScores['custom'].length + ' sessions' : 'Not yet' },
                         { level: 'silver', requirement: '5 custom sessions', current: playerScores['custom'] ? playerScores['custom'].length + ' sessions' : 'Not yet' },
@@ -5160,7 +5176,7 @@
                     id: 'completeCollection',
                     name: 'Complete Collection',
                     description: 'Master all players (85%+)',
-                    icon: 'üìö',
+                    icon: '📚',
                     levels: [
                         { level: 'bronze', requirement: 'All 5 players', current: playersWithHighScores.length + '/5 players' },
                         { level: 'silver', requirement: 'All 5 at 90%+', current: uniquePlayers.filter(p => {
@@ -5177,7 +5193,7 @@
                     id: 'quickLearner',
                     name: 'Quick Learner',
                     description: 'Reach high scores quickly',
-                    icon: 'üß†',
+                    icon: '🧠',
                     levels: [
                         { level: 'bronze', requirement: '80%+ in 5 sessions', current: totalSessions <= 5 && maxSimilarity >= 80 ? 'Achieved!' : totalSessions > 5 ? 'Time passed' : 'In progress' },
                         { level: 'silver', requirement: '85%+ in 5 sessions', current: totalSessions <= 5 && maxSimilarity >= 85 ? 'Achieved!' : totalSessions > 5 ? 'Time passed' : 'In progress' },
@@ -5188,7 +5204,7 @@
                     id: 'rapidRise',
                     name: 'Rapid Rise',
                     description: 'Dramatic improvement in 10 sessions',
-                    icon: 'üöÄ',
+                    icon: '🚀',
                     levels: [
                         { level: 'bronze', requirement: '<60% to >85%', current: scoreValues.length >= 10 ? (scoreValues.slice(-10, -5).reduce((a, b) => a + b, 0) / 5 < 60 && recentAvg >= 85 ? 'Achieved!' : 'In progress') : 'Need 10 sessions' },
                         { level: 'silver', requirement: '<60% to >90%', current: scoreValues.length >= 10 ? (scoreValues.slice(-10, -5).reduce((a, b) => a + b, 0) / 5 < 60 && recentAvg >= 90 ? 'Achieved!' : 'In progress') : 'Need 10 sessions' },
@@ -5215,7 +5231,7 @@
                         id: player + 'Specialist',
                         name: playerName + ' Specialist',
                         description: `Master ${playerName}'s form`,
-                        icon: 'üèÄ',
+                        icon: '🏀',
                         playerIcon: playerIcons[player], // Store player icon path
                         levels: [
                             { level: 'bronze', requirement: '5 sessions at 85%+', current: stats.sessions + ' sessions, ' + stats.maxScore.toFixed(1) + '% max' },
@@ -5228,7 +5244,7 @@
                         id: player + 'Specialist',
                         name: playerName + ' Specialist',
                         description: `Master ${playerName}'s form`,
-                        icon: 'üèÄ',
+                        icon: '🏀',
                         playerIcon: playerIcons[player], // Store player icon path
                         levels: [
                             { level: 'bronze', requirement: '5 sessions at 85%+', current: 'Not started' },
@@ -5265,7 +5281,7 @@
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <span style="font-weight: 600;">${levelInfo.level.charAt(0).toUpperCase() + levelInfo.level.slice(1)}</span>
                                         <span class="badge-level ${isAchieved ? levelInfo.level : 'none'}">
-                                            ${isAchieved ? '‚úì' : '‚óã'} ${levelInfo.requirement}
+                                            ${isAchieved ? '✓' : '○'} ${levelInfo.requirement}
                                         </span>
                                     </div>
                                     <div style="font-size: 12px; color: #666; margin-top: 5px;">
@@ -5883,7 +5899,7 @@
             // Disable button and show loading
             saveBtn.disabled = true;
             const originalText = saveBtn.textContent;
-            saveBtn.textContent = 'üíæ Saving...';
+            saveBtn.textContent = '💾 Saving...';
             if (messageDiv) messageDiv.style.display = 'none';
             
             try {
@@ -5932,7 +5948,7 @@
                 if (result && result.success) {
                     // Show popup notification
                     console.log('Showing success popup');
-                    showPopup('‚úÖ Saved!', 'success');
+                    showPopup('✅ Saved!', 'success');
                     
                     // Also update message div
                     if (messageDiv) {
@@ -6020,10 +6036,10 @@
             // Update last shot result
             const lastShotResult = document.getElementById('lastShotResult');
             if (data.overlay_text === 'Make') {
-                lastShotResult.textContent = '‚úÖ MAKE';
+                lastShotResult.textContent = '✅ MAKE';
                 lastShotResult.style.color = '#00ff00';
             } else if (data.overlay_text === 'Miss') {
-                lastShotResult.textContent = '‚ùå MISS';
+                lastShotResult.textContent = '❌ MISS';
                 lastShotResult.style.color = '#ff0000';
             } else {
                 lastShotResult.textContent = '-';
@@ -6335,7 +6351,7 @@
                             const backendResult = await response.json();
                             if (backendResult.success) {
                                 // Use backend result (AI-Basketball-Shot-Detection-Tracker YOLOv8 detection)
-                                console.log('‚úì Using YOLOv8 backend detection:', backendResult.tracker || 'AI-Basketball-Shot-Detection-Tracker (YOLOv8)');
+                                console.log('✓ Using YOLOv8 backend detection:', backendResult.tracker || 'AI-Basketball-Shot-Detection-Tracker (YOLOv8)');
                                 result = {
                                     algorithm: 'yolo8',
                                     tracker: backendResult.tracker || 'AI-Basketball-Shot-Detection-Tracker (YOLOv8)',
@@ -6377,7 +6393,7 @@
                 // Only use client-side if backend is completely unavailable
                 // Do NOT fallback if backend exists but just didn't detect anything this frame
                 if (!result && !API_BASE_URL) {
-                    console.warn('‚ö†Ô∏è Using client-side detection (backend not configured)');
+                    console.warn('⚠️ Using client-side detection (backend not configured)');
                     result = detectBallAndRimClientSide(ctx, canvas.width, canvas.height);
                     if (result) {
                         result.tracker = 'Client-side (fallback)';
@@ -6820,7 +6836,7 @@
                         if (h < 0) h += 360;
                     }
                     
-                    // Basketball detection: Orange (10-30¬∞) or Red (0-10¬∞ or 350-360¬∞)
+                    // Basketball detection: Orange (10-30°) or Red (0-10° or 350-360°)
                     // Based on OpenCV HSV ranges: [0,100,100] to [10,255,255] and [160,100,100] to [180,255,255]
                     const hDegrees = h;
                     const sPercent = s * 100;
@@ -7418,8 +7434,8 @@
             // Use latest detection result (from backend or client-side)
             const result = latestDetectionResult;
             if (result) {
-                const ballDet = result.ball_detected ? '‚úì' : '‚úó';
-                const rimDet = result.rim_detected ? '‚úì' : '‚úó';
+                const ballDet = result.ball_detected ? '✓' : '✗';
+                const rimDet = result.rim_detected ? '✓' : '✗';
                 const conf = (result.confidence * 100).toFixed(0);
                 const ballColor = result.ball_detected ? '#4ade80' : '#ef4444';
                 const rimColor = result.rim_detected ? '#4ade80' : '#ef4444';
@@ -7429,7 +7445,7 @@
                 // Update the model name display
                 const modelNameDiv = indicator.querySelector('div[style*="font-weight: 700"]');
                 if (modelNameDiv) {
-                    modelNameDiv.textContent = `üèÄ Model: ${algoName}`;
+                    modelNameDiv.textContent = `🏀 Model: ${algoName}`;
                 }
                 
                 stats.innerHTML = `
@@ -7498,7 +7514,7 @@
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 animation: slideIn 0.3s ease;
             `;
-            notification.textContent = result === 'make' ? '‚úÖ MAKE!' : '‚ùå MISS';
+            notification.textContent = result === 'make' ? '✅ MAKE!' : '❌ MISS';
             document.body.appendChild(notification);
             
             setTimeout(() => {
@@ -7778,7 +7794,7 @@
                             const backendResult = await response.json();
                             if (backendResult.success) {
                                 // Use backend result (AI-Basketball-Shot-Detection-Tracker YOLOv8 detection)
-                                console.log('‚úì Using YOLOv8 backend detection:', backendResult.tracker || 'AI-Basketball-Shot-Detection-Tracker (YOLOv8)');
+                                console.log('✓ Using YOLOv8 backend detection:', backendResult.tracker || 'AI-Basketball-Shot-Detection-Tracker (YOLOv8)');
                                 result = {
                                     algorithm: 'yolo8',
                                     tracker: backendResult.tracker || 'AI-Basketball-Shot-Detection-Tracker (YOLOv8)',
@@ -7820,7 +7836,7 @@
                 // Only use client-side if backend is completely unavailable
                 // Do NOT fallback if backend exists but just didn't detect anything this frame
                 if (!result && !API_BASE_URL) {
-                    console.warn('‚ö†Ô∏è Using client-side detection (backend not configured)');
+                    console.warn('⚠️ Using client-side detection (backend not configured)');
                     result = detectBallAndRimClientSide(ctx, canvas.width, canvas.height);
                     if (result) {
                         result.tracker = 'Client-side (fallback)';
@@ -8075,7 +8091,7 @@
                             <div style="font-size: 12px; color: var(--text-gray);">${formattedTime}</div>
                             ${captionDisplay}
                         </div>
-                        <button onclick="deleteProgressPic(${index})" style="position: absolute; top: 10px; right: 10px; background: rgba(255, 0, 0, 0.8); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 0, 0, 1)'" onmouseout="this.style.background='rgba(255, 0, 0, 0.8)'" title="Delete photo">√ó</button>
+                        <button onclick="deleteProgressPic(${index})" style="position: absolute; top: 10px; right: 10px; background: rgba(255, 0, 0, 0.8); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 0, 0, 1)'" onmouseout="this.style.background='rgba(255, 0, 0, 0.8)'" title="Delete photo">×</button>
                     </div>
                 `;
             }).join('');
@@ -8192,7 +8208,7 @@
                         if (uploadInput) uploadInput.value = '';
                         if (captionInput) captionInput.value = '';
                         if (previewDiv) previewDiv.style.display = 'none';
-                        alert('Progress pic saved successfully! üì∏');
+                        alert('Progress pic saved successfully! 📸');
                     }
                 });
             }
@@ -8976,7 +8992,7 @@
                 const calorieGoal = goals.calorieGoal || 2000;
                 
                 // Group by date and sum calories, filtering by time period
-                // Calculate total calories: servings √ó calories per serving
+                // Calculate total calories: servings × calories per serving
                 const dailyCalories = {};
                 entries.forEach(entry => {
                     const entryDate = entry.createdAt?.toDate ? entry.createdAt.toDate() : new Date();
@@ -8986,7 +9002,7 @@
                         if (!dailyCalories[date]) {
                             dailyCalories[date] = 0;
                         }
-                        // Calculate total: multiply servings √ó calories per serving
+                        // Calculate total: multiply servings × calories per serving
                         const caloriesPerServing = entry.caloriesPerServing !== undefined 
                             ? entry.caloriesPerServing 
                             : (entry.servings > 0 ? entry.calories / entry.servings : entry.calories);
@@ -9577,7 +9593,7 @@
             }
             
             // Calculate and display totals
-            // Multiply servings √ó calories per serving and servings √ó protein per serving for daily totals
+            // Multiply servings × calories per serving and servings × protein per serving for daily totals
             const totalCalories = entries.reduce((sum, e) => {
                 const caloriesPerServing = e.caloriesPerServing !== undefined 
                     ? e.caloriesPerServing 
@@ -9797,7 +9813,7 @@
             
             if (token) {
                 googleCalendarToken = token;
-                if (statusText) statusText.textContent = '‚úì Connected to Google Calendar';
+                if (statusText) statusText.textContent = '✓ Connected to Google Calendar';
             } else {
                 if (statusText) statusText.textContent = 'Click "Sync to Google Calendar" to connect and sync your schedule';
             }
@@ -10011,7 +10027,7 @@
                                         eventDateTime.setHours(parseInt(eventTime[0]), parseInt(eventTime[1]), 0);
                                         
                                         const event = {
-                                            summary: `üçΩÔ∏è ${plan.name}: ${meal.name}`,
+                                            summary: `🍽️ ${plan.name}: ${meal.name}`,
                                             description: `Calories: ${Math.round(meal.calories)} | Protein: ${Math.round(meal.protein * 10) / 10}g${meal.food ? `\nFood: ${meal.food}` : ''}`,
                                             start: {
                                                 dateTime: eventDateTime.toISOString(),
@@ -10048,7 +10064,7 @@
                                 eventDate.setHours(18, 0, 0); // Default to 6 PM
                                 
                                 const event = {
-                                    summary: `üí™ ${workout.name}`,
+                                    summary: `💪 ${workout.name}`,
                                     description: `Exercises: ${workout.exercises.map(e => e.name).join(', ')}`,
                                     start: {
                                         dateTime: eventDate.toISOString(),
@@ -10083,7 +10099,7 @@
                                 eventDate.setHours(17, 0, 0); // Default to 5 PM
                                 
                                 const event = {
-                                    summary: `‚öΩ ${workout.name}`,
+                                    summary: `⚽ ${workout.name}`,
                                     description: workout.details || '',
                                     start: {
                                         dateTime: eventDate.toISOString(),
@@ -10225,13 +10241,13 @@
                         let prefix = '';
                         if (item.type === 'diet') {
                             bgColor = '#fef3c7'; // Yellow for diet plans
-                            prefix = 'üçΩÔ∏è ';
+                            prefix = '🍽️ ';
                         } else if (item.type === 'gym') {
                             bgColor = '#dbeafe'; // Blue for gym workouts
-                            prefix = 'üí™ ';
+                            prefix = '💪 ';
                         } else if (item.type === 'sports') {
                             bgColor = '#d1fae5'; // Green for sports workouts
-                            prefix = '‚öΩ ';
+                            prefix = '⚽ ';
                         }
                         
                         itemDiv.style.cssText = `background: ${bgColor}; padding: 10px; border-radius: 4px; margin-bottom: 8px; font-size: 14px; border: 1px solid rgba(0,0,0,0.1);`;
@@ -10403,9 +10419,9 @@
                         ${workout.exercises.map(ex => {
                             let details = [];
                             if (ex.sets && ex.reps && ex.weight) {
-                                details.push(`${ex.sets} sets √ó ${ex.reps} reps @ ${ex.weight} lbs`);
+                                details.push(`${ex.sets} sets × ${ex.reps} reps @ ${ex.weight} lbs`);
                             } else if (ex.sets && ex.reps) {
-                                details.push(`${ex.sets} sets √ó ${ex.reps} reps`);
+                                details.push(`${ex.sets} sets × ${ex.reps} reps`);
                             } else if (ex.sets) {
                                 details.push(`${ex.sets} sets`);
                             }
@@ -11251,7 +11267,7 @@
 
             // Update play button
             const playBtn = document.getElementById('playPauseLoop');
-            if (playBtn) playBtn.textContent = '‚è∏';
+            if (playBtn) playBtn.textContent = '⏸';
 
             animateSkeleton();
             console.log(`Skeleton viewer started with ${poseData.length} frames`);
@@ -11274,7 +11290,7 @@
                 slider.addEventListener('input', function(e) {
                     isSkeletonPlaying = false;
                     const playBtn = document.getElementById('playPauseLoop');
-                    if (playBtn) playBtn.textContent = '‚ñ∂';
+                    if (playBtn) playBtn.textContent = '▶';
 
                     currentSkeletonFrameIndex = parseInt(e.target.value);
                     const poseData = window.userPoseData;
@@ -11293,7 +11309,7 @@
             if (playBtn) {
                 playBtn.addEventListener('click', function() {
                     isSkeletonPlaying = !isSkeletonPlaying;
-                    this.textContent = isSkeletonPlaying ? '‚è∏' : '‚ñ∂';
+                    this.textContent = isSkeletonPlaying ? '⏸' : '▶';
                     if (isSkeletonPlaying) animateSkeleton();
                 });
             }
@@ -11834,17 +11850,17 @@
                 messageDiv.style.background = 'rgba(239, 68, 68, 0.2)';
                 messageDiv.style.border = '1px solid #ef4444';
                 messageDiv.style.color = '#ef4444';
-                messageDiv.textContent = '‚ö†Ô∏è No shots detected. Please upload a video with clear shooting motion.';
+                messageDiv.textContent = '⚠️ No shots detected. Please upload a video with clear shooting motion.';
             } else if (count > 10) {
                 messageDiv.style.background = 'rgba(251, 191, 36, 0.2)';
                 messageDiv.style.border = '1px solid #fbbf24';
                 messageDiv.style.color = '#fbbf24';
-                messageDiv.textContent = `‚ö†Ô∏è ${count} shots detected. Only the first 10 will be analyzed.`;
+                messageDiv.textContent = `⚠️ ${count} shots detected. Only the first 10 will be analyzed.`;
             } else {
                 messageDiv.style.background = 'rgba(74, 222, 128, 0.2)';
                 messageDiv.style.border = '1px solid #4ade80';
                 messageDiv.style.color = '#4ade80';
-                messageDiv.textContent = `‚úì ${count} shot${count !== 1 ? 's' : ''} detected successfully!`;
+                messageDiv.textContent = `✓ ${count} shot${count !== 1 ? 's' : ''} detected successfully!`;
             }
         }
 
@@ -12892,13 +12908,13 @@
                         if (!angles || angles.length === 0 || !anglesExtracted) {
                             // Check if we have webcam data but no angles - this shouldn't happen, but handle it
                             if (poses.length > 0 && angles.length === 0) {
-                                console.log('‚ö†Ô∏è Webcam data found but angles missing. Using poses directly...');
+                                console.log('⚠️ Webcam data found but angles missing. Using poses directly...');
                                 // For webcam, angles should already be in metrics, so proceed
                                 runPlayerMatchComparison();
                                 return;
                             }
                             
-                            console.log('‚ö†Ô∏è Angles not extracted yet. Extracting angles from video first...');
+                            console.log('⚠️ Angles not extracted yet. Extracting angles from video first...');
                             if (runningOverlay) {
                                 runningOverlay.style.display = 'flex';
                                 const statusText = runningOverlay.querySelector('p');
@@ -12909,7 +12925,7 @@
                             
                             // Extract angles silently
                             generateLoop(true).then(() => {
-                                console.log('‚úÖ Angles extracted. Now comparing with benchmarks...');
+                                console.log('✅ Angles extracted. Now comparing with benchmarks...');
                                 // Continue with comparison below
                                 runPlayerMatchComparison();
                             }).catch(error => {
@@ -12947,7 +12963,7 @@
                             }
 
                             if (!inputAngles || inputAngles.length === 0) {
-                                console.error('‚ö†Ô∏è No angles data available!');
+                                console.error('⚠️ No angles data available!');
                                 return null;
                             }
 
@@ -12967,7 +12983,7 @@
                                     const angleData = inputAngles[i];
 
                                     if (i === 0) {
-                                        console.log('‚úÖ Angles extracted! Sample from first frame:', angleData);
+                                        console.log('✅ Angles extracted! Sample from first frame:', angleData);
                                     }
 
                                     if (angleData.right_elbow !== null && angleData.right_elbow !== undefined) {
@@ -12992,10 +13008,29 @@
                         const userData = window.convertToUserData(poses, stages, angles);
 
                         if (!userData || userData.length === 0) {
-                            console.error('‚ùå Failed to convert user data. Check if video was processed and angles were extracted.');
+                            console.error('❌ Failed to convert user data. Check if video was processed and angles were extracted.');
                             alert('No video data found. Please record a shot or upload a video first.');
                             console.error('No user data available for comparison');
                             return;
+                        }
+
+                        // Keep upload mode behavior consistent with webcam path:
+                        // if shot segmentation isn't populated yet, treat current extracted loop as one shot.
+                        if ((!window.perShotRawData || window.perShotRawData.length === 0) &&
+                            poses.length > 0 && angles.length > 0) {
+                            window.perShotRawData = [{
+                                poses: poses.slice(),
+                                stages: stages.slice(),
+                                angles: angles.slice()
+                            }];
+                        }
+                        if ((!detectedShots || detectedShots.length === 0) && window.perShotRawData && window.perShotRawData.length > 0) {
+                            detectedShots = window.perShotRawData.map((shot, idx) => ({
+                                start: idx === 0 ? 0 : -1,
+                                end: -1,
+                                frames: (shot.poses || []).length
+                            }));
+                            window.detectedShots = detectedShots;
                         }
                         
                         // Show loading state
@@ -13041,13 +13076,13 @@
                                     console.log('Number of matches:', matches?.length || 0);
 
                                     if (!matches || matches.length === 0) {
-                                        console.warn('‚ö†Ô∏è No matches found.');
+                                        console.warn('⚠️ No matches found.');
                                     }
 
                                     // Run per-shot comparisons
                                     const perShotRawData = window.perShotRawData || [];
                                     const perShotResults = [];
-                                    if (perShotRawData.length > 1) {
+                                    if (perShotRawData.length > 0) {
                                         console.log(`Running per-shot comparisons for ${perShotRawData.length} shots...`);
                                         for (let s = 0; s < perShotRawData.length; s++) {
                                             const shotData = perShotRawData[s];
@@ -13062,19 +13097,23 @@
                                         }
                                     }
 
+                                    const averagedOverallMatches = perShotResults.length > 0
+                                        ? averageShotMatches(perShotResults)
+                                        : (matches || []);
+
                                     // Store per-shot analysis globally
                                     window.perShotAnalysis = {
                                         shots: perShotResults,
-                                        overallMatches: matches || []
+                                        overallMatches: averagedOverallMatches
                                     };
 
                                     // Store matches globally for Ideal Form comparison
-                                    window.topPlayerMatches = matches || [];
-                                    window.topPlayerMatch = matches && matches.length > 0 ? matches[0] : null;
+                                    window.topPlayerMatches = averagedOverallMatches;
+                                    window.topPlayerMatch = averagedOverallMatches && averagedOverallMatches.length > 0 ? averagedOverallMatches[0] : null;
 
                                     // Update UI with results
                                     if (window.updatePlayerMatchUI) {
-                                        window.updatePlayerMatchUI(matches || []);
+                                        window.updatePlayerMatchUI(averagedOverallMatches);
                                     } else {
                                         console.error('updatePlayerMatchUI function not available!');
                                     }
@@ -13579,12 +13618,12 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
         // --- Thresholds & feedback rules ---
         const THRESHOLDS = {
-            elbowFlare:     { ideal: [5, 15],  warning: [15, 25], unit: '¬∞' },
-            trunkLean:      { ideal: [0, 8],   warning: [8, 15],  unit: '¬∞' },
-            kneeBend:       { ideal: [130, 160], warning: [115, 130], unit: '¬∞' },
-            elbowExtension: { ideal: [160, 180], warning: [140, 160], unit: '¬∞' },
-            wristSnap:      { ideal: [50, 80],  warning: [35, 50], unit: '¬∞' },
-            footAlignment:  { ideal: [-5, 5],   warning: [-15, -5], unit: '¬∞' },
+            elbowFlare:     { ideal: [5, 15],  warning: [15, 25], unit: '°' },
+            trunkLean:      { ideal: [0, 8],   warning: [8, 15],  unit: '°' },
+            kneeBend:       { ideal: [130, 160], warning: [115, 130], unit: '°' },
+            elbowExtension: { ideal: [160, 180], warning: [140, 160], unit: '°' },
+            wristSnap:      { ideal: [50, 80],  warning: [35, 50], unit: '°' },
+            footAlignment:  { ideal: [-5, 5],   warning: [-15, -5], unit: '°' },
             footStance:     { ideal: [14, 20],  warning: [10, 14], unit: 'in' },
             releaseHeight:  { ideal: [92, 100], warning: [85, 92], unit: 'in' },
             rhythm:         { ideal: [0, 0.03], warning: [0.03, 0.05], unit: 's' },
@@ -13593,68 +13632,68 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
         const FEEDBACK = {
             elbowFlare: {
-                good: 'Elbow alignment is tight ‚Äî minimal flare detected.',
+                good: 'Elbow alignment is tight — minimal flare detected.',
                 warning: 'Slight elbow flare detected. Try tucking your shooting elbow closer to your body.',
-                bad: 'Your elbow is flaring out ‚Äî causes left/right misses.',
-                badAlt: 'Your elbow is too tucked ‚Äî limits power.',
+                bad: 'Your elbow is flaring out — causes left/right misses.',
+                badAlt: 'Your elbow is too tucked — limits power.',
                 direction: function(v) { const mid = 10; return v > mid ? 'high' : 'low'; }
             },
             trunkLean: {
                 good: 'Great upright posture throughout your shot.',
                 warning: 'Mild forward lean at release. Focus on staying tall through the shot.',
-                bad: 'You\'re leaning forward ‚Äî stay tall through release.',
-                badAlt: 'You\'re leaning back ‚Äî losing power forward.',
+                bad: 'You\'re leaning forward — stay tall through release.',
+                badAlt: 'You\'re leaning back — losing power forward.',
                 direction: function(v) { return v > 0 ? 'high' : 'low'; }
             },
             kneeBend: {
                 good: 'Solid knee bend generating good power from legs.',
-                warning: 'Shallow knee bend ‚Äî you may be arm-shooting. Sink a bit lower.',
-                bad: 'Your legs aren\'t loaded ‚Äî losing power.',
-                badAlt: 'Too deep ‚Äî losing explosiveness.',
+                warning: 'Shallow knee bend — you may be arm-shooting. Sink a bit lower.',
+                bad: 'Your legs aren\'t loaded — losing power.',
+                badAlt: 'Too deep — losing explosiveness.',
                 direction: function(v) { const mid = 145; return v > mid ? 'high' : 'low'; }
             },
             elbowExtension: {
-                good: 'Full elbow extension at release ‚Äî excellent follow-through.',
+                good: 'Full elbow extension at release — excellent follow-through.',
                 warning: 'Elbow not fully extending. Reach higher on your follow-through.',
-                bad: 'Your arm isn\'t extending fully ‚Äî shorter range, less arc.'
+                bad: 'Your arm isn\'t extending fully — shorter range, less arc.'
             },
             wristSnap: {
                 good: 'Clean wrist snap with good backspin potential.',
                 warning: 'Incomplete wrist snap. Hold your gooseneck follow-through longer.',
-                bad: 'Your wrist isn\'t snapping through ‚Äî affects spin and touch.',
-                badAlt: 'Excessive wrist snap ‚Äî losing control.',
+                bad: 'Your wrist isn\'t snapping through — affects spin and touch.',
+                badAlt: 'Excessive wrist snap — losing control.',
                 direction: function(v) { const mid = 65; return v > mid ? 'high' : 'low'; }
             },
             footAlignment: {
                 good: 'Feet are well-aligned to the basket.',
                 warning: 'Feet slightly angled off target. Square up before each shot.',
-                bad: 'Your feet aren\'t aligned with your shoulders ‚Äî affects balance and direction.'
+                bad: 'Your feet aren\'t aligned with your shoulders — affects balance and direction.'
             },
             footStance: {
                 good: 'Stance width is in the optimal range.',
                 warning: 'Stance is slightly narrow or wide. Aim for shoulder-width apart.',
-                bad: 'Your base is too narrow ‚Äî affects balance.',
-                badAlt: 'Your base is too wide ‚Äî losing power transfer.',
+                bad: 'Your base is too narrow — affects balance.',
+                badAlt: 'Your base is too wide — losing power transfer.',
                 direction: function(v) { const mid = 17; return v > mid ? 'high' : 'low'; }
             },
             releaseHeight: {
                 good: 'Release height is in the ideal window.',
                 warning: 'Release is slightly low. Try to release at or above forehead height.',
-                bad: 'You\'re releasing low ‚Äî easier to block, flatter shot.'
+                bad: 'You\'re releasing low — easier to block, flatter shot.'
             },
             rhythm: {
-                good: 'Great timing ‚Äî your upper and lower body are in sync.',
+                good: 'Great timing — your upper and lower body are in sync.',
                 warning: 'Timing is slightly off. Focus on syncing your knee bend with your release.',
-                bad: 'Your timing is off ‚Äî elbow is firing before your legs.'
+                bad: 'Your timing is off — elbow is firing before your legs.'
             },
             jumpHeight: {
                 good: 'Consistent jump height across your session.',
-                warning: 'Jump height slightly below your average ‚Äî stay loaded.',
-                bad: 'Your jump height is dropping ‚Äî could be fatigue.'
+                warning: 'Jump height slightly below your average — stay loaded.',
+                bad: 'Your jump height is dropping — could be fatigue.'
             }
         };
 
-        // Get directional feedback ‚Äî uses alt message when value is on the opposite side
+        // Get directional feedback — uses alt message when value is on the opposite side
         function getDirectionalFeedback(metricKey, level, value) {
             const fb = FEEDBACK[metricKey];
             if (!fb) return '';
@@ -13731,7 +13770,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 }
             });
 
-            // Classify optional metrics (rhythm, jumpHeight) ‚Äî scored but not surfaced on UI yet
+            // Classify optional metrics (rhythm, jumpHeight) — scored but not surfaced on UI yet
             optionalKeys.forEach(k => {
                 if (metrics[k] === undefined || metrics[k] === null) return;
                 const val = k === 'rhythm' ? Math.abs(metrics.rhythmOffset || metrics[k] || 0) : metrics[k];
@@ -13748,7 +13787,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
             // If everything is good, add encouragement tips
             if (quickTips.length === 0) {
-                quickTips.push('Your mechanics look solid ‚Äî focus on repetition for consistency.');
+                quickTips.push('Your mechanics look solid — focus on repetition for consistency.');
                 quickTips.push('Try increasing your shooting distance to test your form under pressure.');
             }
 
@@ -13784,7 +13823,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 if (first10Avg > 0) {
                     const decline = (first10Avg - last10Avg) / first10Avg;
                     if (decline > 0.10) {
-                        tips.push('Your jump height dropped late session ‚Äî fatigue?');
+                        tips.push('Your jump height dropped late session — fatigue?');
                     }
                 }
             }
@@ -13793,7 +13832,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             if (careerAverage && careerAverage > 0) {
                 const sessionAvg = jumpHeights.reduce((a, b) => a + b, 0) / jumpHeights.length;
                 if (sessionAvg < careerAverage * 0.90) {
-                    tips.push('Your legs aren\'t as loaded today ‚Äî recovery day?');
+                    tips.push('Your legs aren\'t as loaded today — recovery day?');
                 }
             }
 
@@ -13805,23 +13844,23 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // --- Elbow Flare drills ---
             {
                 id: 'wall-alignment', metric: 'elbowFlare', priority: 1,
-                title: 'Wall Alignment', icon: 'üß±',
-                desc: 'Shooting elbow touches wall ‚Äî practice release without elbow leaving wall.',
+                title: 'Wall Alignment', icon: '🧱',
+                desc: 'Shooting elbow touches wall — practice release without elbow leaving wall.',
                 fullDesc: 'Stand with your shooting elbow touching a wall. Practice your release without letting your elbow leave the wall surface. This trains a straight elbow path.',
                 time: '10 mins', reps: '3x10',
                 cue: 'Keep your elbow brushing the wall on every rep'
             },
             {
                 id: 'elbow-in-holds', metric: 'elbowFlare', priority: 1,
-                title: 'Elbow-In Holds', icon: 'üí™',
+                title: 'Elbow-In Holds', icon: '💪',
                 desc: 'Hold ball at set point, partner checks elbow alignment, hold 3 sec.',
-                fullDesc: 'Hold the ball at your set point while a partner checks your elbow alignment. Hold for 3 seconds. Freeze at the top ‚Äî elbow should point at the rim.',
+                fullDesc: 'Hold the ball at your set point while a partner checks your elbow alignment. Hold for 3 seconds. Freeze at the top — elbow should point at the rim.',
                 time: '5 mins', reps: '10 reps',
-                cue: 'Freeze at the top ‚Äî elbow should point at the rim'
+                cue: 'Freeze at the top — elbow should point at the rim'
             },
             {
                 id: 'one-hand-form', metric: 'elbowFlare', priority: 2,
-                title: 'One-Hand Form Shooting', icon: '‚òùÔ∏è',
+                title: 'One-Hand Form Shooting', icon: '☝️',
                 desc: 'Close range, shooting hand only, focus on straight elbow path.',
                 fullDesc: 'Shoot close range with only your shooting hand. Focus on keeping a straight line from elbow through wrist to fingertips aimed at the basket.',
                 time: '10 mins', reps: '20 reps',
@@ -13830,7 +13869,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // --- Trunk Lean drills ---
             {
                 id: 'pause-and-shoot', metric: 'trunkLean', priority: 1,
-                title: 'Pause-and-Shoot', icon: '‚è∏Ô∏è',
+                title: 'Pause-and-Shoot', icon: '⏸️',
                 desc: 'Catch, pause 2 sec at set point with upright posture, then release.',
                 fullDesc: 'Catch the ball and pause for 2 seconds at your set point, maintaining perfectly upright posture. Then release. The pause forces awareness of your trunk position.',
                 time: '10 mins', reps: '20 reps',
@@ -13838,7 +13877,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             },
             {
                 id: 'back-to-wall', metric: 'trunkLean', priority: 1,
-                title: 'Back-to-Wall Shooting', icon: 'üßç',
+                title: 'Back-to-Wall Shooting', icon: '🧍',
                 desc: 'Heels 6 inches from wall, shoot without touching wall with back.',
                 fullDesc: 'Stand with your heels 6 inches from a wall. Shoot without letting your back touch the wall. If you feel the wall, you are leaning.',
                 time: '10 mins', reps: '15 reps',
@@ -13846,16 +13885,16 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             },
             {
                 id: 'chair-drill', metric: ['trunkLean', 'kneeBend'], priority: 2,
-                title: 'Chair Drill', icon: 'ü™ë',
+                title: 'Chair Drill', icon: '🪑',
                 desc: 'Start seated, stand and shoot in one motion. Forces vertical rise.',
                 fullDesc: 'Start sitting in a chair. Stand and shoot in one continuous motion. The chair forces you to drive straight up rather than leaning forward.',
                 time: '10 mins', reps: '15 reps',
-                cue: 'Drive straight up ‚Äî the chair keeps you honest'
+                cue: 'Drive straight up — the chair keeps you honest'
             },
             // --- Knee Bend drills ---
             {
                 id: 'squat-and-shoot', metric: 'kneeBend', priority: 1,
-                title: 'Squat-and-Shoot', icon: 'ü¶µ',
+                title: 'Squat-and-Shoot', icon: '🦵',
                 desc: 'Exaggerated knee bend, pause at bottom, explode into shot.',
                 fullDesc: 'Start with an exaggerated deep knee bend, pause at the bottom to feel the load in your legs, then explode upward into your shot.',
                 time: '15 mins', reps: '3x10',
@@ -13863,41 +13902,41 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             },
             {
                 id: 'legs-only', metric: ['kneeBend', 'jumpHeight'], priority: 1,
-                title: 'Legs-Only Shooting', icon: 'üèãÔ∏è',
-                desc: 'Close range, minimal arm motion ‚Äî power comes entirely from legs.',
+                title: 'Legs-Only Shooting', icon: '🏋️',
+                desc: 'Close range, minimal arm motion — power comes entirely from legs.',
                 fullDesc: 'Shoot from close range using minimal arm motion. All power should come from your legs. This teaches you to rely on leg drive for range and arc.',
                 time: '10 mins', reps: '15 reps',
                 cue: 'Your legs do 80% of the work here'
             },
             {
                 id: 'jump-stop', metric: ['kneeBend', 'rhythm'], priority: 2,
-                title: 'Jump Stop Shooting', icon: 'üõë',
+                title: 'Jump Stop Shooting', icon: '🛑',
                 desc: 'Catch with jump stop, feel the load in your legs, then shoot.',
                 fullDesc: 'Receive the ball with a jump stop. Feel the load in your legs from the stop, then immediately go into your shot. No wasted motion between landing and shooting.',
                 time: '10 mins', reps: '20 reps',
-                cue: 'Land loaded, then go ‚Äî no wasted motion'
+                cue: 'Land loaded, then go — no wasted motion'
             },
             // --- Elbow Extension drills ---
             {
                 id: 'form-shooting', metric: 'elbowExtension', priority: 1,
-                title: 'Form Shooting (no jump)', icon: 'üéØ',
-                desc: 'Close range, full arm extension, no jump ‚Äî focus on arm path.',
+                title: 'Form Shooting (no jump)', icon: '🎯',
+                desc: 'Close range, full arm extension, no jump — focus on arm path.',
                 fullDesc: 'Shoot from close range with no jump. Focus entirely on extending your arm fully through the release. Reach for the rim like putting something on a high shelf.',
                 time: '10 mins', reps: '20 reps',
                 cue: 'Reach for the rim like putting something on a high shelf'
             },
             {
                 id: 'reach-and-hold', metric: 'elbowExtension', priority: 1,
-                title: 'Reach-and-Hold', icon: 'ü§æ',
+                title: 'Reach-and-Hold', icon: '🤾',
                 desc: 'Shoot normally, freeze follow-through for 3 sec with arm fully extended.',
                 fullDesc: 'After each shot, freeze your follow-through for a full 3 seconds with your arm completely extended. Lock out your elbow and hold until the ball hits the ground.',
                 time: '10 mins', reps: '15 reps',
-                cue: 'Lock out your elbow ‚Äî hold until the ball hits the ground'
+                cue: 'Lock out your elbow — hold until the ball hits the ground'
             },
             {
                 id: 'guide-hand-release', metric: ['elbowExtension', 'wristSnap'], priority: 2,
-                title: 'Guide Hand Release', icon: '‚úã',
-                desc: 'Guide hand falls away early ‚Äî forces full shooting arm extension.',
+                title: 'Guide Hand Release', icon: '✋',
+                desc: 'Guide hand falls away early — forces full shooting arm extension.',
                 fullDesc: 'Shoot with your guide hand falling away from the ball early in the release. This forces your shooting arm to do all the work and extend fully.',
                 time: '10 mins', reps: '15 reps',
                 cue: 'Guide hand off early, shooting arm does all the work'
@@ -13905,7 +13944,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // --- Wrist Snap drills ---
             {
                 id: 'wrist-snap-drill', metric: 'wristSnap', priority: 1,
-                title: 'Wrist Snap Drill', icon: 'ü§ö',
+                title: 'Wrist Snap Drill', icon: '🤚',
                 desc: 'Ball on palm, snap wrist to self-pass with backspin, catch, repeat.',
                 fullDesc: 'Hold the ball on your shooting palm. Snap your wrist to toss the ball to yourself with backspin. Catch and repeat. Fingers should point down at the finish.',
                 time: '10 mins', reps: '3x20',
@@ -13913,40 +13952,40 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             },
             {
                 id: 'reach-for-rim', metric: 'wristSnap', priority: 1,
-                title: 'Reach-for-Rim Finish', icon: 'üèÄ',
-                desc: 'Shoot and hold follow-through ‚Äî fingers pointing at rim.',
+                title: 'Reach-for-Rim Finish', icon: '🏀',
+                desc: 'Shoot and hold follow-through — fingers pointing at rim.',
                 fullDesc: 'On every shot, hold your follow-through with your fingers pointing directly at the rim. Visualize putting your hand in a cookie jar on a high shelf.',
                 time: '10 mins', reps: '20 reps',
                 cue: 'Finish with your hand in the cookie jar'
             },
             {
                 id: 'one-hand-flick', metric: 'wristSnap', priority: 2,
-                title: 'One-Hand Flick', icon: 'üëÜ',
-                desc: 'Close range, one hand, wrist snap only ‚Äî ball should have high arc.',
-                fullDesc: 'From close range, use only one hand and pure wrist snap to shoot. No arm push ‚Äî all wrist. The ball should have high arc and heavy backspin.',
+                title: 'One-Hand Flick', icon: '👆',
+                desc: 'Close range, one hand, wrist snap only — ball should have high arc.',
+                fullDesc: 'From close range, use only one hand and pure wrist snap to shoot. No arm push — all wrist. The ball should have high arc and heavy backspin.',
                 time: '10 mins', reps: '20 reps',
-                cue: 'All wrist, no arm ‚Äî feel the snap'
+                cue: 'All wrist, no arm — feel the snap'
             },
             // --- Rhythm drills ---
             {
                 id: 'rhythm-shooting', metric: 'rhythm', priority: 1,
-                title: 'Rhythm Shooting', icon: 'üéµ',
-                desc: 'Catch, one-two step, shoot in continuous motion ‚Äî no pause.',
+                title: 'Rhythm Shooting', icon: '🎵',
+                desc: 'Catch, one-two step, shoot in continuous motion — no pause.',
                 fullDesc: 'Catch the ball and immediately flow into your shot with a one-two step. No pausing at any point. Say "catch-dip-shoot" out loud to feel the rhythm.',
                 time: '10 mins', reps: '20 reps',
                 cue: 'Say "catch-dip-shoot" out loud to feel the flow'
             },
             {
                 id: '1-2-step', metric: ['rhythm', 'footAlignment'], priority: 1,
-                title: '1-2 Step Footwork', icon: 'üë£',
-                desc: 'Focus on footwork timing ‚Äî inside foot first, then outside, then shoot.',
+                title: '1-2 Step Footwork', icon: '👣',
+                desc: 'Focus on footwork timing — inside foot first, then outside, then shoot.',
                 fullDesc: 'Practice catching with your inside foot landing first, then outside foot, then immediately into your shot. Same footwork pattern every single time.',
                 time: '15 mins', reps: '3x10',
-                cue: 'Inside foot, outside foot, up ‚Äî same every time'
+                cue: 'Inside foot, outside foot, up — same every time'
             },
             {
                 id: 'dip-and-drive', metric: 'rhythm', priority: 2,
-                title: 'Dip-and-Drive', icon: '‚¨áÔ∏è',
+                title: 'Dip-and-Drive', icon: '⬇️',
                 desc: 'Exaggerate the dip, feel the gather, then explode into shot.',
                 fullDesc: 'Exaggerate your dip when catching the ball. Feel the gather in your legs and core, then explode upward into your shot. Low to high, smooth and fast.',
                 time: '10 mins', reps: '15 reps',
@@ -13955,32 +13994,32 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // --- Foot Alignment drills ---
             {
                 id: 'catch-and-square', metric: 'footAlignment', priority: 1,
-                title: 'Catch-and-Square', icon: 'üéØ',
-                desc: 'Partner passes from different angles ‚Äî catch and square feet before shooting.',
+                title: 'Catch-and-Square', icon: '🎯',
+                desc: 'Partner passes from different angles — catch and square feet before shooting.',
                 fullDesc: 'Have a partner pass from various angles around the court. On every catch, square your feet to the basket before shooting. Toes to the rim before the ball touches your hands.',
                 time: '15 mins', reps: '3x10',
                 cue: 'Toes to the rim before the ball touches your hands'
             },
             {
                 id: 'cone-target-stance', metric: ['footAlignment', 'footStance'], priority: 2,
-                title: 'Cone Target Stance', icon: 'üî∫',
-                desc: 'Place cones where feet should land ‚Äî catch and hit the marks every rep.',
+                title: 'Cone Target Stance', icon: '🔺',
+                desc: 'Place cones where feet should land — catch and hit the marks every rep.',
                 fullDesc: 'Place cones or tape on the floor where your feet should land. On every catch, land with your feet on the marks. Same base, same spot, every time.',
                 time: '10 mins', reps: '20 reps',
-                cue: 'Hit your spots ‚Äî same base every time'
+                cue: 'Hit your spots — same base every time'
             },
             {
                 id: 'feet-alignment', metric: 'footAlignment', priority: 1,
-                title: 'Feet Alignment Drill', icon: 'üëü',
-                desc: 'Tape line on floor pointing at rim ‚Äî align feet to tape before every shot.',
+                title: 'Feet Alignment Drill', icon: '👟',
+                desc: 'Tape line on floor pointing at rim — align feet to tape before every shot.',
                 fullDesc: 'Put a strip of tape on the floor pointing directly at the basket. Before every shot, look down and align both feet parallel to the tape. The tape doesn\'t lie.',
                 time: '10 mins', reps: '20 reps',
                 cue: 'The tape doesn\'t lie'
             },
             {
                 id: 'mirror-stance', metric: ['footAlignment', 'footStance'], priority: 2,
-                title: 'Mirror Stance Check', icon: 'ü™û',
-                desc: 'Practice in front of mirror ‚Äî check foot width and alignment at set point.',
+                title: 'Mirror Stance Check', icon: '🪞',
+                desc: 'Practice in front of mirror — check foot width and alignment at set point.',
                 fullDesc: 'Practice your shooting stance in front of a mirror. Check that your foot width matches your shoulders and your feet are aligned to the target.',
                 time: '5 mins', reps: '10 reps',
                 cue: 'Look down, feet should match shoulders'
@@ -13988,7 +14027,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // --- Foot Stance drills ---
             {
                 id: 'shoulder-width-holds', metric: 'footStance', priority: 1,
-                title: 'Shoulder-Width Holds', icon: 'ü¶∂',
+                title: 'Shoulder-Width Holds', icon: '🦶',
                 desc: 'Set feet at shoulder width, partner checks, hold and shoot.',
                 fullDesc: 'Set your feet exactly at shoulder width. Have a partner verify the width. Hold that position and shoot. Find your base, own your base.',
                 time: '10 mins', reps: '15 reps',
@@ -13996,32 +14035,32 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             },
             {
                 id: 'narrow-to-wide', metric: 'footStance', priority: 1,
-                title: 'Narrow-to-Wide Adjustment', icon: '‚ÜîÔ∏è',
+                title: 'Narrow-to-Wide Adjustment', icon: '↔️',
                 desc: 'Start too narrow, adjust to proper width, then shoot.',
                 fullDesc: 'Start with your feet too narrow together. Consciously widen to proper shoulder-width, then shoot. Feel the difference in stability between narrow and correct width.',
                 time: '15 mins', reps: '3x10',
-                cue: 'Feel the difference ‚Äî stable base, stable shot'
+                cue: 'Feel the difference — stable base, stable shot'
             },
             // --- Release Height drills ---
             {
                 id: 'high-point-target', metric: 'releaseHeight', priority: 1,
-                title: 'High-Point Target', icon: '‚¨ÜÔ∏è',
-                desc: 'Hang a target above set point ‚Äî touch it before every release.',
+                title: 'High-Point Target', icon: '⬆️',
+                desc: 'Hang a target above set point — touch it before every release.',
                 fullDesc: 'Hang a target or have a partner hold their hand above your normal set point. You must touch or reach past it before releasing each shot.',
                 time: '10 mins', reps: '20 reps',
                 cue: 'If you don\'t touch it, the rep doesn\'t count'
             },
             {
                 id: 'rainbow-shooting', metric: 'releaseHeight', priority: 1,
-                title: 'Rainbow Shooting', icon: 'üåà',
-                desc: 'Aim for high arc ‚Äî ball should drop straight down through net.',
+                title: 'Rainbow Shooting', icon: '🌈',
+                desc: 'Aim for high arc — ball should drop straight down through net.',
                 fullDesc: 'Focus on shooting with the highest possible arc. The ball should drop nearly straight down through the net. Shoot it over an imaginary defender\'s outstretched hand.',
                 time: '10 mins', reps: '20 reps',
                 cue: 'Shoot it over an imaginary defender\'s hand'
             },
             {
                 id: 'set-point-freeze', metric: 'releaseHeight', priority: 2,
-                title: 'Set-Point Freeze', icon: 'üßä',
+                title: 'Set-Point Freeze', icon: '🧊',
                 desc: 'Catch, bring ball to set point, freeze 2 sec, then release.',
                 fullDesc: 'Catch the ball and bring it to your set point. Freeze for 2 seconds at that height, then release. This builds awareness of your release point height.',
                 time: '10 mins', reps: '15 reps',
@@ -14029,7 +14068,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             },
             // --- Jump Height drills (shared with other metrics) ---
             // Jump Height uses Legs-Only Shooting and Squat-and-Shoot as primary,
-            // Jump Stop Shooting as secondary ‚Äî all defined above with multi-target metrics
+            // Jump Stop Shooting as secondary — all defined above with multi-target metrics
         ];
 
         function getDrillsForMetric(metricKey, count) {
@@ -14117,9 +14156,9 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 const nose = lm[MP.NOSE];
 
                 // Elbow flare: angle at shoulder between hip and elbow (deviation from body line)
-                // Ideal: elbow stays close to body (~5-15¬∞ from torso line)
+                // Ideal: elbow stays close to body (~5-15° from torso line)
                 const elbowFlareAngle = calcAngle3D(rHip, rShoulder, rElbow);
-                m.elbowFlare = elbowFlareAngle != null ? Math.abs(elbowFlareAngle - 90) : 10; // deviation from 90¬∞
+                m.elbowFlare = elbowFlareAngle != null ? Math.abs(elbowFlareAngle - 90) : 10; // deviation from 90°
 
                 // Trunk lean: angle of torso from vertical
                 // Use midpoint of shoulders vs midpoint of hips
@@ -14155,11 +14194,11 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 m.footAlignment = footAngle;
 
                 // Foot stance: distance between ankles (normalized to approximate inches)
-                // Landmarks are normalized 0-1, typical shoulder width ~0.15 in normalized coords ‚âà 18 inches
+                // Landmarks are normalized 0-1, typical shoulder width ~0.15 in normalized coords ~ 18 inches
                 const ankleDist = Math.sqrt(
                     (rAnkle[0]-lAnkle[0])**2 + (rAnkle[1]-lAnkle[1])**2 + (rAnkle[2]-lAnkle[2])**2
                 );
-                // Scale: shoulder width (~0.15 normalized) ‚âà 18 inches
+                // Scale: shoulder width (~0.15 normalized) ~ 18 inches
                 const shoulderWidth = Math.sqrt(
                     (rShoulder[0]-lShoulder[0])**2 + (rShoulder[1]-lShoulder[1])**2 + (rShoulder[2]-lShoulder[2])**2
                 );
@@ -14210,7 +14249,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         // 5 axes: elbowFlare, trunkLean, kneeBend, elbowExtension, wristSnap
         // Chart center (150, 130), radius 100
         function radarPoint(index, score, cx, cy, r) {
-            // 5 spokes, starting from top (270¬∞), going clockwise
+            // 5 spokes, starting from top (270°), going clockwise
             const angle = (Math.PI * 2 / 5) * index - Math.PI / 2;
             const dist = (score / 100) * r;
             return [cx + dist * Math.cos(angle), cy + dist * Math.sin(angle)];
@@ -14297,7 +14336,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                             <div class="if-workon-drill-name">${drill.title}</div>
                             <div class="if-workon-drill-tip">${drill.cue || drill.desc}</div>
                             <div class="if-workon-drill-footer">
-                                <div class="if-workon-drill-meta"><span>‚è±Ô∏è ${drill.time || ''}</span><span>üèÄ ${drill.reps || ''}</span></div>
+                                <div class="if-workon-drill-meta"><span>⏱️ ${drill.time || ''}</span><span>🏀 ${drill.reps || ''}</span></div>
                                 <a href="#" target="_blank" class="pm-yt-link" title="Watch drill video">
                                     <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                                 </a>
@@ -14379,7 +14418,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             const valueEl = document.querySelector('.if-alignment-value-text');
             if (valueEl) {
                 valueEl.style.color = color;
-                valueEl.textContent = `${angle > 0 ? '+' : ''}${angle}¬∞`;
+                valueEl.textContent = `${angle > 0 ? '+' : ''}${angle}°`;
             }
             const labelEl = document.querySelector('.if-alignment-label');
             if (labelEl) {
@@ -14484,7 +14523,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             }
 
             const fixItems = document.querySelectorAll('.pm-fix-item');
-            const icons = { trunkLean: 'üßç', kneeBend: 'ü¶µ', wristSnap: 'ü§ö', elbowFlare: 'üí™', elbowExtension: 'ü§æ', footAlignment: 'üëü' };
+            const icons = { trunkLean: '🧍', kneeBend: '🦵', wristSnap: '🤚', elbowFlare: '💪', elbowExtension: '🤾', footAlignment: '👟' };
             const fixTitles = {
                 trunkLean: 'Stay more upright',
                 kneeBend: 'Deepen your knee bend',
@@ -14503,7 +14542,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 const drillDesc = fixItems[i].querySelector('.pm-drill-desc');
                 const drillMeta = fixItems[i].querySelector('.pm-drill-meta');
 
-                if (iconEl) iconEl.textContent = icons[issue.metric] || 'üéØ';
+                if (iconEl) iconEl.textContent = icons[issue.metric] || '🎯';
                 if (titleEl) titleEl.textContent = fixTitles[issue.metric] || METRIC_DISPLAY[issue.metric];
                 if (tipEl) tipEl.textContent = issue.feedback;
 
@@ -14511,7 +14550,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     const d = issue.drills[0];
                     if (drillName) drillName.textContent = d.title;
                     if (drillDesc) drillDesc.textContent = d.fullDesc;
-                    if (drillMeta) drillMeta.innerHTML = `<span>‚è±Ô∏è ${d.time}</span><span>üèÄ ${d.reps}</span>`;
+                    if (drillMeta) drillMeta.innerHTML = `<span>⏱️ ${d.time}</span><span>🏀 ${d.reps}</span>`;
                 }
             });
         }
@@ -14634,6 +14673,10 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         // WIRE ANALYSIS BUTTONS TO USE REAL POSE DATA
         // ============================================================
         (function wireAnalysisButtons() {
+            // Legacy wiring path. Disabled by default because it overrides the
+            // newer upload/webcam unified analysis pipeline (per-shot + tabs).
+            if (!window.__enableLegacyAnalysisButtonWiring) return;
+
             // Override the existing click handlers by re-attaching
             document.querySelectorAll('.analysis-type-btn').forEach(btn => {
                 const clone = btn.cloneNode(true);
@@ -14694,7 +14737,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             if (!matches || matches.length === 0) {
                 pmList.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: var(--text-gray);">
-                        <div style="font-size: 48px; margin-bottom: 20px;">üîç</div>
+                        <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
                         <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">No matches found</div>
                         <div style="font-size: 14px;">Please ensure your video has been processed and contains valid shot data.</div>
                     </div>
@@ -14726,7 +14769,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         <span>6'6" WS</span>
                         <span>Right</span>
                     </div>
-                    <button class="pm-expand-btn" style="background: none; border: none; color: var(--text-gray); cursor: pointer; padding: 8px; font-size: 18px;">‚ñº</button>
+                    <button class="pm-expand-btn" style="background: none; border: none; color: var(--text-gray); cursor: pointer; padding: 8px; font-size: 18px;">▼</button>
                 `;
 
                 const detailsSection = document.createElement('div');
@@ -14755,13 +14798,13 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                         Similarity: <span style="color: var(--primary-color); font-weight: 600;">${Math.round(metricScore)}%</span>
                                     </div>
                                     <div style="font-size: 12px; color: var(--text-gray); margin-bottom: 4px;">
-                                        Your Value: <strong>${userValue !== null ? userValue.toFixed(1) + '¬∞' : 'N/A'}</strong>
+                                        Your Value: <strong>${userValue !== null ? userValue.toFixed(1) + '°' : 'N/A'}</strong>
                                     </div>
                                     <div style="font-size: 12px; color: var(--text-gray); margin-bottom: 4px;">
-                                        ${match.playerName}: <strong>${benchValue !== null ? benchValue.toFixed(1) + '¬∞' : 'N/A'}</strong>
+                                        ${match.playerName}: <strong>${benchValue !== null ? benchValue.toFixed(1) + '°' : 'N/A'}</strong>
                                     </div>
                                     <div style="font-size: 11px; color: var(--text-gray); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-color);">
-                                        ${metricDiff !== null ? `Difference: ${metricDiff.toFixed(1)}¬∞` : ''}
+                                        ${metricDiff !== null ? `Difference: ${metricDiff.toFixed(1)}°` : ''}
                                     </div>
                                 </div>
                             `;
@@ -14779,7 +14822,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         e.stopPropagation();
                         const isExpanded = detailsSection.style.display !== 'none';
                         detailsSection.style.display = isExpanded ? 'none' : 'block';
-                        e.target.textContent = isExpanded ? '‚ñº' : '‚ñ≤';
+                        e.target.textContent = isExpanded ? '▼' : '▲';
                         return;
                     }
                     document.querySelectorAll('.pm-row').forEach(r => r.classList.remove('pm-row-selected'));
@@ -14863,12 +14906,26 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
             if (shotId === 'overall') {
                 renderMatchList(analysis.overallMatches);
+                // Show combined overlay
+                if (window.loop3DPoses && window.loop3DPoses.length > 0) {
+                    loop3DPoses = window.loop3DPoses;
+                    loop3DStages = window.loop3DStages || [];
+                    updateLoopViewerForCurrentPoses();
+                }
             } else {
                 const idx = parseInt(shotId);
                 if (analysis.shots[idx] && !analysis.shots[idx].deleted) {
                     renderMatchList(analysis.shots[idx].matches);
                 }
+                // Show this shot's overlay
+                const perShotRawData = window.perShotRawData || [];
+                if (perShotRawData[idx] && (perShotRawData[idx].poses || []).length > 0) {
+                    loop3DPoses = perShotRawData[idx].poses;
+                    loop3DStages = perShotRawData[idx].stages || [];
+                    updateLoopViewerForCurrentPoses();
+                }
             }
+            if (typeof window.updateMetricBreakdownViewer === 'function') window.updateMetricBreakdownViewer();
         }
 
         async function deleteShot(shotIndex) {
@@ -14881,35 +14938,8 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // Get remaining (non-deleted) shots
             const remainingShots = analysis.shots.filter(s => !s.deleted);
 
-            if (remainingShots.length === 0) {
-                analysis.overallMatches = [];
-            } else {
-                // Try full recalculation with raw data first
-                let recalculated = false;
-                const perShotRawData = window.perShotRawData || [];
-                if (perShotRawData.length > 0 && window.convertToUserData && window.compareWithAllBenchmarks) {
-                    const remainingRawData = perShotRawData.filter((_, i) => !analysis.shots[i]?.deleted);
-                    if (remainingRawData.length > 0 && remainingRawData[0].poses.length > 0) {
-                        const combinedPoses = remainingRawData.flatMap(s => s.poses);
-                        const combinedStages = remainingRawData.flatMap(s => s.stages);
-                        const combinedAngles = remainingRawData.flatMap(s => s.angles);
-                        const combinedUserData = window.convertToUserData(combinedPoses, combinedStages, combinedAngles);
-                        if (combinedUserData && combinedUserData.length > 0) {
-                            try {
-                                analysis.overallMatches = await window.compareWithAllBenchmarks(combinedUserData);
-                                recalculated = true;
-                            } catch (err) {
-                                console.warn('Full recalculation failed, falling back to averaging:', err);
-                            }
-                        }
-                    }
-                }
-
-                // Fallback: average the remaining shots' match scores
-                if (!recalculated) {
-                    analysis.overallMatches = averageShotMatches(remainingShots);
-                }
-            }
+            if (remainingShots.length === 0) analysis.overallMatches = [];
+            else analysis.overallMatches = averageShotMatches(remainingShots);
 
             // Update stored globals
             window.topPlayerMatches = analysis.overallMatches || [];
@@ -14934,19 +14964,20 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
 
             // Collect all player IDs across shots
             const playerMap = {};
+            const totalShots = remainingShots.length;
             remainingShots.forEach(shot => {
                 (shot.matches || []).forEach(m => {
                     if (!playerMap[m.playerId]) {
-                        playerMap[m.playerId] = { ...m, scores: [], comparisons: [] };
+                        playerMap[m.playerId] = { ...m, scoreSum: 0, comparisons: [] };
                     }
-                    playerMap[m.playerId].scores.push(m.score);
+                    playerMap[m.playerId].scoreSum += (m.score || 0);
                     if (m.comparison) playerMap[m.playerId].comparisons.push(m.comparison);
                 });
             });
 
             // Average scores and rebuild matches
             const averaged = Object.values(playerMap).map(p => {
-                const avgScore = p.scores.reduce((a, b) => a + b, 0) / p.scores.length;
+                const avgScore = totalShots > 0 ? (p.scoreSum / totalShots) : 0;
 
                 // Average metric scores if comparisons exist
                 let avgComparison = p.comparisons.length > 0 ? { ...p.comparisons[0] } : p.comparison;
@@ -15044,26 +15075,32 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             });
 
             if (shotId === 'overall') {
-                // Recalculate using all data (the combined loop3DAngles/Stages)
+                // Restore combined poses/stages for overlay and metrics
+                if (window.loop3DPoses && window.loop3DPoses.length > 0) {
+                    loop3DPoses = window.loop3DPoses;
+                    loop3DStages = window.loop3DStages || [];
+                }
                 syncLoopVariablesFromWindow();
                 if (window.topPlayerMatch && window.topPlayerMatch.comparison) {
                     calculateIdealFormMetricsWithComparison(window.topPlayerMatch);
                 } else {
                     calculateIdealFormMetrics();
                 }
+                updateLoopViewerForCurrentPoses();
             } else {
                 const idx = parseInt(shotId);
                 const perShotRawData = window.perShotRawData || [];
                 if (perShotRawData[idx]) {
-                    // Temporarily swap loop3DAngles/Stages to just this shot's data
+                    // Show this shot's overlay: set poses/stages for 3D viewer
+                    loop3DPoses = perShotRawData[idx].poses || [];
+                    loop3DStages = perShotRawData[idx].stages || [];
+                    updateLoopViewerForCurrentPoses();
+                    // Metrics for this shot
                     const savedAngles = loop3DAngles;
                     const savedStages = loop3DStages;
-                    loop3DAngles = perShotRawData[idx].angles;
-                    loop3DStages = perShotRawData[idx].stages;
-
+                    loop3DAngles = perShotRawData[idx].angles || [];
+                    loop3DStages = perShotRawData[idx].stages || [];
                     calculateIdealFormMetrics();
-
-                    // Restore combined data
                     loop3DAngles = savedAngles;
                     loop3DStages = savedStages;
                 }
@@ -15073,6 +15110,14 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
         function updatePlayerMatchUI(matches) {
             renderMatchList(matches);
             buildShotTabs();
+            const pmShotCountEl = document.getElementById('pmShotCount');
+            if (pmShotCountEl) {
+                const count = (window.perShotRawData && window.perShotRawData.length > 0)
+                    ? Math.min(window.perShotRawData.length, 10)
+                    : (window.detectedShots && window.detectedShots.length > 0 ? Math.min(window.detectedShots.length, 10) : 0);
+                pmShotCountEl.textContent = `${count} shot${count !== 1 ? 's' : ''} analyzed`;
+            }
+            if (typeof window.updateMetricBreakdownViewer === 'function') window.updateMetricBreakdownViewer();
         }
         
         /**
@@ -15120,21 +15165,21 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         
                         // Get icon based on metric name
                         const iconMap = {
-                            'release_height': 'üìè',
-                            'wrist_snap': 'üîÑ',
-                            'elbow_extension': 'üí™',
-                            'trunk_lean': 'üßç',
-                            'knee_bend': 'ü¶µ',
-                            'elbow_flare': 'ü§ö',
-                            'shoulder_angle': 'üìê',
-                            'foot_alignment': 'ü¶∂',
-                            'foot_angle': 'üë£'
+                            'release_height': '📏',
+                            'wrist_snap': '🔄',
+                            'elbow_extension': '💪',
+                            'trunk_lean': '🧍',
+                            'knee_bend': '🦵',
+                            'elbow_flare': '🤚',
+                            'shoulder_angle': '📐',
+                            'foot_alignment': '🦶',
+                            'foot_angle': '👣'
                         };
-                        const icon = iconMap[trait.name] || 'üìä';
+                        const icon = iconMap[trait.name] || '📊';
                         
                         // Create description based on values
-                        const userVal = trait.userValue !== null && trait.userValue !== undefined ? trait.userValue.toFixed(1) + '¬∞' : 'N/A';
-                        const benchVal = trait.benchmarkValue !== null && trait.benchmarkValue !== undefined ? trait.benchmarkValue.toFixed(1) + '¬∞' : 'N/A';
+                        const userVal = trait.userValue !== null && trait.userValue !== undefined ? trait.userValue.toFixed(1) + '°' : 'N/A';
+                        const benchVal = trait.benchmarkValue !== null && trait.benchmarkValue !== undefined ? trait.benchmarkValue.toFixed(1) + '°' : 'N/A';
                         const detail = `You: ${userVal} | ${playerName}: ${benchVal}`;
                         
                         traitEl.innerHTML = `
@@ -15179,22 +15224,22 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         
                         // Get icon based on metric name
                         const iconMap = {
-                            'release_height': 'üìè',
-                            'wrist_snap': 'üîÑ',
-                            'elbow_extension': 'üí™',
-                            'trunk_lean': 'üßç',
-                            'knee_bend': 'ü¶µ',
-                            'elbow_flare': 'ü§ö',
-                            'shoulder_angle': 'üìê',
-                            'foot_alignment': 'ü¶∂',
-                            'foot_angle': 'üë£'
+                            'release_height': '📏',
+                            'wrist_snap': '🔄',
+                            'elbow_extension': '💪',
+                            'trunk_lean': '🧍',
+                            'knee_bend': '🦵',
+                            'elbow_flare': '🤚',
+                            'shoulder_angle': '📐',
+                            'foot_alignment': '🦶',
+                            'foot_angle': '👣'
                         };
-                        const icon = iconMap[diff.name] || 'üìä';
+                        const icon = iconMap[diff.name] || '📊';
                         
                         // Create description based on values
-                        const userVal = diff.userValue !== null && diff.userValue !== undefined ? diff.userValue.toFixed(1) + '¬∞' : 'N/A';
-                        const benchVal = diff.benchmarkValue !== null && diff.benchmarkValue !== undefined ? diff.benchmarkValue.toFixed(1) + '¬∞' : 'N/A';
-                        const diffAmount = diff.difference !== null && diff.difference !== undefined ? diff.difference.toFixed(1) + '¬∞' : 'N/A';
+                        const userVal = diff.userValue !== null && diff.userValue !== undefined ? diff.userValue.toFixed(1) + '°' : 'N/A';
+                        const benchVal = diff.benchmarkValue !== null && diff.benchmarkValue !== undefined ? diff.benchmarkValue.toFixed(1) + '°' : 'N/A';
+                        const diffAmount = diff.difference !== null && diff.difference !== undefined ? diff.difference.toFixed(1) + '°' : 'N/A';
                         const detail = `You: ${userVal} | ${playerName}: ${benchVal} (diff: ${diffAmount})`;
                         
                         diffEl.innerHTML = `
@@ -15266,10 +15311,10 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         const traitEl = document.createElement('div');
                         traitEl.className = 'pm-trait-item';
                         traitEl.innerHTML = `
-                            <div class="pm-trait-icon">üìê</div>
+                            <div class="pm-trait-icon">📐</div>
                             <div class="pm-trait-text">
                                 <div class="pm-trait-name">${formatMetricName(trait.name)}</div>
-                                <div class="pm-trait-detail">User: ${trait.userValue !== null && trait.userValue !== undefined ? trait.userValue.toFixed(1) + '¬∞' : 'N/A'} | ${playerName}: ${trait.benchmarkValue !== null && trait.benchmarkValue !== undefined ? trait.benchmarkValue.toFixed(1) + '¬∞' : 'N/A'}</div>
+                                <div class="pm-trait-detail">User: ${trait.userValue !== null && trait.userValue !== undefined ? trait.userValue.toFixed(1) + '°' : 'N/A'} | ${playerName}: ${trait.benchmarkValue !== null && trait.benchmarkValue !== undefined ? trait.benchmarkValue.toFixed(1) + '°' : 'N/A'}</div>
                             </div>
                             <div class="pm-trait-match">${Math.round(trait.score)}%</div>
                         `;
@@ -15291,10 +15336,10 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         const diffEl = document.createElement('div');
                         diffEl.className = 'pm-diff-item';
                         diffEl.innerHTML = `
-                            <div class="pm-diff-icon">üßç</div>
+                            <div class="pm-diff-icon">🧍</div>
                             <div class="pm-diff-text">
                                 <div class="pm-diff-name">${formatMetricName(diff.name)}</div>
-                                <div class="pm-diff-detail">User: ${diff.userValue !== null && diff.userValue !== undefined ? diff.userValue.toFixed(1) + '¬∞' : 'N/A'} | ${playerName}: ${diff.benchmarkValue !== null && diff.benchmarkValue !== undefined ? diff.benchmarkValue.toFixed(1) + '¬∞' : 'N/A'}</div>
+                                <div class="pm-diff-detail">User: ${diff.userValue !== null && diff.userValue !== undefined ? diff.userValue.toFixed(1) + '°' : 'N/A'} | ${playerName}: ${diff.benchmarkValue !== null && diff.benchmarkValue !== undefined ? diff.benchmarkValue.toFixed(1) + '°' : 'N/A'}</div>
                             </div>
                             <div class="pm-diff-gap">${diff.score < 100 ? '-' : ''}${Math.round(Math.abs(100 - diff.score))}%</div>
                         `;
@@ -15580,11 +15625,11 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     // Display both angles
                     let displayText = '';
                     if (shoulderAngle !== null && footAngle !== null) {
-                        displayText = `Shoulders: ${shoulderAngle > 0 ? '+' : ''}${shoulderAngle}¬∞<br>Feet: ${footAngle > 0 ? '+' : ''}${footAngle}¬∞`;
+                        displayText = `Shoulders: ${shoulderAngle > 0 ? '+' : ''}${shoulderAngle}°<br>Feet: ${footAngle > 0 ? '+' : ''}${footAngle}°`;
                     } else if (shoulderAngle !== null) {
-                        displayText = `Shoulders: ${shoulderAngle > 0 ? '+' : ''}${shoulderAngle}¬∞`;
+                        displayText = `Shoulders: ${shoulderAngle > 0 ? '+' : ''}${shoulderAngle}°`;
                     } else if (footAngle !== null) {
-                        displayText = `Feet: ${footAngle > 0 ? '+' : ''}${footAngle}¬∞`;
+                        displayText = `Feet: ${footAngle > 0 ? '+' : ''}${footAngle}°`;
                     }
                     
                     footAlignmentEl.innerHTML = displayText;
@@ -15624,7 +15669,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         // Update the work-on description if it exists
                         const workOnDesc = document.querySelector('.if-workon-desc');
                         if (workOnDesc && Math.abs(offsetAngle) > 5) {
-                            workOnDesc.textContent = `Feet are angled ${Math.abs(offsetAngle)}¬∞ ${offsetAngle > 0 ? 'clockwise' : 'counterclockwise'} from shoulder alignment, affecting accuracy on longer shots.`;
+                            workOnDesc.textContent = `Feet are angled ${Math.abs(offsetAngle)}° ${offsetAngle > 0 ? 'clockwise' : 'counterclockwise'} from shoulder alignment, affecting accuracy on longer shots.`;
                         }
                     }
                 }
@@ -15714,6 +15759,225 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 detectedShots = window.detectedShots;
             }
         }
+
+        // Update the 3D skeleton overlay to show the current loop3DPoses (e.g. when switching shot tabs)
+        function updateLoopViewerForCurrentPoses() {
+            const poses = loop3DPoses || [];
+            const stages = loop3DStages || [];
+            currentLoopFrameIndex = 0;
+            if (typeof window !== 'undefined') window.currentLoopFrameIndex = 0;
+            const slider = document.getElementById('frameSlider');
+            if (slider) {
+                slider.max = Math.max(0, poses.length - 1);
+                slider.value = 0;
+            }
+            const frameCounter = document.getElementById('frameCounter');
+            if (frameCounter) frameCounter.textContent = poses.length > 0 ? `Frame: 1/${poses.length}` : 'Frame: 0/0';
+            if (poses.length > 0 && typeof updateLoop3DSkeleton === 'function') {
+                updateLoop3DSkeleton(poses[0], stages[0] || 'neutral');
+            }
+            if (typeof window.updateMetricBreakdownViewer === 'function') window.updateMetricBreakdownViewer();
+        }
+
+        // ---------- Metric breakdown viewer (below Player Match): 7 metrics, landmark highlight by score ----------
+        const METRIC_LANDMARKS = {
+            elbowFlare: [12, 14, 16, 24],
+            elbowExtension: [12, 14, 16],
+            kneeBend: [24, 26, 28],
+            wristSnap: [14, 16],
+            trunkLean: [11, 12, 23, 24],
+            releaseHeight: [0, 12, 14, 16],
+            footAlignment: [23, 24, 25, 26, 27, 28]
+        };
+        const METRIC_CONNECTIONS = {
+            elbowFlare: [[12, 14], [14, 16], [12, 24]],
+            elbowExtension: [[12, 14], [14, 16]],
+            kneeBend: [[24, 26], [26, 28]],
+            wristSnap: [[14, 16]],
+            trunkLean: [[11, 12], [11, 23], [12, 24], [23, 24]],
+            releaseHeight: [[12, 14], [14, 16]],
+            footAlignment: [[23, 24], [23, 25], [24, 26], [25, 27], [26, 28]]
+        };
+        const METRIC_LEVEL_COLORS = { good: 0x22c55e, warning: 0xeab308, bad: 0xf97316 };
+        let metricBreakdownScene = null, metricBreakdownCamera = null, metricBreakdownRenderer = null, metricBreakdownObjects = [];
+        let metricViewerFrameIndex = 0, metricViewerPlaying = false, metricViewerAnimationId = null;
+        let currentMetricTab = 'elbowFlare';
+
+        function getMetricSummaryFromAngles(anglesArray) {
+            if (!anglesArray || anglesArray.length === 0) return null;
+            const keyToCamel = { elbow_flare: 'elbowFlare', trunk_lean: 'trunkLean', knee_bend: 'kneeBend', elbow_extension: 'elbowExtension', wrist_snap: 'wristSnap', release_height: 'releaseHeight', foot_alignment: 'footAlignment' };
+            const out = {};
+            Object.keys(keyToCamel).forEach(k => {
+                const camel = keyToCamel[k];
+                const pipeKey = k === 'elbow_extension' ? 'right_elbow' : k;
+                const vals = anglesArray.map(f => {
+                    const o = f && typeof f === 'object' ? f : {};
+                    const v = o[k] ?? o[pipeKey];
+                    return v != null && !isNaN(v) ? Number(v) : null;
+                }).filter(v => v != null);
+                if (vals.length === 0) { out[camel] = null; return; }
+                if (k === 'knee_bend') out[camel] = Math.min(...vals);
+                else if (k === 'elbow_extension') out[camel] = Math.max(...vals);
+                else out[camel] = vals.reduce((a, b) => a + b, 0) / vals.length;
+            });
+            if (out.releaseHeight != null && out.releaseHeight <= 1) out.releaseHeight = 70 + out.releaseHeight * 30;
+            return out;
+        }
+
+        function getMetricLevelForCurrentData(metricKey) {
+            const angles = (loop3DAngles && loop3DAngles.length > 0) ? loop3DAngles : (window.loop3DAngles || []);
+            const summary = getMetricSummaryFromAngles(angles);
+            if (!summary) return 'good';
+            const val = summary[metricKey] ?? summary[metricKey === 'releaseHeight' ? 'releaseHeight' : null];
+            if (val == null) return 'good';
+            return typeof classifyMetric === 'function' ? classifyMetric(val, metricKey) : 'good';
+        }
+
+        function initMetricBreakdownViewer() {
+            const canvas = document.getElementById('metricBreakdownCanvas');
+            if (!canvas || metricBreakdownScene) return;
+            const container = document.getElementById('metricViewerContainer');
+            const w = container ? container.clientWidth : 400;
+            const h = container ? Math.round(container.offsetHeight) : 300;
+            metricBreakdownScene = new THREE.Scene();
+            metricBreakdownScene.background = new THREE.Color(0x0a0a0a);
+            metricBreakdownCamera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
+            metricBreakdownCamera.position.set(0, 0, 4);
+            metricBreakdownRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            metricBreakdownRenderer.setSize(w, h);
+            metricBreakdownRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+            metricBreakdownScene.add(ambient);
+            metricBreakdownScene.add(new THREE.DirectionalLight(0xffffff, 0.6));
+            window.addEventListener('resize', function onResize() {
+                const c = document.getElementById('metricViewerContainer');
+                if (!c || !metricBreakdownRenderer) return;
+                const nw = c.clientWidth, nh = c.offsetHeight;
+                metricBreakdownCamera.aspect = nw / nh;
+                metricBreakdownCamera.updateProjectionMatrix();
+                metricBreakdownRenderer.setSize(nw, nh);
+            });
+        }
+
+        function drawMetricViewerFrame(landmarks, metricKey, colorHex) {
+            if (!metricBreakdownScene || !metricBreakdownRenderer || !metricBreakdownCamera) return;
+            metricBreakdownObjects.forEach(obj => { metricBreakdownScene.remove(obj); });
+            metricBreakdownObjects = [];
+            if (!landmarks || landmarks.length < 29) {
+                metricBreakdownRenderer.render(metricBreakdownScene, metricBreakdownCamera);
+                return;
+            }
+            const center = { x: 0, y: 0, z: 0 };
+            let count = 0;
+            [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].forEach(i => {
+                const lm = landmarks[i];
+                if (lm && (lm.visibility == null || lm.visibility >= 0.3)) {
+                    center.x += lm.x; center.y += lm.y; center.z += (lm.z || 0);
+                    count++;
+                }
+            });
+            if (count === 0) { metricBreakdownRenderer.render(metricBreakdownScene, metricBreakdownCamera); return; }
+            center.x /= count; center.y /= count; center.z /= count;
+            const ls = landmarks[11], rs = landmarks[12];
+            const scale = (ls && rs) ? Math.max(3, Math.min(6, 1 / (Math.abs(ls.x - rs.x) + 0.1))) : 4;
+            const toWorld = (lm) => {
+                if (!lm) return null;
+                return new THREE.Vector3((lm.x - center.x) * scale * 2, -((lm.y - center.y) * scale * 2), ((lm.z || 0) - center.z) * scale * 0.5);
+            };
+            const indices = METRIC_LANDMARKS[metricKey] || [];
+            const connections = METRIC_CONNECTIONS[metricKey] || [];
+            const color = new THREE.Color(colorHex);
+            indices.forEach(i => {
+                const pos = toWorld(landmarks[i]);
+                if (pos) {
+                    const geo = new THREE.SphereGeometry(0.06, 12, 12);
+                    const mat = new THREE.MeshLambertMaterial({ color });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.copy(pos);
+                    metricBreakdownScene.add(mesh);
+                    metricBreakdownObjects.push(mesh);
+                }
+            });
+            connections.forEach(([a, b]) => {
+                const posA = toWorld(landmarks[a]);
+                const posB = toWorld(landmarks[b]);
+                if (posA && posB) {
+                    const geo = new THREE.BufferGeometry().setFromPoints([posA, posB]);
+                    const mat = new THREE.LineBasicMaterial({ color: colorHex, linewidth: 2 });
+                    const line = new THREE.Line(geo, mat);
+                    metricBreakdownScene.add(line);
+                    metricBreakdownObjects.push(line);
+                }
+            });
+            metricBreakdownRenderer.render(metricBreakdownScene, metricBreakdownCamera);
+        }
+
+        function updateMetricBreakdownViewer() {
+            const section = document.getElementById('metricBreakdownSection');
+            const poses = (loop3DPoses && loop3DPoses.length > 0) ? loop3DPoses : (window.loop3DPoses || []);
+            if (!section) return;
+            if (!poses || poses.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+            if (metricViewerFrameIndex >= poses.length) metricViewerFrameIndex = 0;
+            if (!metricBreakdownScene) initMetricBreakdownViewer();
+            const scrubber = document.getElementById('metricScrubber');
+            const counter = document.getElementById('metricFrameCounter');
+            if (scrubber) { scrubber.max = Math.max(0, poses.length - 1); scrubber.value = metricViewerFrameIndex; }
+            if (counter) counter.textContent = (metricViewerFrameIndex + 1) + ' / ' + poses.length;
+            const level = getMetricLevelForCurrentData(currentMetricTab);
+            const colorHex = METRIC_LEVEL_COLORS[level] || METRIC_LEVEL_COLORS.good;
+            const landmarks = poses[metricViewerFrameIndex];
+            drawMetricViewerFrame(landmarks, currentMetricTab, colorHex);
+            const valueEl = document.getElementById('metricValueDisplay');
+            if (valueEl) {
+                const angles = (loop3DAngles && loop3DAngles.length > 0) ? loop3DAngles : (window.loop3DAngles || []);
+                const summary = getMetricSummaryFromAngles(angles);
+                const val = summary && summary[currentMetricTab] != null ? Math.round(summary[currentMetricTab]) : '--';
+                valueEl.textContent = (METRIC_DISPLAY && METRIC_DISPLAY[currentMetricTab] ? METRIC_DISPLAY[currentMetricTab] : currentMetricTab) + ': ' + val + (typeof val === 'number' ? '\u00B0' : '');
+            }
+        }
+
+        function runMetricBreakdownViewerLoop() {
+            if (!metricViewerPlaying) return;
+            const poses = (loop3DPoses && loop3DPoses.length > 0) ? loop3DPoses : (window.loop3DPoses || []);
+            if (poses.length === 0) return;
+            metricViewerFrameIndex = (metricViewerFrameIndex + 1) % poses.length;
+            const scrubber = document.getElementById('metricScrubber');
+            if (scrubber) scrubber.value = metricViewerFrameIndex;
+            updateMetricBreakdownViewer();
+            metricViewerAnimationId = setTimeout(runMetricBreakdownViewerLoop, 1000 / 15);
+        }
+
+        (function wireMetricBreakdownUI() {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.metric-tab').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        document.querySelectorAll('.metric-tab').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        currentMetricTab = this.getAttribute('data-metric') || 'elbowFlare';
+                        updateMetricBreakdownViewer();
+                    });
+                });
+                const scrubber = document.getElementById('metricScrubber');
+                if (scrubber) scrubber.addEventListener('input', function() {
+                    metricViewerFrameIndex = parseInt(this.value, 10);
+                    updateMetricBreakdownViewer();
+                });
+                const playBtn = document.getElementById('metricPlayBtn');
+                if (playBtn) {
+                    playBtn.addEventListener('click', function() {
+                        metricViewerPlaying = !metricViewerPlaying;
+                        this.textContent = metricViewerPlaying ? '\u275A\u275A' : '\u25B6';
+                        if (metricViewerPlaying) runMetricBreakdownViewerLoop();
+                        else if (metricViewerAnimationId) { clearTimeout(metricViewerAnimationId); metricViewerAnimationId = null; }
+                    });
+                }
+            });
+        })();
+        window.updateMetricBreakdownViewer = updateMetricBreakdownViewer;
         
         // Also sync let variables to window when they change (for generateLoop)
         const originalPush = Array.prototype.push;
@@ -16182,7 +16446,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 // This gives the angle of the line in the x-z plane
                 // Positive angle = rotated counterclockwise (right shoulder forward/backward)
                 // Negative angle = rotated clockwise (left shoulder forward/backward)
-                // 0¬∞ = horizontal line (aligned with x-axis)
+                // 0° = horizontal line (aligned with x-axis)
                 if (deltaX !== 0 || deltaZ !== 0) {
                     const angle = Math.atan2(deltaZ, deltaX) * (180 / Math.PI);
                     shoulderAlignmentAngle = angle;
@@ -16202,7 +16466,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 // This gives the angle of the line in the x-z plane
                 // Positive angle = rotated counterclockwise (right foot forward/backward)
                 // Negative angle = rotated clockwise (left foot forward/backward)
-                // 0¬∞ = horizontal line (aligned with x-axis)
+                // 0° = horizontal line (aligned with x-axis)
                 if (deltaX !== 0 || deltaZ !== 0) {
                     const angle = Math.atan2(deltaZ, deltaX) * (180 / Math.PI);
                     footAlignmentAngle = angle;
@@ -16305,7 +16569,10 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             }
             
             if (isGeneratingLoop) {
-                console.log('Already generating loop');
+                console.log('Loop generation already in progress, waiting for it to finish...');
+                while (isGeneratingLoop) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
                 return;
             }
             
@@ -16350,13 +16617,14 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             const generateBtn = document.getElementById('generateAnimationBtn');
             if (!silent && generateBtn) {
                 generateBtn.disabled = true;
-                generateBtn.textContent = '‚è≥ Processing...';
+                generateBtn.textContent = '⏳ Processing...';
             }
             
             loop3DPoses = [];
             loop3DStages = [];
             loop3DAngles = [];
             detectedShots = []; // Reset detected shots
+            window.detectedShots = [];
             currentLoopFrameIndex = 0;
             
             // Show skeleton viewer and shot counter (hide processing overlay to show skeleton)
@@ -16386,9 +16654,12 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 }
                 
                 const duration = video.duration;
-                const fps = 30;
+                // Use lower sampling fps for silent/background extraction to speed up long uploads.
+                const fps = silent ? 12 : 30;
                 const frameInterval = 1 / fps;
                 const totalFrames = Math.ceil(duration * fps);
+                const fpsScale = fps / 30;
+                const scaleFrames = (framesAt30fps, min = 1) => Math.max(min, Math.round(framesAt30fps * fpsScale));
                 
                 console.log(`Generating loop: ${totalFrames} frames`);
                 
@@ -16421,6 +16692,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     currentShotFrames: [],
                     currentShotStages: [],
                     currentShotAngles: [],
+                    currentShotStartIndex: -1, // Start index in global arrays for rollback on rejected sequences
                     state: "looking_for_pre_shot", // looking_for_pre_shot, in_shot_sequence
                     shouldStop: false,
                     lastDetectedStage: 'neutral',
@@ -16428,18 +16700,18 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     elbowDropped: false,
                     // Debouncing fields
                     stageBuffer: [],           // Rolling window of raw stages
-                    bufferSize: 5,             // ~167ms at 30fps
+                    bufferSize: scaleFrames(5), // ~167ms equivalent window
                     neutralStreakCount: 0,     // Consecutive neutral frames in shot sequence
-                    neutralTolerance: 3,       // Allow up to 3 neutral frames before resetting
+                    neutralTolerance: scaleFrames(3), // Keep time-equivalent tolerance
                     preShotAccumulator: 0,     // Count of consecutive pre_shot frames
-                    minPreShotFrames: 2,       // Need 2 pre_shot frames to start sequence
+                    minPreShotFrames: scaleFrames(2), // Keep time-equivalent requirement
                     followThroughAccumulator: 0,
-                    minFollowThroughFrames: 2, // Need 2 follow_through frames to confirm
+                    minFollowThroughFrames: scaleFrames(2), // Keep time-equivalent requirement
                     // Shot validation
                     cooldownFrames: 0,
-                    cooldownDuration: 10,      // ~333ms cooldown between shots
-                    minShotFrames: 8,          // ~267ms minimum shot duration
-                    maxShotFrames: 150,        // ~5s maximum shot duration
+                    cooldownDuration: scaleFrames(10), // ~333ms cooldown between shots
+                    minShotFrames: scaleFrames(8),     // ~267ms minimum shot duration
+                    maxShotFrames: scaleFrames(150),   // ~5s maximum shot duration
                     // Dominant hand detection
                     dominantHand: null,
                     handDetectionFrames: 0,
@@ -16507,6 +16779,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                 shotDetectionState.preShotAccumulator++;
                                 if (shotDetectionState.preShotAccumulator >= shotDetectionState.minPreShotFrames) {
                                     // Confirmed pre_shot, start sequence
+                                    shotDetectionState.currentShotStartIndex = loop3DPoses.length;
                                     shotDetectionState.currentShotFrames = [landmarks];
                                     shotDetectionState.currentShotStages = [smoothedState];
                                     shotDetectionState.currentShotAngles = [angles];
@@ -16534,9 +16807,18 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                             // Max duration timeout
                             if (shotDetectionState.currentShotFrames.length > shotDetectionState.maxShotFrames) {
                                 console.log('Shot sequence timeout, resetting...');
+                                if (shotDetectionState.currentShotStartIndex >= 0) {
+                                    loop3DPoses = loop3DPoses.slice(0, shotDetectionState.currentShotStartIndex);
+                                    loop3DStages = loop3DStages.slice(0, shotDetectionState.currentShotStartIndex);
+                                    loop3DAngles = loop3DAngles.slice(0, shotDetectionState.currentShotStartIndex);
+                                    window.loop3DPoses = loop3DPoses;
+                                    window.loop3DStages = loop3DStages;
+                                    window.loop3DAngles = loop3DAngles;
+                                }
                                 shotDetectionState.currentShotFrames = [];
                                 shotDetectionState.currentShotStages = [];
                                 shotDetectionState.currentShotAngles = [];
+                                shotDetectionState.currentShotStartIndex = -1;
                                 shotDetectionState.state = "looking_for_pre_shot";
                                 shotDetectionState.seenFollowThrough = false;
                                 shotDetectionState.neutralStreakCount = 0;
@@ -16550,9 +16832,18 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                 shotDetectionState.neutralStreakCount++;
                                 if (shotDetectionState.neutralStreakCount > shotDetectionState.neutralTolerance) {
                                     console.log('Shot sequence broken (sustained neutral), resetting...');
+                                    if (shotDetectionState.currentShotStartIndex >= 0) {
+                                        loop3DPoses = loop3DPoses.slice(0, shotDetectionState.currentShotStartIndex);
+                                        loop3DStages = loop3DStages.slice(0, shotDetectionState.currentShotStartIndex);
+                                        loop3DAngles = loop3DAngles.slice(0, shotDetectionState.currentShotStartIndex);
+                                        window.loop3DPoses = loop3DPoses;
+                                        window.loop3DStages = loop3DStages;
+                                        window.loop3DAngles = loop3DAngles;
+                                    }
                                     shotDetectionState.currentShotFrames = [];
                                     shotDetectionState.currentShotStages = [];
                                     shotDetectionState.currentShotAngles = [];
+                                    shotDetectionState.currentShotStartIndex = -1;
                                     shotDetectionState.state = "looking_for_pre_shot";
                                     shotDetectionState.seenFollowThrough = false;
                                     shotDetectionState.neutralStreakCount = 0;
@@ -16590,9 +16881,18 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                     // Validate minimum shot duration
                                     if (shotDetectionState.currentShotFrames.length < shotDetectionState.minShotFrames) {
                                         console.log(`Shot rejected: too short (${shotDetectionState.currentShotFrames.length} frames)`);
+                                        if (shotDetectionState.currentShotStartIndex >= 0) {
+                                            loop3DPoses = loop3DPoses.slice(0, shotDetectionState.currentShotStartIndex);
+                                            loop3DStages = loop3DStages.slice(0, shotDetectionState.currentShotStartIndex);
+                                            loop3DAngles = loop3DAngles.slice(0, shotDetectionState.currentShotStartIndex);
+                                            window.loop3DPoses = loop3DPoses;
+                                            window.loop3DStages = loop3DStages;
+                                            window.loop3DAngles = loop3DAngles;
+                                        }
                                         shotDetectionState.currentShotFrames = [];
                                         shotDetectionState.currentShotStages = [];
                                         shotDetectionState.currentShotAngles = [];
+                                        shotDetectionState.currentShotStartIndex = -1;
                                         shotDetectionState.state = "looking_for_pre_shot";
                                         shotDetectionState.seenFollowThrough = false;
                                         shotDetectionState.neutralStreakCount = 0;
@@ -16611,11 +16911,12 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                         end: shotEndIndex,
                                         frames: shotDetectionState.currentShotFrames.length
                                     });
+                                    window.detectedShots = detectedShots;
 
                                     if (isUploadMode) {
-                                        console.log(`‚úì Shot ${shotDetectionState.shotsDetected} detected: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
+                                        console.log(`✓ Shot ${shotDetectionState.shotsDetected} detected: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
                                     } else {
-                                        console.log(`‚úì Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
+                                        console.log(`✓ Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} complete: ${shotDetectionState.currentShotFrames.length} frames (wrist dropped below shoulder)`);
                                     }
 
                                     if (shotDetectionState.shotsDetected >= selectedShotCount) {
@@ -16626,6 +16927,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                                         shotDetectionState.currentShotFrames = [];
                                         shotDetectionState.currentShotStages = [];
                                         shotDetectionState.currentShotAngles = [];
+                                        shotDetectionState.currentShotStartIndex = -1;
                                         shotDetectionState.state = "looking_for_pre_shot";
                                         shotDetectionState.seenFollowThrough = false;
                                         shotDetectionState.elbowDropped = false;
@@ -16648,7 +16950,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     if (shotDetectionState.shouldStop) {
                         console.log(`Stopping processing at frame ${frameIndex} (reached ${shotDetectionState.shotsDetected} shots)`);
                         if (statusEl) {
-                            statusEl.textContent = `‚úì Detected ${shotDetectionState.shotsDetected} shot(s), finalizing...`;
+                            statusEl.textContent = `✓ Detected ${shotDetectionState.shotsDetected} shot(s), finalizing...`;
                         }
                         break;
                     }
@@ -16678,9 +16980,9 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     
                     // Variable delay based on stage: fast for neutral, slow for shot sequences
                     // Use the stage detected from the previous frame
-                    let frameDelay = 10; // Very fast for neutral (skip quickly)
+                    let frameDelay = silent ? 0 : 10; // Run as fast as possible for silent/background extraction
                     if (shotDetectionState.lastDetectedStage === 'pre_shot' || shotDetectionState.lastDetectedStage === 'follow_through') {
-                        frameDelay = 200; // Slower for shot sequences (20x slower)
+                        frameDelay = silent ? 0 : 200; // Only slow down when visibly previewing
                     }
                     
                     // Wait for frame to render (variable delay)
@@ -16741,10 +17043,25 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         end: shotEndIndex,
                         frames: shotDetectionState.currentShotFrames.length
                     });
+                    window.detectedShots = detectedShots;
                     console.log(`Shot ${shotDetectionState.shotsDetected}/${selectedShotCount} detected: ${shotDetectionState.currentShotFrames.length} frames (final shot)`);
+                } else if (shotDetectionState.state === "in_shot_sequence" && shotDetectionState.currentShotStartIndex >= 0) {
+                    // Sequence never reached valid completion; roll back tentative frames.
+                    loop3DPoses = loop3DPoses.slice(0, shotDetectionState.currentShotStartIndex);
+                    loop3DStages = loop3DStages.slice(0, shotDetectionState.currentShotStartIndex);
+                    loop3DAngles = loop3DAngles.slice(0, shotDetectionState.currentShotStartIndex);
+                    window.loop3DPoses = loop3DPoses;
+                    window.loop3DStages = loop3DStages;
+                    window.loop3DAngles = loop3DAngles;
                 }
                 
                 if (loop3DPoses.length > 0) {
+                    // If no shot sequences were detected (e.g. upload with different motion), treat entire video as one shot (same as single-shot webcam)
+                    if (detectedShots.length === 0) {
+                        detectedShots = [{ start: 0, end: loop3DPoses.length - 1, frames: loop3DPoses.length }];
+                        window.detectedShots = detectedShots;
+                        console.log('No shot sequences detected; treating entire video as 1 shot (' + loop3DPoses.length + ' frames)');
+                    }
                     console.log(`Total shots detected: ${detectedShots.length}, total frames stored: ${loop3DPoses.length}`);
                     
                     // All frames in loop3DPoses are already from valid shot sequences
@@ -16768,19 +17085,21 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     if (statusEl && !silent) {
                         const shotsUsed = Math.min(detectedShots.length, selectedShotCount);
                         if (detectedShots.length >= selectedShotCount) {
-                            statusEl.textContent = `‚úì Successfully detected and clipped ${shotsUsed} shot(s) (${loop3DPoses.length} frames)`;
+                            statusEl.textContent = `✓ Successfully detected and clipped ${shotsUsed} shot(s) (${loop3DPoses.length} frames)`;
                         } else {
-                            statusEl.textContent = `‚úì Detected ${detectedShots.length} shot(s), using all (${loop3DPoses.length} frames, requested: ${selectedShotCount})`;
+                            statusEl.textContent = `✓ Detected ${detectedShots.length} shot(s), using all (${loop3DPoses.length} frames, requested: ${selectedShotCount})`;
                         }
                     }
                     console.log(`Shot processing complete: ${Math.min(detectedShots.length, selectedShotCount)} shots, ${loop3DPoses.length} total frames`);
 
-                    // Save per-shot raw data BEFORE interpolation (for per-shot analysis)
-                    window.perShotRawData = detectedShots.map(shot => ({
+                    // Save per-shot raw data BEFORE interpolation (cap at 10 shots)
+                    const shotsToUse = detectedShots.slice(0, 10);
+                    window.perShotRawData = shotsToUse.map(shot => ({
                         poses: loop3DPoses.slice(shot.start, shot.end + 1),
                         stages: loop3DStages.slice(shot.start, shot.end + 1),
                         angles: loop3DAngles.slice(shot.start, shot.end + 1)
                     }));
+                    window.detectedShots = shotsToUse;
                     console.log(`Saved per-shot raw data for ${window.perShotRawData.length} shots`);
 
                     // Interpolate frames to make animation smoother (16x frames)
@@ -16844,7 +17163,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     
                     if (!silent) {
                         if (statusEl) {
-                            statusEl.textContent = `‚úì Loop generated! ${loop3DPoses.length} frames (${originalFrameCount} original, ${loop3DPoses.length - originalFrameCount} interpolated)`;
+                            statusEl.textContent = `✓ Loop generated! ${loop3DPoses.length} frames (${originalFrameCount} original, ${loop3DPoses.length - originalFrameCount} interpolated)`;
                         }
                         
                         // Update frame slider
@@ -16871,12 +17190,16 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         console.log('Sample angles:', loop3DAngles[0]);
                     }
                     
-                    // Store that angles have been extracted
+                    // Store that angles have been extracted and sync to window (for results/overlay)
                     window.anglesExtracted = true;
+                    window.loop3DPoses = loop3DPoses;
+                    window.loop3DStages = loop3DStages;
+                    window.loop3DAngles = loop3DAngles;
+                    window.currentLoopFrameIndex = 0;
                 } else {
                     console.warn('No shot sequences detected');
                     if (statusEl && !silent) {
-                        statusEl.textContent = '‚ö† No shot sequences detected. Please ensure the video contains complete shot sequences (pre_shot ‚Üí follow_through ‚Üí pre_shot).';
+                        statusEl.textContent = '⚠ No shot sequences detected. Please ensure the video contains complete shot sequences (pre_shot → follow_through → pre_shot).';
                     }
                     if (processingOverlay) processingOverlay.style.display = 'none';
                 }
@@ -16884,7 +17207,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             } catch (error) {
                 console.error('Error generating loop:', error);
                 const statusEl = document.getElementById('processingStatus');
-                if (statusEl) statusEl.textContent = '‚úó Error: ' + error.message;
+                if (statusEl) statusEl.textContent = '✗ Error: ' + error.message;
                 const processingOverlay = document.getElementById('skeletonProcessing');
                 if (processingOverlay) processingOverlay.style.display = 'none';
             } finally {
@@ -16893,7 +17216,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     const generateBtn = document.getElementById('generateAnimationBtn');
                     if (generateBtn) {
                         generateBtn.disabled = false;
-                        generateBtn.textContent = 'üîÑ Generate Animation';
+                        generateBtn.textContent = '🔄 Generate Animation';
                     }
                 }
             }
@@ -17430,7 +17753,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                             seenFollowThrough = true;
                             benchmarkNeutralStreak = 0;
                         } else if (smoothedState === "pre_shot" && recordingActive && seenFollowThrough) {
-                            // Complete shot sequence detected (pre_shot ‚Üí follow_through ‚Üí pre_shot)
+                            // Complete shot sequence detected (pre_shot → follow_through → pre_shot)
                             shotComplete = true;
                             benchmarkNeutralStreak = 0;
                         } else {
@@ -17599,7 +17922,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                     
                     statusEl.style.background = '#dcfce7';
                     statusEl.style.color = '#166534';
-                    statusEl.textContent = `‚úì Successfully processed ${extractedPoses.length} frames`;
+                    statusEl.textContent = `✓ Successfully processed ${extractedPoses.length} frames`;
                     
                     // Show metrics display
                     document.getElementById('benchmarkMetricsDisplay').style.display = 'block';
@@ -17615,7 +17938,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                         animateBenchmarkLoop();
                     }
                 } else {
-                    throw new Error('No shot sequence detected in video. Please ensure the video contains a clear shooting motion (pre_shot ‚Üí follow_through).');
+                    throw new Error('No shot sequence detected in video. Please ensure the video contains a clear shooting motion (pre_shot → follow_through).');
                 }
                 
             } catch (error) {
@@ -17624,7 +17947,7 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 if (skeletonContainer) skeletonContainer.style.display = 'none';
                 statusEl.style.background = '#fef2f2';
                 statusEl.style.color = '#991b1b';
-                statusEl.textContent = `‚úó Error: ${error.message}`;
+                statusEl.textContent = `✗ Error: ${error.message}`;
                 console.error('Full error details:', error);
             } finally {
                 processBtn.disabled = false;
@@ -17739,18 +18062,18 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
             // Define metric labels and units (including basic angles)
             const metricInfo = {
                 // Basic angles (from original extraction)
-                elbow_angle: { label: 'Elbow Angle', unit: '¬∞' },
-                wrist_angle: { label: 'Wrist Angle', unit: '¬∞' },
-                arm_angle: { label: 'Arm Angle', unit: '¬∞' },
+                elbow_angle: { label: 'Elbow Angle', unit: '°' },
+                wrist_angle: { label: 'Wrist Angle', unit: '°' },
+                arm_angle: { label: 'Arm Angle', unit: '°' },
                 // Detailed metrics
-                wrist_snap: { label: 'Wrist Snap', unit: '¬∞' },
-                elbow_extension: { label: 'Elbow Extension', unit: '¬∞' },
-                knee_bend: { label: 'Knee Bend', unit: '¬∞' },
-                elbow_flare: { label: 'Elbow Flare', unit: '¬∞' },
-                trunk_lean: { label: 'Trunk Lean', unit: '¬∞' },
-                foot_alignment: { label: 'Foot Alignment', unit: '¬∞' },
-                shoulder_angle: { label: 'Shoulder Angle', unit: '¬∞' },
-                foot_angle: { label: 'Foot Angle', unit: '¬∞' },
+                wrist_snap: { label: 'Wrist Snap', unit: '°' },
+                elbow_extension: { label: 'Elbow Extension', unit: '°' },
+                knee_bend: { label: 'Knee Bend', unit: '°' },
+                elbow_flare: { label: 'Elbow Flare', unit: '°' },
+                trunk_lean: { label: 'Trunk Lean', unit: '°' },
+                foot_alignment: { label: 'Foot Alignment', unit: '°' },
+                shoulder_angle: { label: 'Shoulder Angle', unit: '°' },
+                foot_angle: { label: 'Foot Angle', unit: '°' },
                 release_height: { label: 'Release Height', unit: ' (relative)' }
             };
 
@@ -17822,7 +18145,7 @@ const ${playerId}_data = ${JSON.stringify(benchmarkVideoData, null, 2)};
 
                 statusEl.style.background = '#dcfce7';
                 statusEl.style.color = '#166534';
-                statusEl.innerHTML = `‚úì Benchmark saved as <strong>${playerId}_benchmark.js</strong><br>Please save the downloaded file to: <code>tool/player_data/${playerId}_benchmark.js</code>`;
+                statusEl.innerHTML = `✓ Benchmark saved as <strong>${playerId}_benchmark.js</strong><br>Please save the downloaded file to: <code>tool/player_data/${playerId}_benchmark.js</code>`;
 
                 // Reset form
                 document.getElementById('benchmarkFirstName').value = '';
@@ -17832,7 +18155,7 @@ const ${playerId}_data = ${JSON.stringify(benchmarkVideoData, null, 2)};
                 console.error('Error saving benchmark:', error);
                 statusEl.style.background = '#fef2f2';
                 statusEl.style.color = '#991b1b';
-                statusEl.textContent = `‚úó Error: ${error.message}`;
+                statusEl.textContent = `✗ Error: ${error.message}`;
             }
         });
         
@@ -17950,7 +18273,7 @@ const ${playerId}_data = ${JSON.stringify(benchmarkVideoData, null, 2)};
                     
                     statusEl.style.background = '#dcfce7';
                     statusEl.style.color = '#166534';
-                    statusEl.innerHTML = `‚úì Player data saved successfully!<br>File: <strong>${result.filename}</strong><br>Location: <code>tool/player_data/${result.filename}</code><br>Extracted ${playerData.length} frames with angles`;
+                    statusEl.innerHTML = `✓ Player data saved successfully!<br>File: <strong>${result.filename}</strong><br>Location: <code>tool/player_data/${result.filename}</code><br>Extracted ${playerData.length} frames with angles`;
                 } catch (apiError) {
                     console.warn('API save failed, falling back to download:', apiError);
                     // Fallback: download file if API fails
@@ -17970,7 +18293,7 @@ const ${playerId}_data = ${JSON.stringify(playerData, null, 2)};
 
                     statusEl.style.background = '#fef3c7';
                     statusEl.style.color = '#92400e';
-                    statusEl.innerHTML = `‚ö† Saved via download (API unavailable)<br>File: <strong>${playerId}.js</strong><br>Please manually save to: <code>tool/player_data/${playerId}.js</code><br>Extracted ${playerData.length} frames with angles`;
+                    statusEl.innerHTML = `⚠ Saved via download (API unavailable)<br>File: <strong>${playerId}.js</strong><br>Please manually save to: <code>tool/player_data/${playerId}.js</code><br>Extracted ${playerData.length} frames with angles`;
                 }
 
                 // Reset form
@@ -17981,7 +18304,7 @@ const ${playerId}_data = ${JSON.stringify(playerData, null, 2)};
                 console.error('Error saving player data:', error);
                 statusEl.style.background = '#fef2f2';
                 statusEl.style.color = '#991b1b';
-                statusEl.textContent = `‚úó Error: ${error.message}`;
+                statusEl.textContent = `✗ Error: ${error.message}`;
             }
         });
         
@@ -18135,19 +18458,18 @@ const user_extraction_data = ${JSON.stringify(playerData, null, 2)};
                 
                 statusEl.style.background = '#dcfce7';
                 statusEl.style.color = '#166534';
-                statusEl.innerHTML = `‚úì Shots clipped!<br>Original: ${originalLength} frames ‚Üí Clipped: ${loop3DPoses.length} frames<br>Range: Pre-shot to elbow drop`;
+                statusEl.innerHTML = `✓ Shots clipped!<br>Original: ${originalLength} frames → Clipped: ${loop3DPoses.length} frames<br>Range: Pre-shot to elbow drop`;
                 
-                console.log(`Clipped shots: ${originalLength} ‚Üí ${loop3DPoses.length} frames`);
+                console.log(`Clipped shots: ${originalLength} → ${loop3DPoses.length} frames`);
                 
             } catch (error) {
                 console.error('Error clipping shots:', error);
                 statusEl.style.background = '#fef2f2';
                 statusEl.style.color = '#991b1b';
-                statusEl.textContent = `‚úó Error: ${error.message}`;
+                statusEl.textContent = `✗ Error: ${error.message}`;
             }
         });
 
     </script>
 </body>
 </html>
-

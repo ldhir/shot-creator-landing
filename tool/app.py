@@ -39,9 +39,14 @@ from metrics import calculate_angle, calculate_all_single_frame_metrics
 
 try:
     import mediapipe as mp
+    mp_solutions = getattr(mp, "solutions", None)
+    if mp_solutions is None:
+        # Newer/alternate MediaPipe builds may not expose `solutions` at top-level.
+        from mediapipe.python import solutions as mp_solutions
     MEDIAPIPE_AVAILABLE = True
 except ImportError:
     MEDIAPIPE_AVAILABLE = False
+    mp_solutions = None
     print("Warning: MediaPipe not available. Install it with: pip install mediapipe")
 
 try:
@@ -140,7 +145,7 @@ if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and not BREVO_API_KEY:
         ses_client = None
 
 if MEDIAPIPE_AVAILABLE:
-    mp_pose = mp.solutions.pose
+    mp_pose = mp_solutions.pose
     POSE_CONNECTIONS = list(mp_pose.POSE_CONNECTIONS)
     pose = mp_pose.Pose(
         model_complexity=2,
@@ -1320,4 +1325,3 @@ def root_static(filename):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(debug=True, host='0.0.0.0', port=port)
-
